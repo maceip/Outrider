@@ -50,3 +50,18 @@ CREATE TABLE IF NOT EXISTS proxy_traffic (
 CREATE TABLE IF NOT EXISTS proxy_websocket_messages (
  id INTEGER PRIMARY KEY AUTOINCREMENT,run_id TEXT NOT NULL,websocket_id INTEGER NOT NULL,
  message TEXT NOT NULL CHECK(json_valid(message)),created_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS inspector_connections (
+ connection_id TEXT PRIMARY KEY,label TEXT NOT NULL,transport TEXT NOT NULL,target TEXT NOT NULL,
+ lifecycle TEXT NOT NULL,header_names TEXT NOT NULL CHECK(json_valid(header_names)),
+ env_names TEXT NOT NULL CHECK(json_valid(env_names)),status TEXT NOT NULL,
+ server_info TEXT CHECK(server_info IS NULL OR json_valid(server_info)),error TEXT,
+ created_at INTEGER NOT NULL,updated_at INTEGER NOT NULL);
+CREATE TABLE IF NOT EXISTS inspector_messages (
+ message_id INTEGER PRIMARY KEY AUTOINCREMENT,connection_id TEXT NOT NULL REFERENCES inspector_connections,
+ direction TEXT NOT NULL,kind TEXT NOT NULL,method TEXT NOT NULL,body TEXT NOT NULL CHECK(json_valid(body)),
+ reply_to INTEGER,latency_ms INTEGER,created_at_ms INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS inspector_message_connection ON inspector_messages(connection_id,message_id);
+CREATE TABLE IF NOT EXISTS inspector_server_requests (
+ request_id TEXT PRIMARY KEY,connection_id TEXT NOT NULL REFERENCES inspector_connections,
+ method TEXT NOT NULL,params TEXT NOT NULL CHECK(json_valid(params)),status TEXT NOT NULL,
+ response TEXT CHECK(response IS NULL OR json_valid(response)),created_at INTEGER NOT NULL,answered_at INTEGER);

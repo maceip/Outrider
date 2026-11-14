@@ -74,6 +74,22 @@ pub async fn route(commerce: Arc<Commerce>, request: Request<Incoming>) -> HttpR
             Err(e) => json_response(500, json!({"error":e.to_string()})),
         };
     }
+    if method == "GET" && path == "/inspector/state" {
+        let query: std::collections::HashMap<String, String> = request
+            .uri()
+            .query()
+            .map(|q| url::form_urlencoded::parse(q.as_bytes()).into_owned().collect())
+            .unwrap_or_default();
+        let after = query.get("after").and_then(|a| a.parse().ok()).unwrap_or(0);
+        return match commerce
+            .inspector
+            .state(&commerce.db, query.get("connection_id").map(String::as_str), after)
+            .await
+        {
+            Ok(v) => json_response(200, v),
+            Err(e) => json_response(500, json!({"error":format!("{e:#}")})),
+        };
+    }
     if method != "POST" {
         return json_response(405, json!({"error":"Method not allowed"}));
     }
@@ -180,6 +196,18 @@ pub async fn mutate(
             string("session_id")?,
             actor,
         ),
+        "/inspector/connect" => commerce.inspector.connect(commerce, &body, actor).await,
+        "/inspector/disconnect" => {
+            commerce
+                .inspector
+                .disconnect(string("connection_id")?)
+                .await
+        }
+        "/inspector/request" => commerce.inspector.request(&body).await,
+        "/inspector/notify" => commerce.inspector.notify(&body).await,
+        "/inspector/roots" => commerce.inspector.set_roots(&body).await,
+        "/inspector/listen" => commerce.inspector.listen(&body).await,
+        "/inspector/answer" => commerce.inspector.answer(&body),
         _ => anyhow::bail!("Unknown admin action"),
     }
 }
