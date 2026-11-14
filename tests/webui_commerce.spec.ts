@@ -248,6 +248,11 @@ for (const withModel of [false, true])
           expect(Number(row.output_tokens)).toBeGreaterThan(0);
           expect(row.option_scores).toBeNull();
           await expect(page.locator("#clef")).toContainText("Input tokens");
+          // The lens shows the question beside the pick; the rail infers no verdict.
+          await expect(page.locator("#clef")).toContainText("Question");
+          await expect(page.locator(".session.selected .state")).toHaveText(
+            "CLEF Evaluated",
+          );
         }
         await page
           .getByRole("button", { name: "MCP / MRTR", exact: true })
