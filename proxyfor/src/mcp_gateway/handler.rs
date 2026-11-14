@@ -4,7 +4,7 @@ use rusqlite::{params,OptionalExtension};
 use serde_json::{Value,json};
 use std::{sync::Arc,borrow::Cow,collections::HashSet};
 use crate::commerce::{Commerce,db::{id,now},receipt::SignedReceipt,bundler};
-use super::{mrtr_checkout::{self,QuoteCheckoutState},federation::frame};
+use super::{mrtr_checkout::{self},federation::frame};
 
 #[derive(Clone)]
 pub struct CommerceGateway {pub commerce:Arc<Commerce>,legacy_session:Arc<String>}
@@ -21,12 +21,12 @@ impl CommerceGateway {
   let meta=serde_json::to_value(&context.meta)?;
   let parts=context.extensions.get::<http::request::Parts>();
   let explicit=meta["outrider/session_id"].as_str().or_else(||parts.and_then(|p|p.headers.get("outrider-session-id")).and_then(|h|h.to_str().ok()));
-  let sealed=quote.map(|s|self.commerce.codec.open_json::<QuoteCheckoutState>(s)).transpose()?;
+  let sealed=quote.map(|s|self.commerce.codec.open_json::<Value>(s)).transpose()?;
   let signed=self.token(context).map(|s|SignedReceipt::decode(&s)).transpose()?;
   if let Some(s)=&signed {self.commerce.receipts.verify_signature(s)?;}
   let connection=parts.and_then(|p|p.extensions.get::<crate::fingerprint::passive::ConnectionEvidence>());
   let fallback=connection.map(|c|c.connection_id.as_str()).unwrap_or(self.legacy_session.as_str());
-  let session=if let Some(state)=&sealed {if let Some(explicit)=explicit {ensure!(explicit==state.session_id,"Quote belongs to another session");}state.session_id.clone()}
+  let session=if let Some(state)=&sealed {if let Some(explicit)=explicit {ensure!(Some(explicit)==state["session_id"].as_str(),"Quote belongs to another session");}state["session_id"].as_str().context("Sealed state has no session")?.to_owned()}
    else if let Some(explicit)=explicit {ensure!(uuid::Uuid::parse_str(explicit).is_ok(),"Outrider session id must be a UUID");explicit.into()}
    else if let Some(receipt)=&signed {if !receipt.receipt.subject.starts_with("https://") {receipt.receipt.subject.clone()}else{fallback.into()}}
    else {fallback.into()};
@@ -48,7 +48,7 @@ impl CommerceGateway {
 
   if is_new {self.commerce.changed("session.connected",Some(&session));}
   {
-   if *self.commerce.probe_policy.read().unwrap()==crate::fingerprint::active::ProbePolicy::Auto && context.client_capabilities().is_some_and(|c|c.sampling.is_some()) {
+   if context.protocol_version().is_none_or(|v|v<ProtocolVersion::V_2026_07_28) && *self.commerce.probe_policy.read().unwrap()==crate::fingerprint::active::ProbePolicy::Auto && context.client_capabilities().is_some_and(|c|c.sampling.is_some()) {
     let start={self.commerce.auto_probed.lock().unwrap().insert(session.clone())};
     if start {crate::fingerprint::active::run(&self.commerce,&session,context.peer.clone(),true).await?;}
    }
@@ -78,9 +78,23 @@ impl CommerceGateway {
  fn builtin(name:&str)->Tool {
   Tool::new(name.to_owned(),match name {"outrider_catalog"=>"List configured catalog and receipt requirements", "outrider_fingerprint_me"=>"Read your own captured fingerprint evidence","outrider_run_probe"=>"Run a disclosed capability probe","outrider_synthesized_offers"=>"Read or synthesize session bundle offers","outrider_checkout_bundle"=>"Present an operator-issued receipt to unlock or execute a bundle","outrider_verify_receipt"=>"Verify a capability receipt for your own subject",_=>"Read remaining quota and expiry of your own receipts"},Arc::new(json!({"type":"object","properties":{"bundle_id":{"type":"string"},"receipt":{"type":"string"},"execute":{"type":"boolean"},"tool_arguments":{"type":"object"}}}).as_object().unwrap().clone()))
  }
- async fn call(&self,request:CallToolRequestParams,context:RequestContext<RoleServer>)->Result<CallToolResponse> {
+ async fn call(&self,mut request:CallToolRequestParams,context:RequestContext<RoleServer>)->Result<CallToolResponse> {
   let (session,subject)=self.session(&context,request.request_state.as_deref()).await?;
   self.record(&context,&session,"tools/call",&serde_json::to_value(&request)?)?;
+  let is_2026=context.protocol_version().is_some_and(|v|v>=ProtocolVersion::V_2026_07_28);
+  let was_probe=is_2026 && crate::fingerprint::mrtr::is_probe(&self.commerce,request.request_state.as_deref())?;
+  if was_probe {
+   let result=crate::fingerprint::mrtr::finish(&self.commerce,&session,&subject,&request).await?;
+   if request.name=="outrider_run_probe" {return Ok(complete(result))}
+   request.request_state=None;request.input_responses=None;
+  } else if is_2026 && request.request_state.is_none() {
+   let forced=request.name=="outrider_run_probe";
+   let policy=*self.commerce.probe_policy.read().unwrap();
+   let seen={let conn=self.commerce.db.0.lock().unwrap();conn.query_row("SELECT COUNT(*) FROM probe_runs WHERE session_id=?1",[&session],|r|r.get::<_,i64>(0))?>0};
+   if forced || (policy==crate::fingerprint::active::ProbePolicy::Auto && !seen && context.client_capabilities().is_some_and(|c|c.sampling.is_some())) {
+    return crate::fingerprint::mrtr::begin(&self.commerce,&session,&subject,&request,&context.client_capabilities().unwrap_or_default());
+   }
+  }
   let args=request.arguments.clone().unwrap_or_default();
   let name=request.name.as_ref();
   match name {

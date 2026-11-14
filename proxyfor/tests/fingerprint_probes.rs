@@ -97,6 +97,7 @@ async fn real_2026_http_gateway_probes_default_auto()->Result<()> {
  let transport=StreamableHttpClientTransport::with_client(reqwest13::Client::builder().build()?,config);
  let count=Arc::new(AtomicUsize::new(0));
  let client=tokio::time::timeout(std::time::Duration::from_secs(10),ProbeClient{count:count.clone(),decline:false}.serve_with_lifecycle(transport,ClientLifecycleMode::Discover{preferred_versions:vec![ProtocolVersion::V_2026_07_28]})).await??;
+ client.call_tool(CallToolRequestParams::new("outrider_catalog")).await?;
  assert_eq!(count.load(Ordering::SeqCst),1);
  assert_eq!(rt.db.rows("probe_runs")?[0]["status"],"Completed");
  client.cancel().await?;let _=stop.send(());Ok(())
