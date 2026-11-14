@@ -85,3 +85,19 @@ async fn real_rustls_configurations_store_independently_verified_client_hellos()
  assert_ne!(fingerprints[0],fingerprints[1]);assert_eq!(rows.as_array().unwrap().iter().filter(|r|r["kind"]=="negotiated_tls").count(),2);
  let _=stop.send(());Ok(())
 }
+#[tokio::test]
+async fn real_2026_http_gateway_probes_default_auto()->Result<()> {
+ use rmcp::{ClientServiceExt,ClientLifecycleMode,transport::{StreamableHttpClientTransport,streamable_http_client::StreamableHttpClientTransportConfig}};
+ let _=tokio_rustls::rustls::crypto::ring::default_provider().install_default();
+ let dir=tempfile::tempdir()?;let rt=runtime(dir.path()).await?;
+ let server=proxyfor::server::ServerBuilder::new(common::build_ca()?).commerce(rt.clone()).build();
+ let listener=tokio::net::TcpListener::bind("127.0.0.1:0").await?;let addr=listener.local_addr()?;let stop=server.run(listener).await?;
+ let mut config=StreamableHttpClientTransportConfig::with_uri(format!("http://{addr}/mcp"));
+ config.custom_headers.insert("outrider-session-id".parse()?,uuid::Uuid::new_v4().to_string().parse()?);
+ let transport=StreamableHttpClientTransport::with_client(reqwest13::Client::builder().build()?,config);
+ let count=Arc::new(AtomicUsize::new(0));
+ let client=tokio::time::timeout(std::time::Duration::from_secs(10),ProbeClient{count:count.clone(),decline:false}.serve_with_lifecycle(transport,ClientLifecycleMode::Discover{preferred_versions:vec![ProtocolVersion::V_2026_07_28]})).await??;
+ assert_eq!(count.load(Ordering::SeqCst),1);
+ assert_eq!(rt.db.rows("probe_runs")?[0]["status"],"Completed");
+ client.cancel().await?;let _=stop.send(());Ok(())
+}
