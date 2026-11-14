@@ -30,6 +30,18 @@ or option distributions are supplied in that state. `--clef-backend cpu|gpu`,
 The native installation is explicit and checks archive hashes; every macOS arm64
 build also checks the installed library hashes. Cargo never downloads native code.
 
+## MCP Inspector
+
+`http://127.0.0.1:8080/__proxyfor__/inspector` (admin token required) connects to any
+MCP server over Streamable HTTP or a stdio command, or to this gateway's own `/mcp`
+to see exactly what agents see. It lists and calls tools through forms generated from
+their schemas, reads resources and templates, gets prompts with completions, fetches
+skills, sends raw JSON-RPC requests and notifications, sets roots, opens
+`subscriptions/listen` streams and answers sampling, elicitation and MRTR
+`input_required` rounds by hand. Every message, with latency and server stderr, is
+stored in `inspector_messages`; header and environment values are never stored.
+OAuth sign-in and the legacy HTTP+SSE transport are not supported.
+
 ## Sessions, probes and bundles
 
 MCP 2026 HTTP is stateless. Supply `Outrider-Session-Id: <UUID>` on each request,
