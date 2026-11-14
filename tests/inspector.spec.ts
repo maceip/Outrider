@@ -87,6 +87,15 @@ test("inspects this gateway over 2026-07-28 and resumes an MRTR probe", async ({
   await unlock(page);
   await page.getByRole("button", { name: "This gateway" }).click();
   await expect(page.getByLabel("Target")).toHaveValue(url + "/mcp");
+  const paneBox = (await page
+    .locator('[aria-label="Connections"]')
+    .boundingBox())!;
+  const removeHeaderBox = (await page
+    .getByRole("button", { name: "Remove header", exact: true })
+    .boundingBox())!;
+  expect(removeHeaderBox.x + removeHeaderBox.width).toBeLessThanOrEqual(
+    paneBox.x + paneBox.width + 1,
+  );
   await page.getByRole("button", { name: "Connect" }).click();
   await expect(page.locator("#server-head")).toContainText(
     "protocol 2026-07-28",
