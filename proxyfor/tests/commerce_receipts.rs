@@ -2,7 +2,7 @@ mod common;
 use anyhow::Result;
 use proxyfor::{clef::engine::{ClefEngine,ClefConfig},commerce::{Commerce,db::{Database,now},receipt::ReceiptAuthority,bundler::{self,Bundle}}};
 use serde_json::json;
-use std::{sync::Arc,net::{IpAddr,Ipv4Addr,SocketAddr}};
+use std::{sync::Arc,net::{IpAddr,Ipv4Addr}};
 
 fn seed(db:&Database,path:&std::path::Path)->Result<ReceiptAuthority> {
     db.record_session("session","subject",&json!({}),"stdio")?;
