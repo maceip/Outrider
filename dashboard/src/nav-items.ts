@@ -1,9 +1,9 @@
 import type {ComponentType} from "react";
 
 import {
-  ArrowRightFromSquare,
   ChartColumn,
   CircleQuestion,
+  DisplayPulse,
   Gear,
   House,
   ListCheck,
@@ -14,18 +14,17 @@ export type NavItem = {
   readonly href: string;
   readonly label: string;
   readonly icon: ComponentType<{className?: string}>;
-  readonly badge?: string;
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  {href: "/", icon: House, label: "Dashboard"},
-  {href: "/orders", icon: Receipt, label: "Orders"},
-  {badge: "New", href: "/tracker", icon: ListCheck, label: "Tracker"},
-  {href: "/analytics", icon: ChartColumn, label: "Analytics"},
-  {href: "/settings", icon: Gear, label: "Settings"},
+  {href: "/", icon: House, label: "Overview"},
+  {href: "/orders", icon: Receipt, label: "Commerce & Receipts"},
+  {href: "/tracker", icon: ListCheck, label: "Sessions & Evidence"},
+  {href: "/analytics", icon: ChartColumn, label: "CLEF & Telemetry"},
+  {href: "/inspector", icon: DisplayPulse, label: "MCP Inspector"},
+  {href: "/settings", icon: Gear, label: "Gateway Settings"},
 ] as const;
 
 export const FOOTER_ITEMS: readonly NavItem[] = [
-  {href: "/help", icon: CircleQuestion, label: "Help & Information"},
-  {href: "/logout", icon: ArrowRightFromSquare, label: "Log out"},
+  {href: "/help", icon: CircleQuestion, label: "Certificates & Protocol"},
 ] as const;

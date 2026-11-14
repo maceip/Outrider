@@ -1,72 +1,55 @@
 "use client";
 
-import type {TopPage} from "../data/analytics";
+import type {AdminAuditEntry} from "../lib/types";
 import type {DataGridColumn} from "@heroui-pro/react";
 
-import {DataGrid, NumberValue, TrendChip} from "@heroui-pro/react";
+import {DataGrid} from "@heroui-pro/react";
 import {useMemo} from "react";
 
-import {TOP_PAGES} from "../data/analytics";
-
-function formatDuration(seconds: number): string {
-  const m = Math.floor(seconds / 60);
-  const s = seconds % 60;
-
-  return `${m}m ${s.toString().padStart(2, "0")}s`;
-}
+import {useOutrider} from "../lib/outrider-store";
 
 export function TopPagesCard() {
-  const columns = useMemo<DataGridColumn<TopPage>[]>(
+  const {snapshot, unlocked} = useOutrider();
+
+  const entries = useMemo(() => snapshot?.admin_audit_log ?? [], [snapshot?.admin_audit_log]);
+
+  const columns = useMemo<DataGridColumn<AdminAuditEntry>[]>(
     () => [
       {
-        accessorKey: "path",
-        allowsSorting: true,
-        cell: (item) => <span className="font-medium">{item.path}</span>,
-        header: "Path",
-        id: "path",
+        accessorKey: "action",
+        cell: (item) => <span className="font-mono text-xs font-medium">{item.action}</span>,
+        header: "Action",
+        id: "action",
         isRowHeader: true,
-        minWidth: 220,
+        minWidth: 160,
       },
       {
-        accessorKey: "views",
-        allowsSorting: true,
+        accessorKey: "actor",
+        cell: (item) => <span className="font-mono text-xs">{item.actor}</span>,
+        header: "Actor",
+        id: "actor",
+        minWidth: 130,
+      },
+      {
+        accessorKey: "target",
         cell: (item) => (
-          <NumberValue className="tabular-nums" maximumFractionDigits={0} value={item.views} />
+          <span className="text-muted block max-w-[260px] truncate font-mono text-xs">
+            {item.target ?? "—"}
+          </span>
         ),
-        header: "Views",
-        id: "views",
+        header: "Target",
+        id: "target",
+        minWidth: 200,
+      },
+      {
+        cell: (item) => (
+          <span className="text-muted font-mono text-xs tabular-nums">
+            {new Date(item.created_at * 1000).toLocaleTimeString()}
+          </span>
+        ),
+        header: "Recorded",
+        id: "created_at",
         minWidth: 120,
-      },
-      {
-        accessorKey: "avgTimeSeconds",
-        allowsSorting: true,
-        cell: (item) => (
-          <span className="text-muted tabular-nums">{formatDuration(item.avgTimeSeconds)}</span>
-        ),
-        header: "Avg. time",
-        id: "avgTimeSeconds",
-        minWidth: 120,
-      },
-      {
-        accessorKey: "bounceRate",
-        allowsSorting: true,
-        cell: (item) => (
-          <NumberValue
-            className="text-muted tabular-nums"
-            maximumFractionDigits={1}
-            style="percent"
-            value={item.bounceRate / 100}
-          />
-        ),
-        header: "Bounce",
-        id: "bounceRate",
-        minWidth: 100,
-      },
-      {
-        cell: (item) => <TrendChip trend={item.trend}>{item.trendValue}</TrendChip>,
-        header: "Trend",
-        id: "trend",
-        minWidth: 100,
       },
     ],
     [],
@@ -75,15 +58,20 @@ export function TopPagesCard() {
   return (
     <section className="flex flex-col gap-3">
       <div className="flex flex-col gap-1">
-        <h2 className="text-foreground text-base font-semibold">Top pages</h2>
-        <p className="text-muted text-xs">Most-viewed pages over the selected period.</p>
+        <h2 className="text-foreground text-base font-semibold text-balance">Admin Audit Log</h2>
+        <p className="text-muted text-xs">Persisted operator mutations recorded in SQLite.</p>
       </div>
       <DataGrid
-        aria-label="Top pages"
+        aria-label="Admin audit log"
         columns={columns}
         contentClassName="min-w-[640px]"
-        data={[...TOP_PAGES]}
-        getRowId={(item) => item.id}
+        data={entries}
+        getRowId={(item) => item.audit_id}
+        renderEmptyState={() => (
+          <span className="text-muted py-6 text-xs">
+            {unlocked ? "0 audit entries recorded." : "Unlock to inspect admin audit entries."}
+          </span>
+        )}
       />
     </section>
   );

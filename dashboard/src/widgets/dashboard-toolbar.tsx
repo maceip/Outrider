@@ -1,63 +1,75 @@
 "use client";
 
-import {ArrowsRotateLeft, Calendar, ChevronDown} from "@gravity-ui/icons";
-import {Button, ButtonGroup, Dropdown, Label, Tabs} from "@heroui/react";
+import type {OverviewFilterTab} from "../lib/types";
+import type {Key} from "react";
+
+import {ArrowDownToLine, ArrowsRotateLeft} from "@gravity-ui/icons";
+import {Button, Tabs} from "@heroui/react";
 
 import {IconButton} from "../components/icon-button";
+import {useOutrider} from "../lib/outrider-store";
 
 export function DashboardToolbar() {
+  const {busy, exportSnapshot, overviewTab, refresh, setOverviewTab, snapshot, unlocked} =
+    useOutrider();
+
+  const refreshReason = !unlocked
+    ? "Admin token required"
+    : busy
+      ? "Backend action in progress"
+      : undefined;
+
+  const exportReason = !unlocked || !snapshot ? "Admin token required to export snapshot" : undefined;
+
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-      <Tabs defaultSelectedKey="overview">
+      <Tabs
+        selectedKey={overviewTab}
+        onSelectionChange={(key: Key) => setOverviewTab(String(key) as OverviewFilterTab)}
+      >
         <Tabs.ListContainer>
-          <Tabs.List aria-label="Dashboard tabs">
+          <Tabs.List aria-label="Overview workspace filter">
             <Tabs.Tab id="overview">
               Overview
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab id="sales">
-              Sales
+            <Tabs.Tab id="commerce">
+              Commerce
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab id="expenses">
-              Expenses
+            <Tabs.Tab id="evidence">
+              Evidence
               <Tabs.Indicator />
             </Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
       </Tabs>
+
       <div className="flex flex-wrap items-center gap-2">
-        <IconButton label="Refresh" size="sm" variant="tertiary">
-          <ArrowsRotateLeft className="size-4" />
-        </IconButton>
-        <ButtonGroup size="sm" variant="tertiary">
-          <Button>
-            <Calendar className="size-4" />
-            Monthly
+        <span title={refreshReason}>
+          <IconButton
+            isDisabled={Boolean(refreshReason)}
+            label="Refresh snapshot"
+            size="sm"
+            tooltip={refreshReason ?? "Reload persisted commerce snapshot"}
+            variant="tertiary"
+            onPress={() => void refresh()}
+          >
+            <ArrowsRotateLeft aria-hidden="true" className="size-4" />
+          </IconButton>
+        </span>
+
+        <span title={exportReason}>
+          <Button
+            isDisabled={Boolean(exportReason)}
+            size="sm"
+            variant="secondary"
+            onPress={exportSnapshot}
+          >
+            <ArrowDownToLine aria-hidden="true" className="size-4" />
+            Export Snapshot
           </Button>
-          <Dropdown>
-            <Button isIconOnly aria-label="Change period" size="sm" variant="tertiary">
-              <ChevronDown className="size-4" />
-            </Button>
-            <Dropdown.Popover placement="bottom end">
-              <Dropdown.Menu>
-                <Dropdown.Item id="daily" textValue="Daily">
-                  <Label>Daily</Label>
-                </Dropdown.Item>
-                <Dropdown.Item id="weekly" textValue="Weekly">
-                  <Label>Weekly</Label>
-                </Dropdown.Item>
-                <Dropdown.Item id="monthly" textValue="Monthly">
-                  <Label>Monthly</Label>
-                </Dropdown.Item>
-                <Dropdown.Item id="yearly" textValue="Yearly">
-                  <Label>Yearly</Label>
-                </Dropdown.Item>
-              </Dropdown.Menu>
-            </Dropdown.Popover>
-          </Dropdown>
-        </ButtonGroup>
-        <Button size="sm">Download</Button>
+        </span>
       </div>
     </div>
   );

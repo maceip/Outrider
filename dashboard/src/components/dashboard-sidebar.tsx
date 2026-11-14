@@ -2,37 +2,42 @@
 
 import type {NavItem} from "../nav-items";
 
-import {Avatar, Chip} from "@heroui/react";
+import {CurlyBracketsLock} from "@gravity-ui/icons";
+import {Avatar} from "@heroui/react";
 import {Sidebar} from "@heroui-pro/react";
 
+import {useOutrider} from "../lib/outrider-store";
+import {formatClefState} from "../lib/types";
 import {FOOTER_ITEMS, NAV_ITEMS} from "../nav-items";
 
-interface DashboardSidebarProps {
-  pathname: string;
+export interface DashboardSidebarProps {
   basePath: string;
+  currentRoute: string;
   disableNavigation?: boolean;
 }
 
 export function DashboardSidebar({
   basePath,
+  currentRoute,
   disableNavigation = false,
-  pathname,
 }: DashboardSidebarProps) {
   return (
     <>
       <Sidebar>
         <SidebarContents
           basePath={basePath}
+          currentRoute={currentRoute}
           disableNavigation={disableNavigation}
-          pathname={pathname}
+          isPrimaryBrand
         />
       </Sidebar>
       <Sidebar.Mobile>
         <SidebarContents
           basePath={basePath}
+          currentRoute={currentRoute}
           disableNavigation={disableNavigation}
           idPrefix="mobile-"
-          pathname={pathname}
+          isPrimaryBrand={false}
         />
       </Sidebar.Mobile>
     </>
@@ -41,62 +46,89 @@ export function DashboardSidebar({
 
 interface SidebarContentsProps {
   basePath: string;
+  currentRoute: string;
   disableNavigation: boolean;
-  pathname: string;
   idPrefix?: string;
+  isPrimaryBrand: boolean;
 }
 
 function SidebarContents({
   basePath,
+  currentRoute,
   disableNavigation,
   idPrefix = "",
-  pathname,
+  isPrimaryBrand,
 }: SidebarContentsProps) {
+  const {clefStatus, lock, snapshot, unlocked} = useOutrider();
+
+  const subtitle =
+    unlocked && snapshot?.public_key
+      ? `Ed25519 ${snapshot.public_key.slice(0, 10)}…`
+      : `CLEF ${formatClefState(clefStatus)}`;
+
   return (
     <>
       <Sidebar.Header>
         <div className="flex items-center gap-3 px-1 py-1">
-          <Avatar className="size-9">
-            <Avatar.Image
-              alt="Kate Moore"
-              src="https://heroui-assets.nyc3.cdn.digitaloceanspaces.com/avatars/blue-light.jpg"
-            />
-            <Avatar.Fallback>KM</Avatar.Fallback>
+          <Avatar className="bg-accent-soft text-accent size-9">
+            <Avatar.Fallback className="font-mono text-xs font-semibold">OR</Avatar.Fallback>
           </Avatar>
           <div className="flex min-w-0 flex-col" data-sidebar="label">
-            <span className="text-foreground text-sm font-medium leading-tight">Kate Moore</span>
-            <span className="text-muted text-xs font-medium leading-tight">Admin</span>
+            <span
+              className={
+                isPrimaryBrand
+                  ? "brand text-foreground font-mono text-sm font-semibold leading-tight"
+                  : "text-foreground font-mono text-sm font-semibold leading-tight"
+              }
+            >
+              OUTRIDER
+            </span>
+            <span className="text-muted truncate font-mono text-xs leading-tight tabular-nums">
+              {subtitle}
+            </span>
           </div>
         </div>
       </Sidebar.Header>
       <Sidebar.Content>
         <Sidebar.Group>
-          <Sidebar.Menu aria-label="Dashboard navigation">
+          <Sidebar.Menu aria-label="Gateway navigation">
             {NAV_ITEMS.map((item) => (
               <SidebarNavItem
                 key={item.href}
                 basePath={basePath}
+                currentRoute={currentRoute}
                 disableNavigation={disableNavigation}
                 idPrefix={idPrefix}
                 item={item}
-                pathname={pathname}
               />
             ))}
           </Sidebar.Menu>
         </Sidebar.Group>
       </Sidebar.Content>
       <Sidebar.Footer>
-        <Sidebar.Menu aria-label="Account">
+        <Sidebar.Menu aria-label="Protocol and session">
           {FOOTER_ITEMS.map((item) => (
             <SidebarNavItem
               key={item.href}
               basePath={basePath}
+              currentRoute={currentRoute}
               disableNavigation={disableNavigation}
               idPrefix={idPrefix}
               item={item}
-              pathname={pathname}
             />
           ))}
+          {unlocked ? (
+            <Sidebar.MenuItem
+              id={`${idPrefix}lock-session`}
+              textValue="Lock Session"
+              onAction={lock}
+            >
+              <Sidebar.MenuIcon>
+                <CurlyBracketsLock aria-hidden="true" className="size-4" />
+              </Sidebar.MenuIcon>
+              <Sidebar.MenuLabel>Lock Session</Sidebar.MenuLabel>
+            </Sidebar.MenuItem>
+          ) : null}
         </Sidebar.Menu>
       </Sidebar.Footer>
     </>
@@ -105,25 +137,22 @@ function SidebarContents({
 
 interface SidebarNavItemProps {
   basePath: string;
+  currentRoute: string;
   disableNavigation: boolean;
   idPrefix: string;
   item: NavItem;
-  pathname: string;
 }
 
 function SidebarNavItem({
   basePath,
+  currentRoute,
   disableNavigation,
   idPrefix,
   item,
-  pathname,
 }: SidebarNavItemProps) {
   const Icon = item.icon;
-  const fullHref = basePath + item.href;
-  const isCurrent =
-    item.href === "/"
-      ? pathname === fullHref || pathname === basePath || pathname === `${basePath}/`
-      : pathname === fullHref || pathname.startsWith(`${fullHref}/`);
+  const fullHref = item.href === "/" ? `${basePath}/` : `${basePath}${item.href}/`;
+  const isCurrent = currentRoute === item.href;
 
   return (
     <Sidebar.MenuItem
@@ -133,16 +162,9 @@ function SidebarNavItem({
       textValue={item.label}
     >
       <Sidebar.MenuIcon>
-        <Icon className="size-4" />
+        <Icon aria-hidden="true" className="size-4" />
       </Sidebar.MenuIcon>
       <Sidebar.MenuLabel>{item.label}</Sidebar.MenuLabel>
-      {item.badge ? (
-        <Sidebar.MenuChip>
-          <Chip color="success" size="sm" variant="soft">
-            {item.badge}
-          </Chip>
-        </Sidebar.MenuChip>
-      ) : null}
     </Sidebar.MenuItem>
   );
 }

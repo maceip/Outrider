@@ -1,24 +1,28 @@
 "use client";
 
-import {Eye, Pencil, TrashBin} from "@gravity-ui/icons";
+import {Code} from "@gravity-ui/icons";
 
 import {IconButton} from "../components/icon-button";
+import {useOutrider} from "../lib/outrider-store";
 
 export interface RowActionsProps {
-  employeeId: string;
+  label: string;
+  record: unknown;
 }
 
-export function RowActions({employeeId}: RowActionsProps) {
+export function RowActions({label, record}: RowActionsProps) {
+  const {setSelectedEvidence} = useOutrider();
+
   return (
-    <div className="flex items-center justify-end gap-0.5" data-employee-id={employeeId}>
-      <IconButton label="View" size="sm" variant="tertiary">
-        <Eye className="size-4" />
-      </IconButton>
-      <IconButton label="Edit" size="sm" variant="tertiary">
-        <Pencil className="size-4" />
-      </IconButton>
-      <IconButton label="Delete" size="sm" variant="danger-soft">
-        <TrashBin className="size-4" />
+    <div className="flex items-center justify-end gap-1">
+      <IconButton
+        label={`Inspect ${label}`}
+        size="sm"
+        tooltip={`Inspect raw JSON for ${label}`}
+        variant="tertiary"
+        onPress={() => setSelectedEvidence({label, record})}
+      >
+        <Code aria-hidden="true" className="size-4" />
       </IconButton>
     </div>
   );

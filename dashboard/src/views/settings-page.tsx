@@ -1,178 +1,141 @@
 "use client";
 
-// TODO: Wire these form controls to your account/workspace store. The controls
-// are currently uncontrolled and don't persist changes.
+import type {ProbePolicy} from "../lib/types";
+import type {FormEvent} from "react";
 
-import type {ReactNode} from "react";
+import {Button, Input, Label, Separator, TextField} from "@heroui/react";
+import {useState} from "react";
 
-import {
-  Button,
-  Checkbox,
-  Input,
-  Label,
-  ListBox,
-  Select,
-  Separator,
-  TextArea,
-  TextField,
-} from "@heroui/react";
-
-const PROVINCES = [
-  {id: "on", label: "Ontario"},
-  {id: "qc", label: "Quebec"},
-  {id: "bc", label: "British Columbia"},
-  {id: "ab", label: "Alberta"},
-] as const;
-
-const CURRENCIES = [
-  {id: "cad", label: "CAD - Canadian Dollar"},
-  {id: "usd", label: "USD - US Dollar"},
-  {id: "eur", label: "EUR - Euro"},
-  {id: "gbp", label: "GBP - British Pound"},
-  {id: "mxn", label: "MXN - Mexican Peso"},
-] as const;
+import {useOutrider} from "../lib/outrider-store";
+import {formatClefState} from "../lib/types";
 
 export function SettingsPage() {
+  const {busy, clefStatus, mutate, probePolicy, publicStatus, snapshot, unlocked} = useOutrider();
+  const [draftPolicy, setDraftPolicy] = useState<ProbePolicy | null>(null);
+  const [skillsPath, setSkillsPath] = useState("");
+
+  const effectivePolicy = draftPolicy ?? probePolicy;
+
+  const handlePolicySubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await mutate("/probe-policy", {probe_policy: effectivePolicy});
+    setDraftPolicy(null);
+  };
+
+  const handleLoadSkills = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    if (!skillsPath.trim()) return;
+    await mutate("/skills/load", {path: skillsPath.trim()});
+    setSkillsPath("");
+  };
+
+  const disabledReason = !unlocked
+    ? "Admin token required"
+    : busy
+      ? "Backend action in progress"
+      : undefined;
+
   return (
-    <form className="mx-auto flex max-w-5xl flex-col gap-4 px-5 pb-10 pt-4">
-      <p className="text-muted text-sm">Manage your organization profile and preferences.</p>
+    <div className="mx-auto flex max-w-5xl flex-col gap-5 px-5 pb-10 pt-4">
+      <p className="text-muted text-sm text-pretty">
+        Configure active MCP probe policy, load skill catalogs, and inspect gateway cryptographic
+        state.
+      </p>
 
       <Separator />
 
-      <SettingsRow
-        description="This will be displayed on your public profile."
-        label="Organization Name"
+      <form
+        className="grid grid-cols-1 gap-4 py-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-10"
+        onSubmit={(e) => void handlePolicySubmit(e)}
       >
-        <TextField name="org-name">
-          <Label className="sr-only">Organization Name</Label>
-          <Input fullWidth placeholder="Your organization" />
-        </TextField>
-      </SettingsRow>
-
-      <Separator />
-
-      <SettingsRow
-        description="This will be displayed on your public profile. Maximum 240 characters."
-        label="Organization Bio"
-      >
-        <TextField name="org-bio">
-          <Label className="sr-only">Organization Bio</Label>
-          <TextArea
-            fullWidth
-            className="min-h-24 resize-y"
-            maxLength={240}
-            placeholder="Tell customers about your organization"
-          />
-        </TextField>
-      </SettingsRow>
-
-      <Separator />
-
-      <SettingsRow
-        description="This is how customers can contact you for support."
-        label="Organization Email"
-      >
-        <TextField name="org-email">
-          <Label className="sr-only">Organization Email</Label>
-          <Input fullWidth placeholder="info@example.com" type="email" />
-        </TextField>
-        <Checkbox id="org-email-public" name="org-email-public">
-          <Checkbox.Content>
-            <Checkbox.Control>
-              <Checkbox.Indicator />
-            </Checkbox.Control>
-            Show email on public profile
-          </Checkbox.Content>
-        </Checkbox>
-      </SettingsRow>
-
-      <Separator />
-
-      <SettingsRow description="This is where your organization is registered." label="Address">
-        <TextField name="address-street">
-          <Label className="sr-only">Street address</Label>
-          <Input fullWidth placeholder="Street address" />
-        </TextField>
-        <TextField name="address-city">
-          <Label className="sr-only">City</Label>
-          <Input fullWidth placeholder="City" />
-        </TextField>
-        <div className="grid grid-cols-[1fr_160px] gap-3">
-          <Select name="address-province" placeholder="Province / State">
-            <Label className="sr-only">Province / State</Label>
-            <Select.Trigger>
-              <Select.Value />
-              <Select.Indicator />
-            </Select.Trigger>
-            <Select.Popover>
-              <ListBox>
-                {PROVINCES.map((p) => (
-                  <ListBox.Item key={p.id} id={p.id} textValue={p.label}>
-                    {p.label}
-                    <ListBox.ItemIndicator />
-                  </ListBox.Item>
-                ))}
-              </ListBox>
-            </Select.Popover>
-          </Select>
-          <TextField name="address-postal">
-            <Label className="sr-only">Postal / ZIP</Label>
-            <Input fullWidth placeholder="Postal code" />
-          </TextField>
+        <div className="flex flex-col gap-1">
+          <span className="text-foreground text-sm font-medium">Active Probe Policy</span>
+          <p className="text-muted text-xs leading-snug text-pretty">
+            Controls whether sampling-capable MCP sessions are probed automatically, on operator
+            request, or disabled.
+          </p>
         </div>
-      </SettingsRow>
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="flex min-w-[220px] flex-col gap-1.5">
+            <label className="text-foreground text-xs font-medium" htmlFor="gateway-probe-policy">
+              Probe policy
+            </label>
+            <select
+              className="border-border bg-surface text-foreground h-9 rounded-lg border px-3 text-sm"
+              disabled={Boolean(disabledReason)}
+              id="gateway-probe-policy"
+              value={effectivePolicy}
+              onChange={(e) => setDraftPolicy(e.target.value as ProbePolicy)}
+            >
+              <option value="off">off</option>
+              <option value="on-request">on-request</option>
+              <option value="auto">auto</option>
+            </select>
+          </div>
+          <span title={disabledReason}>
+            <Button isDisabled={Boolean(disabledReason)} size="sm" type="submit">
+              Save Policy
+            </Button>
+          </span>
+        </div>
+      </form>
 
       <Separator />
 
-      <SettingsRow
-        description="The currency that your organization will be collecting."
-        label="Currency"
+      <form
+        className="grid grid-cols-1 gap-4 py-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-10"
+        onSubmit={(e) => void handleLoadSkills(e)}
       >
-        <Select name="currency" placeholder="Select currency">
-          <Label className="sr-only">Currency</Label>
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              {CURRENCIES.map((c) => (
-                <ListBox.Item key={c.id} id={c.id} textValue={c.label}>
-                  {c.label}
-                  <ListBox.ItemIndicator />
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-      </SettingsRow>
+        <div className="flex flex-col gap-1">
+          <span className="text-foreground text-sm font-medium">Skill Catalog Directory</span>
+          <p className="text-muted text-xs leading-snug text-pretty">
+            Load MCP skill descriptors from a local directory into persisted catalog items.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-end gap-3">
+          <TextField
+            className="min-w-[260px] flex-1"
+            isDisabled={Boolean(disabledReason)}
+            name="skills-path"
+            value={skillsPath}
+            onChange={setSkillsPath}
+          >
+            <Label>Skills directory path</Label>
+            <Input fullWidth placeholder="/path/to/skills" />
+          </TextField>
+          <span title={disabledReason}>
+            <Button
+              isDisabled={Boolean(disabledReason) || !skillsPath.trim()}
+              size="sm"
+              type="submit"
+              variant="secondary"
+            >
+              Load Skills
+            </Button>
+          </span>
+        </div>
+      </form>
 
       <Separator />
 
-      <footer className="flex items-center justify-end gap-2 pt-2">
-        <Button type="reset" variant="ghost">
-          Reset
-        </Button>
-        <Button type="submit">Save changes</Button>
-      </footer>
-    </form>
-  );
-}
-
-interface SettingsRowProps {
-  description: string;
-  label: string;
-  children: ReactNode;
-}
-
-function SettingsRow({children, description, label}: SettingsRowProps) {
-  return (
-    <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-10">
-      <div className="flex flex-col gap-1">
-        <span className="text-foreground text-sm font-medium">{label}</span>
-        <p className="text-muted text-xs leading-snug">{description}</p>
+      <div className="grid grid-cols-1 gap-4 py-2 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-10">
+        <div className="flex flex-col gap-1">
+          <span className="text-foreground text-sm font-medium">Runtime & Ed25519 Authority</span>
+          <p className="text-muted text-xs leading-snug text-pretty">
+            Persisted receipt signing key and CLEF LiteRT-LM runtime status.
+          </p>
+        </div>
+        <dl className="grid grid-cols-[140px_1fr] gap-2 text-xs">
+          <dt className="text-muted">CLEF Engine</dt>
+          <dd className="font-mono">{formatClefState(clefStatus)}</dd>
+          <dt className="text-muted">Remote Admin</dt>
+          <dd className="font-mono">{publicStatus?.admin_allow_remote ? "enabled" : "loopback-only"}</dd>
+          <dt className="text-muted">Ed25519 Public Key</dt>
+          <dd className="break-all font-mono">
+            {snapshot?.public_key ?? "Unlock session to read public key"}
+          </dd>
+        </dl>
       </div>
-      <div className="flex flex-col gap-3">{children}</div>
     </div>
   );
 }
