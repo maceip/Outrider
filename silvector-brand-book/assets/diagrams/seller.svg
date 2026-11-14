@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Seller storyboard">
+  <rect width="640" height="360" fill="#0B0F14"/>
+  <g fill="none" stroke="#F4F1EA" stroke-width="1.5">
+    <rect x="28" y="28" width="184" height="304" rx="6"/>
+    <rect x="228" y="28" width="184" height="304" rx="6"/>
+    <rect x="428" y="28" width="184" height="304" rx="6"/>
+    <path d="M70 230h100l-10-70H80z"/>
+    <path d="M96 160V120h36v40"/>
+    <circle cx="292" cy="150" r="34"/>
+    <path d="M292 150l22 16"/>
+    <circle cx="360" cy="150" r="34"/>
+    <path d="M360 150l8 22"/>
+    <rect x="468" y="110" width="104" height="120" rx="4"/>
+    <path d="M484 140h72M484 160h72M484 180h40"/>
+  </g>
+  <g fill="#F4F1EA" font-family="IBM Plex Sans, sans-serif" font-size="13">
+    <text x="40" y="52">01 Shop</text>
+    <text x="240" y="52">02 Hours</text>
+    <text x="440" y="52">03 Receipt</text>
+  </g>
+</svg>
