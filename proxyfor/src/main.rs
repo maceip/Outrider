@@ -35,8 +35,16 @@ async fn main() -> Result<()> {
     tokio_rustls::rustls::crypto::ring::default_provider()
         .install_default()
         .expect("Failed to install rustls crypto provider");
+    let fetched_model = proxyfor::clef::fetch::default_model_path(&config_dir);
+    let clef_model = cli
+        .clef_model
+        .clone()
+        .or_else(|| fetched_model.is_file().then(|| fetched_model.clone()));
+    if clef_model.is_none() {
+        proxyfor::clef::fetch::spawn_background_fetch(fetched_model);
+    }
     let _clef = proxyfor::clef::engine::ClefEngine::load(proxyfor::clef::engine::ClefConfig {
-        model: cli.clef_model.clone(),
+        model: clef_model,
         backend: cli.clef_backend.clone(),
         threads: cli.clef_threads,
         cache_dir: cli
@@ -184,7 +192,8 @@ struct Cli {
     admin_allow_remote: bool,
     #[arg(long, value_enum, default_value = "auto")]
     probe_policy: proxyfor::fingerprint::active::ProbePolicy,
-    /// Real CLEF model (.litertlm); without it CLEF is explicitly Unconfigured
+    /// Real CLEF model (.litertlm). If omitted, uses <config>/models/clef-flash.litertlm when present,
+    /// otherwise fetches it in the background (best-effort) and CLEF stays Unconfigured this run
     #[arg(long, env = "OUTRIDER_CLEF_MODEL")]
     clef_model: Option<PathBuf>,
     #[arg(long, default_value="cpu", value_parser=["cpu","gpu"])]
