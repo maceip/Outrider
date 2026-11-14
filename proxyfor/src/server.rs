@@ -121,20 +121,32 @@ impl ServerBuilder {
             self.web,
             temp_dir.display(),
         );
+        let mcp=self.commerce.as_ref().map(|commerce| {
+            let commerce=commerce.clone();
+            rmcp::transport::streamable_http_server::StreamableHttpService::new(
+                move || Ok(crate::mcp_gateway::handler::CommerceGateway::new(commerce.clone())),
+                rmcp::transport::streamable_http_server::session::local::LocalSessionManager::default().into(),
+                rmcp::transport::streamable_http_server::StreamableHttpServerConfig::default().with_legacy_session_mode(false),
+            )
+        });
+        let state=Arc::new(State::new(self.print_mode));
+        if let Some(commerce)=&self.commerce {let _=state.commerce.set(commerce.clone());}
         Arc::new(Server {
+            mcp,
             commerce: self.commerce.clone(),
             ca: self.ca,
             reverse_proxy_url: self.reverse_proxy_url,
             title_filters: self.title_filters,
             mime_filters: self.mime_filters,
             web: self.web,
-            state: Arc::new(State::new(self.print_mode)),
+            state,
             temp_dir,
         })
     }
 }
 
 pub struct Server {
+    mcp:Option<rmcp::transport::streamable_http_server::StreamableHttpService<crate::mcp_gateway::handler::CommerceGateway,rmcp::transport::streamable_http_server::session::local::LocalSessionManager>>,
     commerce: Option<Arc<crate::commerce::Commerce>>,
     ca: CertificateAuthority,
     reverse_proxy_url: Option<String>,
@@ -225,6 +237,16 @@ impl Server {
         req: Request,
         traffic_done_tx: TrafficDoneSender,
     ) -> Result<Response, hyper::Error> {
+        if req.uri().authority().is_none() && req.uri().path()=="/mcp" {
+            use hyper::service::Service;
+            return Ok(match &self.mcp {
+                Some(service)=>{
+                    let response=hyper_util::service::TowerToHyperService::new(service.clone()).call(req).await.unwrap();
+                    let (parts,body)=response.into_parts();Response::from_parts(parts,body.map_err(|e|anyhow!(e)).boxed())
+                },
+                None=>crate::commerce::http::json_response(503,serde_json::json!({"error":"MCP gateway is not configured"})),
+            });
+        }
         if req.uri().authority().is_none() && req.uri().path().starts_with("/__proxyfor__/commerce/") {
             return Ok(match &self.commerce {
                 Some(commerce)=>crate::commerce::http::route(commerce.clone(),req).await,

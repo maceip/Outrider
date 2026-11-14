@@ -20,11 +20,11 @@ impl Federation {
     ().into_dyn().serve(StreamableHttpClientTransport::from_uri(endpoint.to_owned())).await?
    } else {
     let parts=shell_words::split(endpoint)?;ensure!(!parts.is_empty(),"Empty upstream command");
-    let mut command=tokio::process::Command::new(&parts[0]);command.args(&parts[1..]);command.stderr(std::process::Stdio::piped());
+    let mut command=tokio::process::Command::new(&parts[0]);command.args(&parts[1..]);command.stderr(std::process::Stdio::inherit());
     ().into_dyn().serve(TokioChildProcess::new(command)?).await?
    };
    let tools=service.list_all_tools().await?;
-   let info=service.peer_info().cloned();
+   let info=service.peer_info();
    let prompts=if info.as_ref().is_some_and(|i|i.capabilities.prompts.is_some()){service.list_all_prompts().await?}else{vec![]};
    let resources=if info.as_ref().is_some_and(|i|i.capabilities.resources.is_some()){service.list_all_resources().await?}else{vec![]};
    Ok::<_,anyhow::Error>((service,tools,prompts,resources))
@@ -36,7 +36,7 @@ impl Federation {
      tx.execute("DELETE FROM catalog_items WHERE upstream_name=?1",[name])?;
      for mut tool in tools {let original=tool.name.to_string();let alias=format!("{name}__{original}");tool.name=alias.clone().into();let descriptor=json!({"tool":tool,"remote_name":original});tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES (?1,'tool',?2,?3,?4)",params![alias,digest(&descriptor)?,descriptor.to_string(),name])?;}
      for prompt in prompts {let item=format!("{name}__prompt__{}",prompt.name);let descriptor=json!({"prompt":prompt});tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES (?1,'prompt',?2,?3,?4)",params![item,digest(&descriptor)?,descriptor.to_string(),name])?;}
-     for resource in resources {let uri=resource.raw.uri.clone();let item=format!("{name}__resource__{uri}");let descriptor=json!({"resource":resource,"remote_uri":uri});tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES (?1,'resource',?2,?3,?4)",params![item,digest(&descriptor)?,descriptor.to_string(),name])?;}
+     for resource in resources {let uri=resource.uri.clone();let item=format!("{name}__resource__{uri}");let descriptor=json!({"resource":resource,"remote_uri":uri});tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES (?1,'resource',?2,?3,?4)",params![item,digest(&descriptor)?,descriptor.to_string(),name])?;}
      tx.execute("UPDATE upstream_servers SET status='Connected',error=NULL,updated_at=?2 WHERE name=?1",params![name,now()])?;tx.commit()?;
     }
     self.clients.write().await.insert(name.into(),Arc::new(service));

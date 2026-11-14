@@ -13,6 +13,7 @@ use tokio_tungstenite::tungstenite;
 
 #[derive(Debug)]
 pub struct State {
+    pub commerce:std::sync::OnceLock<std::sync::Arc<crate::commerce::Commerce>>,
     print_mode: PrintMode,
     traffics: Mutex<IndexMap<usize, Traffic>>,
     traffics_notifier: broadcast::Sender<TrafficHead>,
@@ -25,6 +26,7 @@ impl State {
         let (traffics_notifier, _) = broadcast::channel(128);
         let (websockets_notifier, _) = broadcast::channel(64);
         Self {
+            commerce:Default::default(),
             print_mode,
             traffics: Default::default(),
             traffics_notifier,

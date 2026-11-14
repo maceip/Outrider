@@ -50,6 +50,18 @@ async fn main() -> Result<()> {
         }
         return Ok(());
     }
+    if let Some(path)=cli.skills_dir {
+        commerce.load_skills(&path,"admin:cli")?;
+    }
+    for upstream in &cli.upstream {
+        let (name,endpoint)=upstream.split_once('=').context("--upstream expects name=command_or_url")?;
+        commerce.federation.connect(&commerce,name,endpoint,"admin:cli").await?;
+    }
+    if cli.stdio {
+        use rmcp::ServiceExt;
+        proxyfor::mcp_gateway::handler::CommerceGateway::new(commerce).serve(rmcp::transport::stdio()).await?.waiting().await?;
+        return Ok(());
+    }
     let ca = setup_ca(&config_dir)?;
     let (ip, port) =
         parse_addr(&cli.listen).ok_or_else(|| anyhow!("Invalid addr '{}'", cli.listen))?;
@@ -98,6 +110,12 @@ async fn main() -> Result<()> {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    #[arg(long)]
+    skills_dir:Option<PathBuf>,
+    #[arg(long)]
+    upstream:Vec<String>,
+    #[arg(long)]
+    stdio:bool,
     #[command(subcommand)]
     command: Option<Command>,
     #[arg(long)]

@@ -52,6 +52,8 @@ pub async fn mutate(commerce:&Arc<Commerce>,path:&str,body:Value,actor:&str)->Re
             anyhow::ensure!(row["status"]=="Verified","CLEF evaluation failed: {}",row["error"]);
             Ok(row)
         },
+        "/upstreams/connect"=>commerce.federation.connect(commerce,string("name")?,string("endpoint")?,actor).await,
+        "/skills/load"=>{commerce.load_skills(std::path::Path::new(string("path")?),actor)?;Ok(json!({"loaded":true}))},
         "/probe"=>{
             let session=string("session_id")?;
             let peer=commerce.peers.lock().map_err(|_|anyhow::anyhow!("peer registry lock poisoned"))?.get(session).cloned().context("Session has no active MCP client")?;

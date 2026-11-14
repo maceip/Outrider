@@ -45,3 +45,13 @@ impl Commerce {
         Ok(result.into())
     }
 }
+impl Commerce {
+    pub fn load_skills(&self,path:&Path,actor:&str)->Result<()> {
+        let catalog=Arc::new(rmcp::handler::server::skill_catalog::SkillCatalog::from_dir(path)?);
+        {let mut conn=self.db.0.lock().map_err(|_|anyhow::anyhow!("database lock poisoned"))?;let tx=conn.transaction()?;
+         tx.execute("DELETE FROM catalog_items WHERE kind='skill'",[])?;
+         for skill in catalog.skills() {let descriptor=serde_json::to_value(&skill)?;tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor) VALUES (?1,'skill',?2,?3)",rusqlite::params![skill.uri,bundler::digest(&descriptor)?,descriptor.to_string()])?;}
+         receipt::audit(&tx,actor,"skills.load",&path.display().to_string(),&serde_json::json!({"skills":catalog.skills().len()}))?;tx.commit()?;}
+        *self.skills.write().unwrap()=Some(catalog);self.changed("skills.loaded",None);Ok(())
+    }
+}
