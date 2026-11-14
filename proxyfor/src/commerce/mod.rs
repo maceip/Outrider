@@ -14,6 +14,8 @@ use db::Database;
 pub struct Commerce {
     pub db:Database,pub clef:ClefEngine,pub receipts:ReceiptAuthority,pub auth:AdminAuth,
     pub codec:rmcp::model::RequestStateCodec,
+    pub auto_probed:std::sync::Mutex<std::collections::HashSet<String>>,
+    pub cadence:std::sync::Mutex<std::collections::HashMap<String,(std::time::Instant,Vec<f64>)>>,
     pub federation:crate::mcp_gateway::federation::Federation,
     pub skills:std::sync::RwLock<Option<Arc<rmcp::handler::server::skill_catalog::SkillCatalog>>>,
     pub tasks:rmcp::task_manager::TaskManager,
@@ -30,7 +32,7 @@ impl Commerce {
         let (auth,token,key)=AdminAuth::load(dir,allow_remote)?;
         let receipts=ReceiptAuthority::load(db.clone(),&dir.join("outrider-ed25519.pem"))?;
         let (events,_)=tokio::sync::broadcast::channel(256);
-        Ok((Arc::new(Self{db,clef,receipts,auth,codec:rmcp::model::RequestStateCodec::try_new(key)?,federation:Default::default(),skills:Default::default(),tasks:rmcp::task_manager::TaskManager::new(),task_owners:Default::default(),probe_policy:Default::default(),peers:Default::default(),events}),token))
+        Ok((Arc::new(Self{db,clef,receipts,auth,codec:rmcp::model::RequestStateCodec::try_new(key)?,auto_probed:Default::default(),cadence:Default::default(),federation:Default::default(),skills:Default::default(),tasks:rmcp::task_manager::TaskManager::new(),task_owners:Default::default(),probe_policy:Default::default(),peers:Default::default(),events}),token))
     }
     pub fn changed(&self,kind:&str,session:Option<&str>) {let _=self.events.send(serde_json::json!({"kind":kind,"session_id":session}));}
     pub fn snapshot(&self)->Result<serde_json::Value> {
