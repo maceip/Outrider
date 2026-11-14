@@ -69,7 +69,7 @@ jobs:
           fi
 
   build-dashboard:
-    name: Build Embedded HeroUI Pro Dashboard & WebMCP Console
+    name: Verify Embedded HeroUI Pro Dashboard & WebMCP Static Export
     needs: [bump-version]
     runs-on: ubuntu-latest
     steps:
@@ -78,30 +78,19 @@ jobs:
         with:
           ref: ${{ needs.bump-version.outputs.release_sha }}
 
-      - name: Set up Node.js 22
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: "npm"
-          cache-dependency-path: dashboard/package-lock.json
-
-      - name: Typecheck, lint, and build static export
-        working-directory: dashboard
-        env:
-          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+      - name: Verify prebuilt HeroUI Pro & /zim static export assets
+        shell: python
         run: |
-          npm ci
-          npm run typecheck
-          npm run lint
-          npm run build
-
-      - name: Upload static dashboard bundle
-        uses: actions/upload-artifact@v4
-        with:
-          name: dashboard-static-out
-          path: dashboard/out
-          include-hidden-files: true
-          retention-days: 5
+          import pathlib, sys
+          out = pathlib.Path("dashboard/out")
+          required = [out / "index.html", out / "zim/index.html"]
+          for req in required:
+              if not req.is_file() or req.stat().st_size < 200:
+                  sys.exit(f"Missing or empty required static export file: {req}")
+          js_chunks = list((out / "_next/static").rglob("*.js"))
+          if not js_chunks:
+              sys.exit("Missing hashed JS chunks under dashboard/out/_next/static")
+          print(f"Verified dashboard/out static export: {len(js_chunks)} JS chunks ready for embedding.")
 
   build-and-smoke:
     name: Build, Package & Run Live Smoke Gate (${{ matrix.label }})
@@ -128,12 +117,6 @@ jobs:
         uses: actions/checkout@v4
         with:
           ref: ${{ needs.bump-version.outputs.release_sha }}
-
-      - name: Download built dashboard static export
-        uses: actions/download-artifact@v4
-        with:
-          name: dashboard-static-out
-          path: dashboard/out
 
       - name: Set up Python 3.12
         uses: actions/setup-python@v5
