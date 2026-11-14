@@ -30,6 +30,12 @@ async fn main() -> Result<()> {
     tokio_rustls::rustls::crypto::ring::default_provider()
         .install_default()
         .expect("Failed to install rustls crypto provider");
+    let _clef = proxyfor::clef::engine::ClefEngine::load(proxyfor::clef::engine::ClefConfig {
+        model:cli.clef_model.clone(),backend:cli.clef_backend.clone(),threads:cli.clef_threads,
+        cache_dir:cli.clef_cache_dir.clone().unwrap_or_else(|| config_dir.join("clef-cache")),workers:2,
+    }).await?;
+    eprintln!("CLEF: {}", serde_json::to_string(_clef.status())?);
+    let _db = proxyfor::commerce::db::Database::open(cli.db.clone().unwrap_or_else(|| config_dir.join("outrider.db")))?;
     let ca = setup_ca(&config_dir)?;
     let (ip, port) =
         parse_addr(&cli.listen).ok_or_else(|| anyhow!("Invalid addr '{}'", cli.listen))?;
@@ -77,6 +83,17 @@ async fn main() -> Result<()> {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    /// Real CLEF model (.litertlm); without it CLEF is explicitly Unconfigured
+    #[arg(long, env = "OUTRIDER_CLEF_MODEL")]
+    clef_model: Option<PathBuf>,
+    #[arg(long, default_value="cpu", value_parser=["cpu","gpu"])]
+    clef_backend: String,
+    #[arg(long, default_value_t=4)]
+    clef_threads: usize,
+    #[arg(long)]
+    clef_cache_dir: Option<PathBuf>,
+    #[arg(long)]
+    db: Option<PathBuf>,
     /// Listening ip and port address
     #[clap(short = 'l', long, value_name = "ADDR", default_value = "0.0.0.0:8080")]
     listen: String,
