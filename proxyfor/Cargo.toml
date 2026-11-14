@@ -70,6 +70,7 @@ arboard = { version = "3.3.0", default-features = false, features = ["wayland-da
 arboard = { version = "3.3.0", default-features = false }
 
 [dev-dependencies]
+reqwest13 = { package = "reqwest", version = "0.13", default-features = false, features = ["rustls-no-provider", "json", "stream"] }
 tempfile = "3"
 async-compression = { version = "0.4.12", features = ["gzip", "tokio"] }
 async-http-proxy = { version = "1.2.5", features = ["runtime-tokio"] }

@@ -1,5 +1,5 @@
 use anyhow::{Result,Context,ensure,anyhow};
-use rmcp::{ServiceExt,service::{RunningService,RoleClient},transport::{TokioChildProcess,StreamableHttpClientTransport},model::*};
+use rmcp::{ClientServiceExt,ClientLifecycleMode,service::{RunningService,RoleClient},transport::{TokioChildProcess,StreamableHttpClientTransport},model::*};
 use rusqlite::params;
 use serde_json::{Value,json};
 use std::{collections::HashMap,sync::Arc};
@@ -17,11 +17,11 @@ impl Federation {
   }
   let connected=tokio::time::timeout(std::time::Duration::from_secs(30),async {
    let service=if endpoint.starts_with("http://")||endpoint.starts_with("https://") {
-    ().serve(StreamableHttpClientTransport::from_uri(endpoint.to_owned())).await?
+    ().serve_with_lifecycle(StreamableHttpClientTransport::from_uri(endpoint.to_owned()),ClientLifecycleMode::Auto{preferred_versions:vec![ProtocolVersion::V_2026_07_28],legacy_version:None}).await?
    } else {
     let parts=shell_words::split(endpoint)?;ensure!(!parts.is_empty(),"Empty upstream command");
     let mut command=tokio::process::Command::new(&parts[0]);command.args(&parts[1..]);command.stderr(std::process::Stdio::inherit());
-    ().serve(TokioChildProcess::new(command)?).await?
+    ().serve_with_lifecycle(TokioChildProcess::new(command)?,ClientLifecycleMode::Auto{preferred_versions:vec![ProtocolVersion::V_2026_07_28],legacy_version:None}).await?
    };
    let tools=service.list_all_tools().await?;
    let info=service.peer_info();
