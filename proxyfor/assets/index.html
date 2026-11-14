@@ -108,11 +108,11 @@
         min-height: 0;
         display: grid;
         grid-template-columns:
-          minmax(180px, var(--left)) 5px minmax(300px, 1fr)
-          5px minmax(260px, var(--right));
+          var(--left) 5px minmax(300px, 1fr)
+          5px var(--right);
       }
       .divider {
-        cursor: col-resize;
+        cursor: ew-resize;
         touch-action: none;
         background: linear-gradient(
           90deg,
@@ -164,7 +164,8 @@
       }
       .session.selected {
         background: #243024;
-        box-shadow: inset 2px 0 var(--accent);
+        outline: 1px solid #4c6a42;
+        outline-offset: -1px;
       }
       .row-title {
         display: block;
@@ -274,7 +275,7 @@
       }
       .banner {
         padding: 8px;
-        border-left: 2px solid var(--accent);
+        border: 1px solid #4c6a42;
         background: #1d2720;
       }
       .error {
@@ -354,7 +355,9 @@
           display: none;
         }
         .workspace {
-          grid-template-columns: 180px 5px minmax(260px, 1fr) 5px 270px;
+          grid-template-columns: var(--left) 5px minmax(260px, 1fr) 5px var(
+              --right
+            );
         }
         .auth input {
           width: 130px;
@@ -366,7 +369,9 @@
           min-width: 650px;
         }
         .workspace {
-          grid-template-columns: 180px 5px minmax(260px, 1fr) 5px 270px;
+          grid-template-columns: var(--left) 5px minmax(260px, 1fr) 5px var(
+              --right
+            );
         }
         header {
           min-width: 650px;
@@ -379,7 +384,9 @@
       <div>
         <span class="brand">OUTRIDER</span>
         <span class="caption">/ COMMERCE & EVIDENCE WORKBENCH</span>
-        <a href="/__proxyfor__/inspector" id="inspector-link" class="meta">MCP Inspector →</a>
+        <a href="/__proxyfor__/inspector" id="inspector-link" class="meta"
+          >MCP Inspector →</a
+        >
       </div>
       <div class="auth">
         <span id="connection" class="meta">Connecting</span
@@ -1118,21 +1125,22 @@
           $("#form-error").textContent = error.message;
         }
       };
+      const splitDefaults = { left: 248, right: 354 };
       for (const divider of document.querySelectorAll("[data-split]")) {
+        const side = divider.dataset.split;
+        const key = "--" + side;
+        const minWidth = side === "left" ? 180 : 260;
         divider.onpointerdown = (e) => {
           divider.setPointerCapture(e.pointerId);
           const move = (event) => {
             const rect = $("#workspace").getBoundingClientRect();
             const value =
-              divider.dataset.split === "left"
+              side === "left"
                 ? event.clientX - rect.left
                 : rect.right - event.clientX;
             document.documentElement.style.setProperty(
-              "--" + divider.dataset.split,
-              Math.max(
-                divider.dataset.split === "left" ? 180 : 260,
-                Math.min(value, rect.width * 0.45),
-              ) + "px",
+              key,
+              Math.max(minWidth, Math.min(value, rect.width * 0.45)) + "px",
             );
           };
           divider.onpointermove = move;
@@ -1140,15 +1148,32 @@
             divider.onpointermove = null;
           };
         };
+        divider.ondblclick = () => {
+          const current = parseInt(
+            getComputedStyle(document.documentElement).getPropertyValue(key),
+          );
+          const next =
+            current === splitDefaults[side] ? 0 : splitDefaults[side];
+          document.documentElement.style.setProperty(key, next + "px");
+        };
         divider.onkeydown = (e) => {
           if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
-            const key = "--" + divider.dataset.split;
+            const rect = $("#workspace").getBoundingClientRect();
             const current = parseInt(
               getComputedStyle(document.documentElement).getPropertyValue(key),
             );
+            const delta =
+              side === "left"
+                ? e.key === "ArrowRight"
+                  ? 10
+                  : -10
+                : e.key === "ArrowLeft"
+                  ? 10
+                  : -10;
             document.documentElement.style.setProperty(
               key,
-              current + (e.key === "ArrowRight" ? 10 : -10) + "px",
+              Math.max(minWidth, Math.min(current + delta, rect.width * 0.45)) +
+                "px",
             );
           }
         };

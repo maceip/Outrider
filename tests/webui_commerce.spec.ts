@@ -139,6 +139,19 @@ for (const withModel of [false, true])
         await expect(page.locator(".session.selected")).toContainText(
           "Outrider live validation client",
         );
+        const selectedShadow = await page
+          .locator(".session.selected")
+          .evaluate((el) => getComputedStyle(el).boxShadow);
+        expect(selectedShadow).toBe("none");
+        if (!withModel) {
+          const bannerBorders = await page
+            .locator("#clef .banner")
+            .evaluate((el) => {
+              const cs = getComputedStyle(el);
+              return [cs.borderLeftWidth, cs.borderRightWidth];
+            });
+          expect(bannerBorders[0]).toBe(bannerBorders[1]);
+        }
         await expect(
           page.getByRole("button", { name: "Probe Session", exact: true }),
         ).toBeDisabled();
@@ -265,6 +278,9 @@ for (const withModel of [false, true])
         const divider = page.getByRole("separator", {
           name: "Resize sessions pane",
         });
+        expect(
+          await divider.evaluate((el) => getComputedStyle(el).cursor),
+        ).toBe("ew-resize");
         const box = (await divider.boundingBox())!;
         await page.mouse.move(box.x + 2, box.y + 100);
         await page.mouse.down();
@@ -274,6 +290,11 @@ for (const withModel of [false, true])
           .locator('[aria-label="Agent sessions"]')
           .boundingBox();
         expect(after!.width).toBeGreaterThan(before!.width);
+        await divider.dblclick();
+        const reset = await page
+          .locator('[aria-label="Agent sessions"]')
+          .boundingBox();
+        expect(Math.round(reset!.width)).toBe(Math.round(before!.width));
         await expect(page.locator('[class*="score-bar"]')).toHaveCount(0);
         expect(
           query(app.db, "SELECT COUNT(*) AS n FROM admin_audit_log")[0].n,

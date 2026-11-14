@@ -16,6 +16,9 @@
         --accent: #b7e49b;
         --warn: #e8c66f;
         --bad: #f2a7a0;
+        --left: 290px;
+        --right: 400px;
+        --inner-split: 34%;
         font:
           12px/1.55 ui-monospace,
           SFMono-Regular,
@@ -111,13 +114,34 @@
       .layout {
         min-height: 0;
         display: grid;
-        grid-template-columns: 290px minmax(360px, 1fr) 400px;
+        grid-template-columns: var(--left) 5px minmax(320px, 1fr) 5px var(
+            --right
+          );
+      }
+      .divider {
+        cursor: ew-resize;
+        touch-action: none;
+        background: linear-gradient(
+          90deg,
+          transparent 2px,
+          var(--line) 2px,
+          var(--line) 3px,
+          transparent 3px
+        );
+      }
+      .divider:hover {
+        background: linear-gradient(
+          90deg,
+          transparent 2px,
+          var(--accent) 2px,
+          var(--accent) 3px,
+          transparent 3px
+        );
       }
       aside,
       main {
         min-width: 0;
         overflow: auto;
-        border-right: 1px solid var(--line);
       }
       aside {
         background: var(--panel);
@@ -175,7 +199,8 @@
       }
       .item.selected {
         background: #243024;
-        box-shadow: inset 2px 0 var(--accent);
+        outline: 1px solid #4c6a42;
+        outline-offset: -1px;
       }
       .title {
         display: block;
@@ -223,15 +248,11 @@
       }
       .split {
         display: grid;
-        grid-template-columns: minmax(170px, 34%) 1fr;
+        grid-template-columns: var(--inner-split) 5px minmax(200px, 1fr);
         min-height: calc(100% - 36px);
       }
       .split > div {
         min-width: 0;
-        border-right: 1px solid var(--line);
-      }
-      .split > div:last-child {
-        border-right: 0;
       }
       .badge {
         display: inline-block;
@@ -265,16 +286,16 @@
       }
       .banner {
         padding: 8px;
-        border-left: 2px solid var(--accent);
+        border: 1px solid #4c6a42;
         background: #1d2720;
         margin: 8px 0;
       }
       .banner.bad {
-        border-color: var(--bad);
+        border-color: #6a4242;
         background: #2a1c1b;
       }
       .banner.warn {
-        border-color: var(--warn);
+        border-color: #6a5a32;
         background: #2a2618;
       }
       dl {
@@ -345,8 +366,9 @@
         white-space: nowrap;
       }
       @media (max-width: 1150px) {
-        .layout {
-          grid-template-columns: 250px minmax(320px, 1fr) 320px;
+        :root {
+          --left: 250px;
+          --right: 320px;
         }
         .caption {
           display: none;
@@ -364,6 +386,10 @@
         }
         .layout {
           grid-template-columns: 1fr;
+        }
+        .layout > .divider,
+        .split > .divider {
+          display: none;
         }
         aside,
         main {
@@ -396,7 +422,7 @@
         /><button id="unlock">Unlock</button>
       </div>
     </header>
-    <div class="layout">
+    <div class="layout" id="inspector-layout">
       <aside aria-label="Connections">
         <h1 class="label">NEW CONNECTION</h1>
         <form id="connect-form" class="pad" autocomplete="off">
@@ -418,13 +444,18 @@
           <label class="field"
             ><span>LIFECYCLE</span
             ><select id="c-lifecycle" aria-label="Lifecycle">
-              <option value="auto">Auto: server/discover, fall back to initialize</option>
-              <option value="2026-07-28">2026-07-28 only (server/discover)</option>
+              <option value="auto">
+                Auto: server/discover, fall back to initialize
+              </option>
+              <option value="2026-07-28">
+                2026-07-28 only (server/discover)
+              </option>
               <option value="initialize">Legacy initialize handshake</option>
             </select></label
           >
           <label class="field"
-            ><span>LABEL</span><input id="c-label" aria-label="Label" placeholder="optional"
+            ><span>LABEL</span
+            ><input id="c-label" aria-label="Label" placeholder="optional"
           /></label>
           <div id="http-only">
             <label class="field"
@@ -449,8 +480,8 @@
             </div>
           </div>
           <p class="meta">
-            Only header and variable names are stored. Values stay in memory for the
-            live connection.
+            Only header and variable names are stored. Values stay in memory for
+            the live connection.
           </p>
           <div class="row">
             <button type="submit" class="primary" id="connect">Connect</button
@@ -459,8 +490,17 @@
           <div id="connect-error" class="error" role="alert"></div>
         </form>
         <h2 class="label">CONNECTIONS</h2>
-        <div id="connections"><div class="empty">Unlock to read connections.</div></div>
+        <div id="connections">
+          <div class="empty">Unlock to read connections.</div>
+        </div>
       </aside>
+      <div
+        class="divider"
+        data-split="left"
+        role="separator"
+        aria-label="Resize connections pane"
+        tabindex="0"
+      ></div>
       <main aria-label="Server">
         <div id="server-head" class="pad"></div>
         <nav class="tabs" id="tabs">
@@ -473,14 +513,25 @@
         </nav>
         <div id="pane"></div>
       </main>
-      <aside aria-label="Activity" style="border-right: 0">
+      <div
+        class="divider"
+        data-split="right"
+        role="separator"
+        aria-label="Resize activity pane"
+        tabindex="0"
+      ></div>
+      <aside aria-label="Activity">
         <h2 class="label">
           SERVER REQUESTS <span id="pending-count" class="meta"></span>
         </h2>
         <div id="server-requests"></div>
         <h2 class="label">
           HISTORY
-          <select id="history-filter" aria-label="History filter" style="min-height: 20px">
+          <select
+            id="history-filter"
+            aria-label="History filter"
+            style="min-height: 20px"
+          >
             <option value="all">All</option>
             <option value="rpc">Requests & responses</option>
             <option value="notification">Notifications</option>
@@ -493,7 +544,8 @@
       </aside>
     </div>
     <footer>
-      <span id="status" role="status">Enter the admin token to use the inspector.</span
+      <span id="status" role="status"
+        >Enter the admin token to use the inspector.</span
       ><span id="source">SQLite · inspector_messages</span>
     </footer>
     <script type="module">
@@ -550,17 +602,23 @@
           method: body === undefined ? "GET" : "POST",
           headers: {
             ...(token ? { Authorization: "Bearer " + token } : {}),
-            ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+            ...(body === undefined
+              ? {}
+              : { "Content-Type": "application/json" }),
           },
           body: body === undefined ? undefined : JSON.stringify(body),
         });
         const value = await response.json();
-        if (!response.ok) throw new Error(`${response.status}: ${value.error || response.statusText}`);
+        if (!response.ok)
+          throw new Error(
+            `${response.status}: ${value.error || response.statusText}`,
+          );
         return value;
       }
       const conn = () => connections.find((c) => c.connection_id === current);
       const info = () => conn()?.server_info || null;
-      const protocol = () => info()?.protocolVersion || info()?.supportedVersions?.[0] || null;
+      const protocol = () =>
+        info()?.protocolVersion || info()?.supportedVersions?.[0] || null;
 
       // ---- auth & live stream ----
       async function unlock(value) {
@@ -571,7 +629,9 @@
           try {
             sessionStorage.setItem(TOKEN_KEY, token);
           } catch {}
-          status("Authenticated. Connect to an MCP server or select a recorded connection.");
+          status(
+            "Authenticated. Connect to an MCP server or select a recorded connection.",
+          );
           void stream();
           render();
         } catch (e) {
@@ -611,16 +671,22 @@
       }
       function scheduleRefresh() {
         clearTimeout(refreshTimer);
-        refreshTimer = setTimeout(() => refresh().catch((e) => status(e.message, true)), 60);
+        refreshTimer = setTimeout(
+          () => refresh().catch((e) => status(e.message, true)),
+          60,
+        );
       }
       async function refresh(throwing = false) {
         try {
-          const q = current ? "?connection_id=" + encodeURIComponent(current) : "";
+          const q = current
+            ? "?connection_id=" + encodeURIComponent(current)
+            : "";
           const state = await api("/inspector/state" + q);
           connections = state.connections;
           messages = state.messages;
           serverRequests = state.server_requests;
-          $("#source").textContent = "SQLite · " + new Date().toLocaleTimeString();
+          $("#source").textContent =
+            "SQLite · " + new Date().toLocaleTimeString();
           renderConnections();
           renderHead();
           renderActivity();
@@ -642,7 +708,11 @@
         val.value = v;
         val.type = secret ? "password" : "text";
         val.setAttribute("aria-label", "Value");
-        row.append(name, val, btn("×", () => row.remove()));
+        row.append(
+          name,
+          val,
+          btn("×", () => row.remove()),
+        );
         container.append(row);
       }
       const kvRead = (container) => {
@@ -660,7 +730,9 @@
         $("#http-only").hidden = !http;
         $("#stdio-only").hidden = http;
         $("#c-target-label").textContent = http ? "URL" : "COMMAND";
-        $("#c-target").placeholder = http ? "https://example.com/mcp" : "npx -y @modelcontextprotocol/server-everything";
+        $("#c-target").placeholder = http
+          ? "https://example.com/mcp"
+          : "npx -y @modelcontextprotocol/server-everything";
       };
       $("#self-gateway").onclick = () => {
         $("#c-transport").value = "http";
@@ -682,7 +754,10 @@
           lifecycle: $("#c-lifecycle").value,
           label: $("#c-label").value,
           ...(http
-            ? { headers: kvRead($("#c-headers")), bearer_token: $("#c-bearer").value }
+            ? {
+                headers: kvRead($("#c-headers")),
+                bearer_token: $("#c-bearer").value,
+              }
             : { env: kvRead($("#c-env")) }),
         };
         $("#connect").disabled = true;
@@ -711,11 +786,29 @@
           return;
         }
         for (const c of connections) {
-          const b = el("button", undefined, "item" + (c.connection_id === current ? " selected" : ""));
+          const b = el(
+            "button",
+            undefined,
+            "item" + (c.connection_id === current ? " selected" : ""),
+          );
           b.type = "button";
           b.append(el("span", c.label, "title"));
-          const s = el("span", (c.live ? "● " : "○ ") + c.status, c.live ? "meta ok" : c.status === "Failed" ? "meta error" : "meta");
-          b.append(s, el("span", " · " + c.transport + " · " + new Date(c.created_at * 1000).toLocaleString(), "meta"));
+          const s = el(
+            "span",
+            (c.live ? "● " : "○ ") + c.status,
+            c.live ? "meta ok" : c.status === "Failed" ? "meta error" : "meta",
+          );
+          b.append(
+            s,
+            el(
+              "span",
+              " · " +
+                c.transport +
+                " · " +
+                new Date(c.created_at * 1000).toLocaleString(),
+              "meta",
+            ),
+          );
           if (c.error) b.append(el("span", c.error, "meta error title"));
           b.onclick = async () => {
             current = c.connection_id;
@@ -742,13 +835,21 @@
         const i = info();
         const top = el("div", undefined, "row");
         top.append(el("strong", i?.serverInfo?.name || c.label));
-        if (i?.serverInfo?.version) top.append(el("span", "v" + i.serverInfo.version, "meta"));
-        if (protocol()) top.append(el("span", "protocol " + protocol(), "badge on"));
+        const metaParts = [
+          i?.serverInfo?.version && "v" + i.serverInfo.version,
+          protocol() && "protocol " + protocol(),
+        ].filter(Boolean);
+        if (metaParts.length)
+          top.append(el("span", metaParts.join(" · "), "meta"));
         top.append(el("span", c.status, "badge" + (c.live ? " on" : "")));
         top.append(el("span", "", "grow"));
         const ping = btn("Ping", async () => {
           const r = await send("ping");
-          if (r) status(`ping → ${r.kind} in ${r.latency_ms} ms`, r.kind === "error");
+          if (r)
+            status(
+              `ping → ${r.kind} in ${r.latency_ms} ms`,
+              r.kind === "error",
+            );
         });
         ping.disabled = !c.live;
         const disc = btn("Disconnect", async () => {
@@ -766,23 +867,57 @@
         head.append(top);
         head.append(el("div", c.transport + " · " + c.target, "meta title"));
         if (!c.live)
-          head.append(el("div", c.status === "Failed" ? "Connection failed: " + (c.error || "") : "Not live. Recorded history is shown; reconnect to send requests.", "banner warn"));
+          head.append(
+            el(
+              "div",
+              c.status === "Failed"
+                ? "Connection failed: " + (c.error || "")
+                : "Not live. Recorded history is shown; reconnect to send requests.",
+              "banner warn",
+            ),
+          );
         if (i) {
-          const caps = el("div");
+          const declared = [
+            "tools",
+            "resources",
+            "prompts",
+            "logging",
+            "completions",
+            "skills",
+            "tasks",
+            "subscriptions",
+          ].filter((k) => i.capabilities?.[k]);
+          const caps = el(
+            "div",
+            "Capabilities: " +
+              (declared.length ? declared.join(", ") : "none declared"),
+            "meta",
+          );
           caps.style.marginTop = "6px";
-          for (const k of ["tools", "resources", "prompts", "logging", "completions", "skills", "tasks", "subscriptions"])
-            caps.append(el("span", k, "badge" + (i.capabilities?.[k] ? " on" : "")));
           head.append(caps);
           if (i.instructions) {
             const d = el("details");
-            d.append(el("summary", "Server instructions", "meta"), pre(i.instructions));
+            d.append(
+              el("summary", "Server instructions", "meta"),
+              pre(i.instructions),
+            );
             head.append(d);
           }
           const d = el("details");
           d.append(el("summary", "Handshake result", "meta"), pre(i));
           head.append(d);
           if (c.header_names?.length || c.env_names?.length)
-            head.append(el("div", "Sent " + [...(c.header_names || []), ...(c.env_names || [])].join(", ") + " (values not stored)", "meta"));
+            head.append(
+              el(
+                "div",
+                "Sent " +
+                  [...(c.header_names || []), ...(c.env_names || [])].join(
+                    ", ",
+                  ) +
+                  " (values not stored)",
+                "meta",
+              ),
+            );
         }
       }
 
@@ -790,9 +925,21 @@
       async function send(method, params, timeout_ms) {
         if (!current) return null;
         try {
-          const r = await api("/inspector/request", { connection_id: current, method, params, timeout_ms });
-          if (r.kind === "error") status(`${method} → error: ${r.result?.message || pretty(r.result)}`, true);
-          else status(`${method} → ${r.result?.resultType === "input_required" ? "input required" : "ok"} in ${r.latency_ms} ms`);
+          const r = await api("/inspector/request", {
+            connection_id: current,
+            method,
+            params,
+            timeout_ms,
+          });
+          if (r.kind === "error")
+            status(
+              `${method} → error: ${r.result?.message || pretty(r.result)}`,
+              true,
+            );
+          else
+            status(
+              `${method} → ${r.result?.resultType === "input_required" ? "input required" : "ok"} in ${r.latency_ms} ms`,
+            );
           return r;
         } catch (e) {
           status(e.message, true);
@@ -830,22 +977,44 @@
         if (!keys.length) box.append(el("div", "No parameters.", "meta"));
         for (const key of keys) {
           const p = props[key] || {};
-          const type = Array.isArray(p.type) ? p.type.find((t) => t !== "null") : p.type;
+          const type = Array.isArray(p.type)
+            ? p.type.find((t) => t !== "null")
+            : p.type;
           const label = el("label", undefined, "field");
-          label.append(el("span", key + (required.has(key) ? " *" : "") + (type ? "  · " + type : "")));
+          label.append(
+            el(
+              "span",
+              key +
+                (required.has(key) ? " *" : "") +
+                (type ? "  · " + type : ""),
+            ),
+          );
           let input;
-          const options = p.enum || p.oneOf?.map((o) => o.const) || (p.items?.enum && type !== "array" ? p.items.enum : null);
+          const options =
+            p.enum ||
+            p.oneOf?.map((o) => o.const) ||
+            (p.items?.enum && type !== "array" ? p.items.enum : null);
           if (options && type !== "array") {
             input = el("select");
-            input.append(new Option(required.has(key) ? "— choose —" : "— unset —", ""));
-            for (const o of options) input.append(new Option(String(o), JSON.stringify(o)));
-            if (initial[key] !== undefined) input.value = JSON.stringify(initial[key]);
-            getters[key] = () => (input.value === "" ? undefined : JSON.parse(input.value));
+            input.append(
+              new Option(required.has(key) ? "— choose —" : "— unset —", ""),
+            );
+            for (const o of options)
+              input.append(new Option(String(o), JSON.stringify(o)));
+            if (initial[key] !== undefined)
+              input.value = JSON.stringify(initial[key]);
+            getters[key] = () =>
+              input.value === "" ? undefined : JSON.parse(input.value);
           } else if (type === "boolean") {
             input = el("select");
-            input.append(new Option("— unset —", ""), new Option("true", "true"), new Option("false", "false"));
+            input.append(
+              new Option("— unset —", ""),
+              new Option("true", "true"),
+              new Option("false", "false"),
+            );
             if (initial[key] !== undefined) input.value = String(initial[key]);
-            getters[key] = () => (input.value === "" ? undefined : input.value === "true");
+            getters[key] = () =>
+              input.value === "" ? undefined : input.value === "true";
           } else if (type === "number" || type === "integer") {
             input = el("input");
             input.type = "number";
@@ -853,16 +1022,33 @@
             if (p.minimum !== undefined) input.min = p.minimum;
             if (p.maximum !== undefined) input.max = p.maximum;
             if (initial[key] !== undefined) input.value = initial[key];
-            getters[key] = () => (input.value === "" ? undefined : Number(input.value));
-          } else if (type === "string" || (!type && !p.properties && !p.items)) {
-            input = el(p.format === "textarea" || (p.maxLength || 0) > 200 ? "textarea" : "input");
-            if (input.tagName === "INPUT") input.type = p.format === "email" ? "email" : p.format === "uri" ? "url" : p.format === "date" ? "date" : "text";
+            getters[key] = () =>
+              input.value === "" ? undefined : Number(input.value);
+          } else if (
+            type === "string" ||
+            (!type && !p.properties && !p.items)
+          ) {
+            input = el(
+              p.format === "textarea" || (p.maxLength || 0) > 200
+                ? "textarea"
+                : "input",
+            );
+            if (input.tagName === "INPUT")
+              input.type =
+                p.format === "email"
+                  ? "email"
+                  : p.format === "uri"
+                    ? "url"
+                    : p.format === "date"
+                      ? "date"
+                      : "text";
             if (initial[key] !== undefined) input.value = initial[key];
             getters[key] = () => (input.value === "" ? undefined : input.value);
           } else {
             input = el("textarea");
             input.style.minHeight = "60px";
-            input.placeholder = type === "array" ? "[ ]  JSON array" : "{ }  JSON object";
+            input.placeholder =
+              type === "array" ? "[ ]  JSON array" : "{ }  JSON object";
             if (initial[key] !== undefined) input.value = pretty(initial[key]);
             getters[key] = () => {
               if (!input.value.trim()) return undefined;
@@ -874,7 +1060,8 @@
             };
           }
           input.setAttribute("aria-label", key);
-          if (p.default !== undefined && initial[key] === undefined) input.placeholder = "default " + JSON.stringify(p.default);
+          if (p.default !== undefined && initial[key] === undefined)
+            input.placeholder = "default " + JSON.stringify(p.default);
           label.append(input);
           const hint = p.description || p.title;
           if (hint) label.append(el("span", hint, "hint"));
@@ -912,7 +1099,8 @@
             }
             raw.hidden = mode !== "json";
             formHost.hidden = mode === "json";
-            toggle.textContent = mode === "json" ? "Edit as form" : "Edit as JSON";
+            toggle.textContent =
+              mode === "json" ? "Edit as form" : "Edit as JSON";
           } catch (e) {
             status(e.message, true);
           }
@@ -922,14 +1110,21 @@
         wrap.append(formHost, raw, toggle);
         return {
           node: wrap,
-          read: () => (mode === "json" ? JSON.parse(raw.value || "{}") : form.read()),
+          read: () =>
+            mode === "json" ? JSON.parse(raw.value || "{}") : form.read(),
         };
       }
 
       // ---- result rendering ----
       function renderContent(block) {
         const box = el("div", undefined, "block");
-        box.append(el("h3", (block.type || "content").toUpperCase() + (block.mimeType ? " · " + block.mimeType : "")));
+        box.append(
+          el(
+            "h3",
+            (block.type || "content").toUpperCase() +
+              (block.mimeType ? " · " + block.mimeType : ""),
+          ),
+        );
         if (block.type === "text") {
           let text = block.text;
           try {
@@ -949,12 +1144,22 @@
         } else if (block.type === "resource") {
           const r = block.resource || {};
           box.append(el("div", r.uri, "meta"));
-          box.append(pre(r.text !== undefined ? r.text : `blob, ${(r.blob || "").length} base64 chars`));
+          box.append(
+            pre(
+              r.text !== undefined
+                ? r.text
+                : `blob, ${(r.blob || "").length} base64 chars`,
+            ),
+          );
         } else if (block.type === "resource_link") {
           const row = el("div", undefined, "row");
-          row.append(el("span", block.uri), btn("Read", () => readResource(block.uri)));
+          row.append(
+            el("span", block.uri),
+            btn("Read", () => readResource(block.uri)),
+          );
           box.append(row);
-          if (block.description) box.append(el("div", block.description, "meta"));
+          if (block.description)
+            box.append(el("div", block.description, "meta"));
         } else box.append(pre(block));
         return box;
       }
@@ -962,10 +1167,20 @@
       function renderResult(r, redo) {
         const box = el("div");
         if (!r) return box;
-        const meta = el("div", `${r.kind} · ${r.latency_ms} ms · history #${r.message_id}`, "meta");
+        const meta = el(
+          "div",
+          `${r.kind} · ${r.latency_ms} ms · history #${r.message_id}`,
+          "meta",
+        );
         box.append(meta);
         if (r.kind === "error") {
-          box.append(el("div", `Error ${r.result?.code ?? ""}: ${r.result?.message || ""}`, "banner bad"));
+          box.append(
+            el(
+              "div",
+              `Error ${r.result?.code ?? ""}: ${r.result?.message || ""}`,
+              "banner bad",
+            ),
+          );
           if (r.result?.data !== undefined) box.append(pre(r.result.data));
           return box;
         }
@@ -974,10 +1189,23 @@
           box.append(mrtrPanel(res, redo));
           return box;
         }
-        if (res.isError) box.append(el("div", "The tool reported an error (isError: true).", "banner bad"));
+        if (res.isError)
+          box.append(
+            el(
+              "div",
+              "The tool reported an error (isError: true).",
+              "banner bad",
+            ),
+          );
         for (const c of res.content || []) box.append(renderContent(c));
         for (const c of res.contents || [])
-          box.append(renderContent(c.text !== undefined || c.blob !== undefined ? { type: "resource", resource: c, mimeType: c.mimeType } : c));
+          box.append(
+            renderContent(
+              c.text !== undefined || c.blob !== undefined
+                ? { type: "resource", resource: c, mimeType: c.mimeType }
+                : c,
+            ),
+          );
         for (const m of res.messages || []) {
           const b = el("div", undefined, "block");
           b.append(el("h3", "MESSAGE · " + m.role));
@@ -991,7 +1219,13 @@
           box.append(b);
         }
         if (res.task || res.taskId) {
-          box.append(el("div", "The server created a task. Poll it from RAW JSON-RPC with tasks/get.", "banner"));
+          box.append(
+            el(
+              "div",
+              "The server created a task. Poll it from RAW JSON-RPC with tasks/get.",
+              "banner",
+            ),
+          );
         }
         const d = el("details");
         d.append(el("summary", "Raw result", "meta"), pre(res));
@@ -1003,7 +1237,13 @@
       function mrtrPanel(res, redo) {
         const box = el("div", undefined, "block");
         box.append(el("h3", "INPUT REQUIRED · MULTI ROUND-TRIP"));
-        box.append(el("div", "The server needs answers before it completes this request. Answer each item and resume; the opaque requestState is echoed back unchanged.", "meta"));
+        box.append(
+          el(
+            "div",
+            "The server needs answers before it completes this request. Answer each item and resume; the opaque requestState is echoed back unchanged.",
+            "meta",
+          ),
+        );
         const readers = {};
         for (const [key, req] of Object.entries(res.inputRequests || {})) {
           const item = el("div", undefined, "block");
@@ -1011,20 +1251,36 @@
           readers[key] = answerEditor(req.method, req.params || {}, item);
           box.append(item);
         }
-        if (!Object.keys(readers).length) box.append(el("div", "No input requests; resuming sends only requestState.", "meta"));
+        if (!Object.keys(readers).length)
+          box.append(
+            el(
+              "div",
+              "No input requests; resuming sends only requestState.",
+              "meta",
+            ),
+          );
         const err = el("div", undefined, "error");
-        const resume = btn("Resume", async () => {
-          try {
-            const inputResponses = {};
-            for (const [k, f] of Object.entries(readers)) inputResponses[k] = f();
-            await redo({
-              ...(Object.keys(inputResponses).length ? { inputResponses } : {}),
-              ...(res.requestState !== undefined ? { requestState: res.requestState } : {}),
-            });
-          } catch (e) {
-            err.textContent = e.message;
-          }
-        }, "primary");
+        const resume = btn(
+          "Resume",
+          async () => {
+            try {
+              const inputResponses = {};
+              for (const [k, f] of Object.entries(readers))
+                inputResponses[k] = f();
+              await redo({
+                ...(Object.keys(inputResponses).length
+                  ? { inputResponses }
+                  : {}),
+                ...(res.requestState !== undefined
+                  ? { requestState: res.requestState }
+                  : {}),
+              });
+            } catch (e) {
+              err.textContent = e.message;
+            }
+          },
+          "primary",
+        );
         box.append(resume, err);
         return box;
       }
@@ -1035,13 +1291,17 @@
           host.append(el("div", params.message || "", "banner"));
           const action = el("select");
           action.setAttribute("aria-label", "Elicitation action");
-          for (const a of ["accept", "decline", "cancel"]) action.append(new Option(a, a));
+          for (const a of ["accept", "decline", "cancel"])
+            action.append(new Option(a, a));
           if (params.mode === "url" || params.url) {
             const a = el("a", params.url);
             a.href = params.url;
             a.target = "_blank";
             a.rel = "noopener noreferrer";
-            host.append(el("div", "The server asks you to open this URL:", "meta"), a);
+            host.append(
+              el("div", "The server asks you to open this URL:", "meta"),
+              a,
+            );
             const row = el("label", undefined, "field");
             row.append(el("span", "ACTION"), action);
             host.append(row);
@@ -1052,19 +1312,25 @@
           const row = el("label", undefined, "field");
           row.append(el("span", "ACTION"), action);
           host.append(row);
-          return () => (action.value === "accept" ? { action: "accept", content: form.read() } : { action: action.value });
+          return () =>
+            action.value === "accept"
+              ? { action: "accept", content: form.read() }
+              : { action: action.value };
         }
         if (method === "sampling/createMessage") {
           const d = el("details");
           d.open = true;
           d.append(el("summary", "Messages the server wants sampled", "meta"));
-          if (params.systemPrompt) d.append(el("div", "system: " + params.systemPrompt, "meta"));
+          if (params.systemPrompt)
+            d.append(el("div", "system: " + params.systemPrompt, "meta"));
           for (const m of params.messages || []) {
             const blocks = Array.isArray(m.content) ? m.content : [m.content];
             d.append(el("div", m.role + ":", "meta"));
-            for (const c of blocks) d.append(c?.type === "text" ? pre(c.text) : pre(c));
+            for (const c of blocks)
+              d.append(c?.type === "text" ? pre(c.text) : pre(c));
           }
-          if (params.maxTokens) d.append(el("div", "maxTokens " + params.maxTokens, "meta"));
+          if (params.maxTokens)
+            d.append(el("div", "maxTokens " + params.maxTokens, "meta"));
           host.append(d);
           const reply = el("textarea");
           reply.setAttribute("aria-label", "Sampling reply");
@@ -1076,15 +1342,29 @@
           l1.append(el("span", "REPLY TEXT"), reply);
           const l2 = el("label", undefined, "field");
           l2.append(el("span", "MODEL NAME REPORTED"), model);
-          l2.append(el("span", "Report who actually wrote this reply.", "hint"));
+          l2.append(
+            el("span", "Report who actually wrote this reply.", "hint"),
+          );
           host.append(l1, l2);
           return () => {
             if (!reply.value) throw new Error("Write the sampling reply");
-            return { role: "assistant", content: { type: "text", text: reply.value }, model: model.value, stopReason: "endTurn" };
+            return {
+              role: "assistant",
+              content: { type: "text", text: reply.value },
+              model: model.value,
+              stopReason: "endTurn",
+            };
           };
         }
         if (method === "roots/list") {
-          host.append(el("div", "Answered with the roots configured under ROOTS & LISTEN:", "meta"), pre(roots));
+          host.append(
+            el(
+              "div",
+              "Answered with the roots configured under ROOTS & LISTEN:",
+              "meta",
+            ),
+            pre(roots),
+          );
           return () => ({ roots });
         }
         host.append(pre(params));
@@ -1100,25 +1380,96 @@
         const split = el("div", undefined, "split");
         const left = el("div");
         const label = el("div", undefined, "label");
-        label.append(el("span", title + (data?.items ? ` (${data.items.length}${data.pages > 1 ? ", " + data.pages + " pages" : ""})` : "")));
+        label.append(
+          el(
+            "span",
+            title +
+              (data?.items
+                ? ` (${data.items.length}${data.pages > 1 ? ", " + data.pages + " pages" : ""})`
+                : ""),
+          ),
+        );
         const load = btn(data ? "Refresh" : "List", onLoad);
         load.disabled = !!loadDisabled;
         if (loadDisabled) load.title = loadDisabled;
         label.append(load);
         left.append(label);
-        if (data?.error) left.append(el("div", data.error.message || pretty(data.error), "empty error"));
-        else if (!data) left.append(el("div", loadDisabled || "Not listed yet.", "empty"));
-        else if (!data.items.length) left.append(el("div", "The server returned none.", "empty"));
+        if (data?.error)
+          left.append(
+            el("div", data.error.message || pretty(data.error), "empty error"),
+          );
+        else if (!data)
+          left.append(el("div", loadDisabled || "Not listed yet.", "empty"));
+        else if (!data.items.length)
+          left.append(el("div", "The server returned none.", "empty"));
         else for (const it of data.items) left.append(renderItem(it));
+        const divider = el("div", undefined, "divider");
+        divider.setAttribute("role", "separator");
+        divider.setAttribute("aria-label", "Resize catalog list");
+        divider.tabIndex = 0;
+        divider.onpointerdown = (e) => {
+          divider.setPointerCapture(e.pointerId);
+          divider.onpointermove = (ev) => {
+            const rect = split.getBoundingClientRect();
+            const w = Math.max(
+              160,
+              Math.min(ev.clientX - rect.left, rect.width * 0.65),
+            );
+            document.documentElement.style.setProperty(
+              "--inner-split",
+              w + "px",
+            );
+          };
+          divider.onpointerup = () => {
+            divider.onpointermove = null;
+          };
+        };
+        divider.ondblclick = () => {
+          const cur = getComputedStyle(document.documentElement)
+            .getPropertyValue("--inner-split")
+            .trim();
+          document.documentElement.style.setProperty(
+            "--inner-split",
+            cur === "34%" ? "0px" : "34%",
+          );
+        };
+        divider.onkeydown = (e) => {
+          if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+            const rect = split.getBoundingClientRect();
+            const cur = left.getBoundingClientRect().width;
+            const next = Math.max(
+              160,
+              Math.min(
+                cur + (e.key === "ArrowRight" ? 12 : -12),
+                rect.width * 0.65,
+              ),
+            );
+            document.documentElement.style.setProperty(
+              "--inner-split",
+              next + "px",
+            );
+          }
+        };
         const right = el("div");
         right.append(detail);
-        split.append(left, right);
+        split.append(left, divider, right);
         return split;
       }
-      const liveReason = () => (!authorized ? "Admin token required" : !conn() ? "No connection selected" : !conn().live ? "Connection is not live" : "");
+      const liveReason = () =>
+        !authorized
+          ? "Admin token required"
+          : !conn()
+            ? "No connection selected"
+            : !conn().live
+              ? "Connection is not live"
+              : "";
 
       function itemButton(name, sub, selected, onclick) {
-        const b = el("button", undefined, "item" + (selected ? " selected" : ""));
+        const b = el(
+          "button",
+          undefined,
+          "item" + (selected ? " selected" : ""),
+        );
         b.type = "button";
         b.append(el("span", name, "title"));
         if (sub) b.append(el("span", sub, "meta title"));
@@ -1132,19 +1483,28 @@
         const detail = el("div", undefined, "pad");
         if (!sel) detail.append(el("div", "Select a tool.", "meta"));
         else {
-          detail.append(el("strong", sel.title || sel.annotations?.title || sel.name));
+          detail.append(
+            el("strong", sel.title || sel.annotations?.title || sel.name),
+          );
           if (sel.title) detail.append(el("div", sel.name, "meta"));
           if (sel.description) detail.append(el("p", sel.description));
           const ann = sel.annotations || {};
-          const badges = el("div");
-          for (const [k, label, danger] of [
+          const notes = [
             ["readOnlyHint", "read-only"],
-            ["destructiveHint", "destructive", true],
+            ["destructiveHint", "destructive"],
             ["idempotentHint", "idempotent"],
             ["openWorldHint", "open-world"],
-          ])
-            if (ann[k] !== undefined) badges.append(el("span", label + ": " + ann[k], "badge" + (ann[k] ? (danger ? " danger" : " on") : "")));
-          detail.append(badges);
+          ]
+            .filter(([k]) => ann[k] !== undefined)
+            .map(([k, label]) => label + ": " + ann[k]);
+          if (notes.length)
+            detail.append(
+              el(
+                "div",
+                notes.join(" · "),
+                ann.destructiveHint ? "meta warn" : "meta",
+              ),
+            );
           const editor = argsEditor(sel.inputSchema, v.selected.toolArgs || {});
           detail.append(editor.node);
           const run = async (extra = {}) => {
@@ -1157,7 +1517,11 @@
             }
             v.selected.toolArgs = args;
             run.btn.disabled = true;
-            const r = await send("tools/call", { name: sel.name, arguments: args, ...extra });
+            const r = await send("tools/call", {
+              name: sel.name,
+              arguments: args,
+              ...extra,
+            });
             v.results.tool = { name: sel.name, r };
             render();
           };
@@ -1165,20 +1529,36 @@
           run.btn.disabled = !!liveReason();
           detail.append(el("div"), run.btn);
           const d = el("details");
-          d.append(el("summary", "Input schema" + (sel.outputSchema ? " / output schema" : ""), "meta"), pre(sel.inputSchema));
+          d.append(
+            el(
+              "summary",
+              "Input schema" + (sel.outputSchema ? " / output schema" : ""),
+              "meta",
+            ),
+            pre(sel.inputSchema),
+          );
           if (sel.outputSchema) d.append(pre(sel.outputSchema));
           detail.append(d);
-          if (v.results.tool?.name === sel.name) detail.append(renderResult(v.results.tool.r, (extra) => run(extra)));
+          if (v.results.tool?.name === sel.name)
+            detail.append(
+              renderResult(v.results.tool.r, (extra) => run(extra)),
+            );
         }
         return listPane(
           "TOOLS",
           v.tools,
           listTools,
-          (t) => itemButton(t.name, t.description, t.name === v.selected.tool, () => {
-            v.selected.tool = t.name;
-            v.selected.toolArgs = {};
-            render();
-          }),
+          (t) =>
+            itemButton(
+              t.name,
+              t.description,
+              t.name === v.selected.tool,
+              () => {
+                v.selected.tool = t.name;
+                v.selected.toolArgs = {};
+                render();
+              },
+            ),
           detail,
           liveReason(),
         );
@@ -1194,7 +1574,10 @@
       async function subscribe(uri) {
         try {
           if (protocol() === "2026-07-28") {
-            await api("/inspector/listen", { connection_id: current, resource_uris: [uri] });
+            await api("/inspector/listen", {
+              connection_id: current,
+              resource_uris: [uri],
+            });
             status("Listening for updates to " + uri);
           } else {
             await send("resources/subscribe", { uri });
@@ -1213,7 +1596,8 @@
         }).catch(() => null);
         scheduleRefresh();
         list.replaceChildren();
-        for (const c of r?.result?.completion?.values || []) list.append(new Option(c, c));
+        for (const c of r?.result?.completion?.values || [])
+          list.append(new Option(c, c));
       }
       function resourcesPane() {
         const v = view();
@@ -1221,20 +1605,35 @@
         // Templates
         const tl = el("div", undefined, "block");
         const th = el("div", undefined, "row");
-        th.append(el("h3", "RESOURCE TEMPLATES" + (v.templates?.items ? ` (${v.templates.items.length})` : "")), el("span", "", "grow"));
+        th.append(
+          el(
+            "h3",
+            "RESOURCE TEMPLATES" +
+              (v.templates?.items ? ` (${v.templates.items.length})` : ""),
+          ),
+          el("span", "", "grow"),
+        );
         const lt = btn(v.templates ? "Refresh" : "List templates", async () => {
-          v.templates = await listAll("resources/templates/list", "resourceTemplates");
+          v.templates = await listAll(
+            "resources/templates/list",
+            "resourceTemplates",
+          );
           render();
         });
         lt.disabled = !!liveReason();
         th.append(lt);
         tl.append(th);
-        if (v.templates?.error) tl.append(el("div", v.templates.error.message, "error"));
+        if (v.templates?.error)
+          tl.append(el("div", v.templates.error.message, "error"));
         for (const t of v.templates?.items || []) {
           const b = el("div", undefined, "block");
           b.append(el("div", t.name + " · " + t.uriTemplate));
           if (t.description) b.append(el("div", t.description, "meta"));
-          const vars = [...t.uriTemplate.matchAll(/\{[+#./;?&]?([^}]+)\}/g)].flatMap((m) => m[1].split(",").map((s) => s.replace(/[*:].*$/, "")));
+          const vars = [
+            ...t.uriTemplate.matchAll(/\{[+#./;?&]?([^}]+)\}/g),
+          ].flatMap((m) =>
+            m[1].split(",").map((s) => s.replace(/[*:].*$/, "")),
+          );
           const inputs = {};
           for (const name of vars) {
             const l = el("label", undefined, "field");
@@ -1243,20 +1642,30 @@
             const dl = el("datalist");
             dl.id = "dl-" + Math.random().toString(36).slice(2);
             i.setAttribute("list", dl.id);
-            i.oninput = () => complete({ type: "ref/resource", uri: t.uriTemplate }, name, i.value, dl);
+            i.oninput = () =>
+              complete(
+                { type: "ref/resource", uri: t.uriTemplate },
+                name,
+                i.value,
+                dl,
+              );
             l.append(el("span", name), i, dl);
             b.append(l);
             inputs[name] = i;
           }
           const read = btn("Read", () => {
-            const uri = t.uriTemplate.replace(/\{([+#./;?&]?)([^}]+)\}/g, (_, op, names) =>
-              names
-                .split(",")
-                .map((n) => {
-                  const val = inputs[n.replace(/[*:].*$/, "")]?.value || "";
-                  return op === "+" || op === "#" ? encodeURI(val) : encodeURIComponent(val);
-                })
-                .join(","),
+            const uri = t.uriTemplate.replace(
+              /\{([+#./;?&]?)([^}]+)\}/g,
+              (_, op, names) =>
+                names
+                  .split(",")
+                  .map((n) => {
+                    const val = inputs[n.replace(/[*:].*$/, "")]?.value || "";
+                    return op === "+" || op === "#"
+                      ? encodeURI(val)
+                      : encodeURIComponent(val);
+                  })
+                  .join(","),
             );
             readResource(uri);
           });
@@ -1273,7 +1682,10 @@
           const sub = btn("Subscribe to updates", () => subscribe(res.uri));
           sub.disabled = !!liveReason();
           row.append(sub);
-          b.append(row, renderResult(res.r, (extra) => readResource(res.uri, extra)));
+          b.append(
+            row,
+            renderResult(res.r, (extra) => readResource(res.uri, extra)),
+          );
           detail.append(b);
         }
         return listPane(
@@ -1283,7 +1695,13 @@
             v.resources = await listAll("resources/list", "resources");
             render();
           },
-          (r) => itemButton(r.name || r.uri, r.uri + (r.mimeType ? " · " + r.mimeType : ""), res?.uri === r.uri, () => readResource(r.uri)),
+          (r) =>
+            itemButton(
+              r.name || r.uri,
+              r.uri + (r.mimeType ? " · " + r.mimeType : ""),
+              res?.uri === r.uri,
+              () => readResource(r.uri),
+            ),
           detail,
           liveReason(),
         );
@@ -1305,7 +1723,13 @@
             const dl = el("datalist");
             dl.id = "dl-" + Math.random().toString(36).slice(2);
             i.setAttribute("list", dl.id);
-            i.oninput = () => complete({ type: "ref/prompt", name: sel.name }, a.name, i.value, dl);
+            i.oninput = () =>
+              complete(
+                { type: "ref/prompt", name: sel.name },
+                a.name,
+                i.value,
+                dl,
+              );
             l.append(el("span", a.name + (a.required ? " *" : "")), i, dl);
             if (a.description) l.append(el("span", a.description, "hint"));
             detail.append(l);
@@ -1317,14 +1741,21 @@
               if (i.value) args[k] = i.value;
               else if (req) return status(k + " is required", true);
             }
-            const r = await send("prompts/get", { name: sel.name, arguments: args, ...extra });
+            const r = await send("prompts/get", {
+              name: sel.name,
+              arguments: args,
+              ...extra,
+            });
             v.results.prompt = { name: sel.name, r };
             render();
           };
           const b = btn("Get prompt", () => get(), "primary");
           b.disabled = !!liveReason();
           detail.append(b);
-          if (v.results.prompt?.name === sel.name) detail.append(renderResult(v.results.prompt.r, (extra) => get(extra)));
+          if (v.results.prompt?.name === sel.name)
+            detail.append(
+              renderResult(v.results.prompt.r, (extra) => get(extra)),
+            );
         }
         return listPane(
           "PROMPTS",
@@ -1333,10 +1764,16 @@
             v.prompts = await listAll("prompts/list", "prompts");
             render();
           },
-          (p) => itemButton(p.name, p.description, p.name === v.selected.prompt, () => {
-            v.selected.prompt = p.name;
-            render();
-          }),
+          (p) =>
+            itemButton(
+              p.name,
+              p.description,
+              p.name === v.selected.prompt,
+              () => {
+                v.selected.prompt = p.name;
+                render();
+              },
+            ),
           detail,
           liveReason(),
         );
@@ -1346,13 +1783,25 @@
         const v = view();
         const detail = el("div", undefined, "pad");
         const s = v.results.skill;
-        if (!s) detail.append(el("div", "Skills (SEP-2640) are served by 2026-07-28 servers. Select a skill to fetch it.", "meta"));
+        if (!s)
+          detail.append(
+            el(
+              "div",
+              "Skills (SEP-2640) are served by 2026-07-28 servers. Select a skill to fetch it.",
+              "meta",
+            ),
+          );
         else {
           detail.append(el("strong", s.uri));
           if (s.r.kind === "error") detail.append(renderResult(s.r));
           else {
             const d = s.r.result;
-            for (const f of d.contents || d.files || []) detail.append(renderContent(f.text !== undefined ? { type: "resource", resource: f } : f));
+            for (const f of d.contents || d.files || [])
+              detail.append(
+                renderContent(
+                  f.text !== undefined ? { type: "resource", resource: f } : f,
+                ),
+              );
             const raw = el("details");
             raw.append(el("summary", "Raw result", "meta"), pre(d));
             detail.append(raw);
@@ -1366,21 +1815,40 @@
             render();
           },
           (k) =>
-            itemButton(k.name || k.uri, k.description || k.uri, s?.uri === k.uri, async () => {
-              const r = await send("skills/get", { uri: k.uri });
-              v.results.skill = { uri: k.uri, r };
-              render();
-            }),
+            itemButton(
+              k.name || k.uri,
+              k.description || k.uri,
+              s?.uri === k.uri,
+              async () => {
+                const r = await send("skills/get", { uri: k.uri });
+                v.results.skill = { uri: k.uri, r };
+                render();
+              },
+            ),
           detail,
           liveReason(),
         );
       }
 
       const METHODS = [
-        "ping", "tools/list", "tools/call", "resources/list", "resources/templates/list",
-        "resources/read", "resources/subscribe", "resources/unsubscribe", "prompts/list",
-        "prompts/get", "completion/complete", "logging/setLevel", "skills/list", "skills/get",
-        "resources/directory/read", "tasks/get", "tasks/update", "tasks/cancel",
+        "ping",
+        "tools/list",
+        "tools/call",
+        "resources/list",
+        "resources/templates/list",
+        "resources/read",
+        "resources/subscribe",
+        "resources/unsubscribe",
+        "prompts/list",
+        "prompts/get",
+        "completion/complete",
+        "logging/setLevel",
+        "skills/list",
+        "skills/get",
+        "resources/directory/read",
+        "tasks/get",
+        "tasks/update",
+        "tasks/cancel",
       ];
       function rawPane() {
         const v = view();
@@ -1388,11 +1856,24 @@
         const lvl = el("div", undefined, "row");
         const level = el("select");
         level.setAttribute("aria-label", "Log level");
-        for (const l of ["debug", "info", "notice", "warning", "error", "critical", "alert", "emergency"]) level.append(new Option(l, l));
-        const setLevel = btn("Set server log level", () => send("logging/setLevel", { level: level.value }));
+        for (const l of [
+          "debug",
+          "info",
+          "notice",
+          "warning",
+          "error",
+          "critical",
+          "alert",
+          "emergency",
+        ])
+          level.append(new Option(l, l));
+        const setLevel = btn("Set server log level", () =>
+          send("logging/setLevel", { level: level.value }),
+        );
         setLevel.disabled = !!liveReason();
         lvl.append(level, setLevel);
-        if (!capability("logging")) lvl.append(el("span", "server did not declare logging", "meta"));
+        if (!capability("logging"))
+          lvl.append(el("span", "server did not declare logging", "meta"));
         box.append(lvl);
         const m = el("input");
         m.setAttribute("aria-label", "Method");
@@ -1423,19 +1904,33 @@
           return params.value.trim() ? JSON.parse(params.value) : undefined;
         };
         const row = el("div", undefined, "row");
-        const sendReq = btn("Send request", async (_, extra = {}) => {
-          try {
-            const p = parse();
-            const r = await send(m.value, p || Object.keys(extra).length ? { ...(p || {}), ...extra } : undefined, Number(timeout.value));
-            v.results.raw = r;
-            render();
-          } catch (e) {
-            status(e.message, true);
-          }
-        }, "primary");
+        const sendReq = btn(
+          "Send request",
+          async (_, extra = {}) => {
+            try {
+              const p = parse();
+              const r = await send(
+                m.value,
+                p || Object.keys(extra).length
+                  ? { ...(p || {}), ...extra }
+                  : undefined,
+                Number(timeout.value),
+              );
+              v.results.raw = r;
+              render();
+            } catch (e) {
+              status(e.message, true);
+            }
+          },
+          "primary",
+        );
         const sendNote = btn("Send notification", async () => {
           try {
-            await api("/inspector/notify", { connection_id: current, method: m.value, params: parse() });
+            await api("/inspector/notify", {
+              connection_id: current,
+              method: m.value,
+              params: parse(),
+            });
             status("Notification sent.");
           } catch (e) {
             status(e.message, true);
@@ -1445,7 +1940,12 @@
         sendReq.disabled = sendNote.disabled = !!liveReason();
         row.append(sendReq, sendNote);
         box.append(row);
-        if (v.results.raw) box.append(renderResult(v.results.raw, (extra) => sendReq.onclick(null, extra)));
+        if (v.results.raw)
+          box.append(
+            renderResult(v.results.raw, (extra) =>
+              sendReq.onclick(null, extra),
+            ),
+          );
         return box;
       }
 
@@ -1453,28 +1953,47 @@
         const box = el("div", undefined, "pad");
         const b1 = el("div", undefined, "block");
         b1.append(el("h3", "ROOTS"));
-        b1.append(el("div", "Answered to roots/list (legacy server requests and MRTR input requests). Applying sends notifications/roots/list_changed.", "meta"));
+        b1.append(
+          el(
+            "div",
+            "Answered to roots/list (legacy server requests and MRTR input requests). Applying sends notifications/roots/list_changed.",
+            "meta",
+          ),
+        );
         const t = el("textarea");
         t.setAttribute("aria-label", "Roots JSON");
         t.value = pretty(roots);
         t.placeholder = '[{"uri":"file:///path","name":"project"}]';
-        const apply = btn("Apply roots", async () => {
-          try {
-            const next = JSON.parse(t.value || "[]");
-            await api("/inspector/roots", { connection_id: current, roots: next });
-            roots = next;
-            status(`Roots applied (${next.length}).`);
-          } catch (e) {
-            status(e.message, true);
-          }
-          scheduleRefresh();
-        }, "primary");
+        const apply = btn(
+          "Apply roots",
+          async () => {
+            try {
+              const next = JSON.parse(t.value || "[]");
+              await api("/inspector/roots", {
+                connection_id: current,
+                roots: next,
+              });
+              roots = next;
+              status(`Roots applied (${next.length}).`);
+            } catch (e) {
+              status(e.message, true);
+            }
+            scheduleRefresh();
+          },
+          "primary",
+        );
         apply.disabled = !!liveReason();
         b1.append(t, apply);
         box.append(b1);
         const b2 = el("div", undefined, "block");
         b2.append(el("h3", "SUBSCRIPTIONS/LISTEN (2026-07-28)"));
-        b2.append(el("div", "Opens a listen stream; every notification it delivers is recorded in history.", "meta"));
+        b2.append(
+          el(
+            "div",
+            "Opens a listen stream; every notification it delivers is recorded in history.",
+            "meta",
+          ),
+        );
         const checks = {};
         const row = el("div", undefined, "row");
         for (const k of ["tools", "prompts", "resources"]) {
@@ -1488,21 +2007,31 @@
           checks[k] = c;
         }
         b2.append(row);
-        const listen = btn("Listen", async () => {
-          try {
-            const r = await api("/inspector/listen", {
-              connection_id: current,
-              tools: checks.tools.checked,
-              prompts: checks.prompts.checked,
-              resources: checks.resources.checked,
-            });
-            status("Listening. Acknowledged: " + JSON.stringify(r.acknowledged));
-          } catch (e) {
-            status(e.message, true);
-          }
-          scheduleRefresh();
-        }, "primary");
-        const reason = liveReason() || (protocol() && protocol() !== "2026-07-28" ? "Legacy servers push notifications without a listen request" : "");
+        const listen = btn(
+          "Listen",
+          async () => {
+            try {
+              const r = await api("/inspector/listen", {
+                connection_id: current,
+                tools: checks.tools.checked,
+                prompts: checks.prompts.checked,
+                resources: checks.resources.checked,
+              });
+              status(
+                "Listening. Acknowledged: " + JSON.stringify(r.acknowledged),
+              );
+            } catch (e) {
+              status(e.message, true);
+            }
+            scheduleRefresh();
+          },
+          "primary",
+        );
+        const reason =
+          liveReason() ||
+          (protocol() && protocol() !== "2026-07-28"
+            ? "Legacy servers push notifications without a listen request"
+            : "");
         listen.disabled = !!reason;
         b2.append(listen);
         if (reason) b2.append(el("div", reason, "meta"));
@@ -1511,7 +2040,8 @@
       }
 
       function render() {
-        for (const b of document.querySelectorAll("#tabs button")) b.classList.toggle("active", b.dataset.tab === tab);
+        for (const b of document.querySelectorAll("#tabs button"))
+          b.classList.toggle("active", b.dataset.tab === tab);
         const pane = $("#pane");
         pane.replaceChildren();
         $("#connect").disabled = !authorized;
@@ -1521,10 +2051,25 @@
           return;
         }
         if (!current) {
-          pane.append(el("div", "Connect to an MCP server: a Streamable HTTP URL, a stdio command, or this gateway's own /mcp (to see exactly what agents see).", "empty"));
+          pane.append(
+            el(
+              "div",
+              "Connect to an MCP server: a Streamable HTTP URL, a stdio command, or this gateway's own /mcp (to see exactly what agents see).",
+              "empty",
+            ),
+          );
           return;
         }
-        pane.append({ tools: toolsPane, resources: resourcesPane, prompts: promptsPane, skills: skillsPane, raw: rawPane, roots: rootsPane }[tab]());
+        pane.append(
+          {
+            tools: toolsPane,
+            resources: resourcesPane,
+            prompts: promptsPane,
+            skills: skillsPane,
+            raw: rawPane,
+            roots: rootsPane,
+          }[tab](),
+        );
       }
       for (const b of document.querySelectorAll("#tabs button"))
         b.onclick = () => {
@@ -1537,38 +2082,76 @@
       function renderActivity() {
         const box = $("#server-requests");
         // Re-render only when requests change, so a half-typed answer survives live updates.
-        const signature = current + "|" + serverRequests.map((r) => r.request_id + r.status).join(",");
+        const signature =
+          current +
+          "|" +
+          serverRequests.map((r) => r.request_id + r.status).join(",");
         if (signature === requestsSignature) return renderHistory();
         requestsSignature = signature;
         box.replaceChildren();
         const pending = serverRequests.filter((r) => r.status === "Pending");
-        $("#pending-count").textContent = pending.length ? pending.length + " waiting" : "";
+        $("#pending-count").textContent = pending.length
+          ? pending.length + " waiting"
+          : "";
         $("#pending-count").className = pending.length ? "meta warn" : "meta";
         if (!current) box.append(el("div", "No connection selected.", "empty"));
-        else if (!serverRequests.length) box.append(el("div", "No sampling or elicitation requests from this server.", "empty"));
+        else if (!serverRequests.length)
+          box.append(
+            el(
+              "div",
+              "No sampling or elicitation requests from this server.",
+              "empty",
+            ),
+          );
         for (const r of serverRequests) {
           const item = el("div", undefined, "block");
           item.style.margin = "8px 12px";
           const head = el("div", undefined, "row");
-          head.append(el("strong", r.method), el("span", r.status, r.status === "Pending" ? "warn" : r.status === "Answered" ? "ok" : "error"), el("span", new Date(r.created_at * 1000).toLocaleTimeString(), "meta"));
+          head.append(
+            el("strong", r.method),
+            el(
+              "span",
+              r.status,
+              r.status === "Pending"
+                ? "warn"
+                : r.status === "Answered"
+                  ? "ok"
+                  : "error",
+            ),
+            el(
+              "span",
+              new Date(r.created_at * 1000).toLocaleTimeString(),
+              "meta",
+            ),
+          );
           item.append(head);
           if (r.status === "Pending") {
             const reader = answerEditor(r.method, r.params || {}, item);
             const err = el("div", undefined, "error");
             const row = el("div", undefined, "row");
             row.append(
-              btn("Send answer", async () => {
-                try {
-                  await api("/inspector/answer", { request_id: r.request_id, result: reader() });
-                  status("Answer delivered to the server.");
-                } catch (e) {
-                  err.textContent = e.message;
-                }
-                scheduleRefresh();
-              }, "primary"),
+              btn(
+                "Send answer",
+                async () => {
+                  try {
+                    await api("/inspector/answer", {
+                      request_id: r.request_id,
+                      result: reader(),
+                    });
+                    status("Answer delivered to the server.");
+                  } catch (e) {
+                    err.textContent = e.message;
+                  }
+                  scheduleRefresh();
+                },
+                "primary",
+              ),
               btn("Reject", async () => {
                 try {
-                  await api("/inspector/answer", { request_id: r.request_id, reject: "Rejected by the operator" });
+                  await api("/inspector/answer", {
+                    request_id: r.request_id,
+                    reject: "Rejected by the operator",
+                  });
                   status("Rejected.");
                 } catch (e) {
                   err.textContent = e.message;
@@ -1579,7 +2162,11 @@
             item.append(row, err);
           } else {
             const d = el("details");
-            d.append(el("summary", "Request and answer", "meta"), pre(r.params), pre(r.response));
+            d.append(
+              el("summary", "Request and answer", "meta"),
+              pre(r.params),
+              pre(r.response),
+            );
             item.append(d);
           }
           box.append(item);
@@ -1595,11 +2182,17 @@
           f === "all"
             ? true
             : f === "rpc"
-              ? m.direction === "client_to_server" ? m.kind === "request" : m.kind === "response" || m.kind === "error"
+              ? m.direction === "client_to_server"
+                ? m.kind === "request"
+                : m.kind === "response" || m.kind === "error"
               : f === "notification"
                 ? m.kind === "notification"
                 : f === "server"
-                  ? (m.direction === "server_to_client" && m.kind === "request") || (m.direction === "client_to_server" && m.reply_to !== null && m.kind !== "request")
+                  ? (m.direction === "server_to_client" &&
+                      m.kind === "request") ||
+                    (m.direction === "client_to_server" &&
+                      m.reply_to !== null &&
+                      m.kind !== "request")
                   : f === "stderr"
                     ? m.kind === "stderr"
                     : m.kind === "error",
@@ -1609,14 +2202,37 @@
         for (const m of [...shown].reverse()) {
           const row = el("div", undefined, "msg");
           const head = el("div", undefined, "head");
-          head.append(el("span", m.direction === "client_to_server" ? "→" : "←", "dir"));
-          head.append(el("span", m.kind, m.kind === "error" ? "error" : m.kind === "notification" ? "warn" : m.kind === "stderr" ? "meta" : "ok"));
-          head.append(el("span", m.kind === "stderr" ? m.body?.line : m.method, "method"));
-          if (m.latency_ms !== null) head.append(el("span", m.latency_ms + " ms", "meta"));
-          head.append(el("span", "#" + m.message_id + (m.reply_to ? " ↳" + m.reply_to : ""), "meta"));
+          head.append(
+            el(
+              "span",
+              (m.direction === "client_to_server" ? "→ " : "← ") + m.kind,
+              m.kind === "error"
+                ? "error"
+                : m.kind === "notification"
+                  ? "warn"
+                  : m.kind === "stderr"
+                    ? "meta"
+                    : "ok",
+            ),
+          );
+          head.append(
+            el("span", m.kind === "stderr" ? m.body?.line : m.method, "method"),
+          );
+          head.append(
+            el(
+              "span",
+              (m.latency_ms !== null ? m.latency_ms + " ms · " : "") +
+                "#" +
+                m.message_id +
+                (m.reply_to ? " ↳" + m.reply_to : ""),
+              "meta",
+            ),
+          );
           row.append(head);
           if (expanded.has(m.message_id)) {
-            row.append(el("div", new Date(m.created_at_ms).toLocaleString(), "meta"));
+            row.append(
+              el("div", new Date(m.created_at_ms).toLocaleString(), "meta"),
+            );
             row.append(pre(m.body));
             const tools = el("div", undefined, "row");
             tools.append(
@@ -1630,14 +2246,20 @@
                 }
               }),
             );
-            if (m.direction === "client_to_server" && m.kind === "request" && m.body?.method) {
+            if (
+              m.direction === "client_to_server" &&
+              m.kind === "request" &&
+              m.body?.method
+            ) {
               const replay = btn("Replay", async (e) => {
                 e.stopPropagation();
                 const r = await send(m.body.method, m.body.params);
                 view().results.raw = r;
                 tab = "raw";
                 view().selected.rawMethod = m.body.method;
-                view().selected.rawParams = m.body.params ? pretty(m.body.params) : "";
+                view().selected.rawParams = m.body.params
+                  ? pretty(m.body.params)
+                  : "";
                 render();
               });
               replay.disabled = !!liveReason();
@@ -1646,11 +2268,67 @@
             row.append(tools);
           }
           row.onclick = () => {
-            expanded.has(m.message_id) ? expanded.delete(m.message_id) : expanded.add(m.message_id);
+            expanded.has(m.message_id)
+              ? expanded.delete(m.message_id)
+              : expanded.add(m.message_id);
             renderHistory();
           };
           box.append(row);
         }
+      }
+
+      const splitDefaults = { left: 290, right: 400 };
+      for (const divider of document.querySelectorAll("[data-split]")) {
+        const side = divider.dataset.split;
+        const key = "--" + side;
+        const minWidth = side === "left" ? 200 : 240;
+        divider.onpointerdown = (e) => {
+          divider.setPointerCapture(e.pointerId);
+          divider.onpointermove = (ev) => {
+            const rect = $("#inspector-layout").getBoundingClientRect();
+            const val =
+              side === "left"
+                ? ev.clientX - rect.left
+                : rect.right - ev.clientX;
+            document.documentElement.style.setProperty(
+              key,
+              Math.max(minWidth, Math.min(val, rect.width * 0.45)) + "px",
+            );
+          };
+          divider.onpointerup = () => {
+            divider.onpointermove = null;
+          };
+        };
+        divider.ondblclick = () => {
+          const cur = parseInt(
+            getComputedStyle(document.documentElement).getPropertyValue(key),
+          );
+          document.documentElement.style.setProperty(
+            key,
+            (cur === splitDefaults[side] ? 0 : splitDefaults[side]) + "px",
+          );
+        };
+        divider.onkeydown = (e) => {
+          if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+            const rect = $("#inspector-layout").getBoundingClientRect();
+            const cur = parseInt(
+              getComputedStyle(document.documentElement).getPropertyValue(key),
+            );
+            const delta =
+              side === "left"
+                ? e.key === "ArrowRight"
+                  ? 12
+                  : -12
+                : e.key === "ArrowLeft"
+                  ? 12
+                  : -12;
+            document.documentElement.style.setProperty(
+              key,
+              Math.max(minWidth, Math.min(cur + delta, rect.width * 0.45)) +
+                "px",
+            );
+          }
+        };
       }
 
       render();
