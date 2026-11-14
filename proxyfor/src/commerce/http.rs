@@ -17,7 +17,7 @@ pub fn json_response(status:u16,value:Value)->HttpResponse {
 pub async fn route(commerce:Arc<Commerce>,request:Request<Incoming>)->HttpResponse {
     let path=request.uri().path().strip_prefix("/__proxyfor__/commerce").unwrap_or("").to_owned();
     let method=request.method().as_str().to_owned();
-    if method=="GET" && path=="/status" {return json_response(200,json!({"clef":commerce.clef.status(),"admin_allow_remote":commerce.auth.allow_remote}));}
+    if method=="GET" && path=="/status" {return json_response(200,json!({"clef":commerce.clef.status(),"admin_allow_remote":commerce.auth.allow_remote,"probe_policy":*commerce.probe_policy.read().unwrap()}));}
     let peer=request.extensions().get::<PeerAddress>().map(|p|p.0.ip());
     let authorization=request.headers().get("authorization").and_then(|v|v.to_str().ok());
     if let Err(status)=commerce.auth.authorize(peer,authorization) {return json_response(status,json!({"error":if status==401 {"Admin bearer token required"}else{"Admin access requires a loopback peer"}}));}
@@ -51,6 +51,12 @@ pub async fn mutate(commerce:&Arc<Commerce>,path:&str,body:Value,actor:&str)->Re
             commerce.db.admin_audit(actor,"clef.evaluate",session,&row)?;
             anyhow::ensure!(row["status"]=="Verified","CLEF evaluation failed: {}",row["error"]);
             Ok(row)
+        },
+        "/probe"=>{
+            let session=string("session_id")?;
+            let peer=commerce.peers.lock().map_err(|_|anyhow::anyhow!("peer registry lock poisoned"))?.get(session).cloned().context("Session has no active MCP client")?;
+            let result=crate::fingerprint::active::run(commerce,session,peer,false).await?;
+            commerce.db.admin_audit(actor,"probe.run",session,&result)?;Ok(result)
         },
         "/offers/synthesize"=>bundler::synthesize(&commerce.db,commerce.clef.status(),string("session_id")?,actor),
         _=>anyhow::bail!("Unknown admin action")

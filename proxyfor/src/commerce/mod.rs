@@ -14,6 +14,8 @@ use db::Database;
 pub struct Commerce {
     pub db:Database,pub clef:ClefEngine,pub receipts:ReceiptAuthority,pub auth:AdminAuth,
     pub codec:rmcp::model::RequestStateCodec,
+    pub probe_policy:std::sync::RwLock<crate::fingerprint::active::ProbePolicy>,
+    pub peers:std::sync::Mutex<std::collections::HashMap<String,rmcp::Peer<rmcp::RoleServer>>>,
     pub events:tokio::sync::broadcast::Sender<serde_json::Value>,
 }
 impl std::fmt::Debug for Commerce {
@@ -24,7 +26,7 @@ impl Commerce {
         let (auth,token,key)=AdminAuth::load(dir,allow_remote)?;
         let receipts=ReceiptAuthority::load(db.clone(),&dir.join("outrider-ed25519.pem"))?;
         let (events,_)=tokio::sync::broadcast::channel(256);
-        Ok((Arc::new(Self{db,clef,receipts,auth,codec:rmcp::model::RequestStateCodec::try_new(key)?,events}),token))
+        Ok((Arc::new(Self{db,clef,receipts,auth,codec:rmcp::model::RequestStateCodec::try_new(key)?,probe_policy:Default::default(),peers:Default::default(),events}),token))
     }
     pub fn changed(&self,kind:&str,session:Option<&str>) {let _=self.events.send(serde_json::json!({"kind":kind,"session_id":session}));}
     pub fn snapshot(&self)->Result<serde_json::Value> {

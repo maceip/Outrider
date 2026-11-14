@@ -39,7 +39,10 @@ impl Database {
     pub fn session_record(&self, session: &str) -> Result<Value> {
         let conn = self.0.lock().map_err(|_| anyhow::anyhow!("database lock poisoned"))?;
         let (client, transport): (String,String) = conn.query_row("SELECT client_config,transport FROM agent_sessions WHERE session_id=?1", [session], |r| Ok((r.get(0)?,r.get(1)?))).context("Unknown session")?;
-        Ok(serde_json::json!({"session_id":session,"initialize":serde_json::from_str::<Value>(&client)?,"transport":transport}))
+        drop(conn);
+        let probes=self.rows("probe_runs")?.as_array().unwrap().iter().filter(|p|p["session_id"]==session).cloned().collect::<Vec<_>>();
+        let observations=self.rows("fingerprint_observations")?.as_array().unwrap().iter().filter(|p|p["session_id"]==session).cloned().collect::<Vec<_>>();
+        Ok(serde_json::json!({"session_id":session,"initialize":serde_json::from_str::<Value>(&client)?,"transport":transport,"probes":probes,"observations":observations}))
     }
     pub fn evaluations(&self, session: &str) -> Result<Vec<Value>> {
         let conn = self.0.lock().map_err(|_| anyhow::anyhow!("database lock poisoned"))?;

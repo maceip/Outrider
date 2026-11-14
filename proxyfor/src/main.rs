@@ -38,6 +38,7 @@ async fn main() -> Result<()> {
     eprintln!("CLEF: {}", serde_json::to_string(_clef.status())?);
     let _db = proxyfor::commerce::db::Database::open(cli.db.clone().unwrap_or_else(|| config_dir.join("outrider.db")))?;
     let (commerce,new_token)=proxyfor::commerce::Commerce::new(_db,_clef,&config_dir,cli.admin_allow_remote)?;
+    *commerce.probe_policy.write().unwrap()=cli.probe_policy;
     if let Some(token)=new_token {eprintln!("Outrider admin token (shown once): {token}");}
     if let Some(Command::Receipt {command})=cli.command {
         match command {
@@ -103,6 +104,8 @@ struct Cli {
     config_dir: Option<PathBuf>,
     #[arg(long)]
     admin_allow_remote: bool,
+    #[arg(long,value_enum,default_value="auto")]
+    probe_policy: proxyfor::fingerprint::active::ProbePolicy,
     /// Real CLEF model (.litertlm); without it CLEF is explicitly Unconfigured
     #[arg(long, env = "OUTRIDER_CLEF_MODEL")]
     clef_model: Option<PathBuf>,
