@@ -467,12 +467,11 @@ pub async fn run(commerce: Arc<Commerce>) -> Result<()> {
         loop {
             ui.refresh()?;
             terminal.draw(|f| ui.render(f))?;
-            if event::poll(std::time::Duration::from_millis(100))? {
-                if let Event::Key(key) = event::read()? {
-                    if !ui.key(key).await {
-                        break;
-                    }
-                }
+            if event::poll(std::time::Duration::from_millis(100))?
+                && let Event::Key(key) = event::read()?
+                && !ui.key(key).await
+            {
+                break;
             }
             tokio::task::yield_now().await;
         }

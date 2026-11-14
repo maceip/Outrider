@@ -601,12 +601,11 @@ fn har_res_cookies(headers: &Option<Headers>) -> Value {
                     if let Some(value) = cookie.domain() {
                         json_cookie["domain"] = value.into();
                     }
-                    if let Some(cookie::Expiration::DateTime(datetime)) = cookie.expires() {
-                        if let Ok(datetime) =
+                    if let Some(cookie::Expiration::DateTime(datetime)) = cookie.expires()
+                        && let Ok(datetime) =
                             datetime.format(&time::format_description::well_known::Rfc3339)
-                        {
-                            json_cookie["expires"] = datetime.into();
-                        }
+                    {
+                        json_cookie["expires"] = datetime.into();
                     }
                     if let Some(value) = cookie.http_only() {
                         json_cookie["httpOnly"] = value.into();

@@ -30,10 +30,7 @@ fn seed(db: &Database, path: &std::path::Path) -> Result<ReceiptAuthority> {
         },
         "admin:test",
     )?;
-    Ok(ReceiptAuthority::load(
-        db.clone(),
-        &path.with_extension("pem"),
-    )?)
+    ReceiptAuthority::load(db.clone(), &path.with_extension("pem"))
 }
 #[test]
 fn receipt_rejects_tamper_wrong_subject_revocation_and_exhaustion() -> Result<()> {

@@ -729,12 +729,12 @@ impl Server {
                     self.state
                         .add_websocket_message(id, &message, server_to_client)
                         .await;
-                    if let Err(err) = sink.send(message).await {
-                        if !ignore_tungstenite_error(&err) {
-                            self.state
-                                .add_websocket_error(id, format!("Websocket close error: {err}"))
-                                .await
-                        }
+                    if let Err(err) = sink.send(message).await
+                        && !ignore_tungstenite_error(&err)
+                    {
+                        self.state
+                            .add_websocket_error(id, format!("Websocket close error: {err}"))
+                            .await
                     }
                 }
                 Err(err) => {
@@ -747,12 +747,12 @@ impl Server {
                             .add_websocket_error(id, format!("Websocket message error: {err}"))
                             .await;
                     }
-                    if let Err(err) = sink.send(tungstenite::Message::Close(None)).await {
-                        if !ignore_tungstenite_error(&err) {
-                            self.state
-                                .add_websocket_error(id, format!("Websocket close error: {err}"))
-                                .await
-                        }
+                    if let Err(err) = sink.send(tungstenite::Message::Close(None)).await
+                        && !ignore_tungstenite_error(&err)
+                    {
+                        self.state
+                            .add_websocket_error(id, format!("Websocket close error: {err}"))
+                            .await
                     };
 
                     break;
@@ -832,15 +832,15 @@ impl Server {
                         };
 
                         let raw = crate::fingerprint::client_hello::capture(&mut upgraded).await;
-                        if let Some(c) = &self.commerce {
-                            if let Err(e) = crate::fingerprint::passive::record_hello(
+                        if let Some(c) = &self.commerce
+                            && let Err(e) = crate::fingerprint::passive::record_hello(
                                 &c.db,
                                 &connection.connection_id,
                                 &raw,
-                            ) {
-                                traffic.add_error(e.to_string());
-                                return;
-                            }
+                            )
+                        {
+                            traffic.add_error(e.to_string());
+                            return;
                         }
                         let upgraded = Rewind::new_buffered(upgraded, Bytes::from(raw));
                         let stream = match TlsAcceptor::from(server_config).accept(upgraded).await {
@@ -853,15 +853,15 @@ impl Server {
                             }
                         };
 
-                        if let Some(c) = &self.commerce {
-                            if let Err(e) = crate::fingerprint::passive::record_tls(
+                        if let Some(c) = &self.commerce
+                            && let Err(e) = crate::fingerprint::passive::record_tls(
                                 &c.db,
                                 &connection.connection_id,
                                 &stream,
-                            ) {
-                                traffic.add_error(e.to_string());
-                                return;
-                            }
+                            )
+                        {
+                            traffic.add_error(e.to_string());
+                            return;
                         }
                         if let Err(err) = self
                             .serve_connect_stream(
@@ -873,13 +873,11 @@ impl Server {
                                 connection,
                             )
                             .await
-                        {
-                            if !err
+                            && !err
                                 .to_string()
                                 .starts_with("error shutting down connection")
-                            {
-                                traffic.add_error(format!("HTTPS connect error: {err}"));
-                            }
+                        {
+                            traffic.add_error(format!("HTTPS connect error: {err}"));
                         }
                     } else {
                         traffic.add_error(format!(
@@ -891,7 +889,7 @@ impl Server {
                             Ok(server) => server,
                             Err(err) => {
                                 traffic
-                                    .add_error(format! {"Failed to connect to {authority}: {err}"});
+                                    .add_error(format!("Failed to connect to {authority}: {err}"));
                                 return;
                             }
                         };

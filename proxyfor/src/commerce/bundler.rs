@@ -109,12 +109,11 @@ pub fn synthesize(
     let latest = evaluations.iter().rev().find(|e| e["status"] == "Verified");
     let mut selected = Vec::new();
     for bundle in catalog {
-        if let Some(required) = bundle.rules.get("required_pick") {
-            if !matches!(status, EngineStatus::Ready { .. })
-                || latest.is_none_or(|e| e["pick"] != *required)
-            {
-                continue;
-            }
+        if let Some(required) = bundle.rules.get("required_pick")
+            && (!matches!(status, EngineStatus::Ready { .. })
+                || latest.is_none_or(|e| e["pick"] != *required))
+        {
+            continue;
         }
         selected.push(bundle);
     }

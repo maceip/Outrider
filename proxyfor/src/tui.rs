@@ -238,11 +238,11 @@ impl App {
                 traffic, req_body, res_body,
             ))));
 
-            if let Some(websocket_id) = websocket_id {
-                if let Some(subscribed_websocket) = state.subscribe_websocket(websocket_id).await {
-                    let _ = message_tx
-                        .send(Message::SubscribedWebSocket(Box::new(subscribed_websocket)));
-                }
+            if let Some(websocket_id) = websocket_id
+                && let Some(subscribed_websocket) = state.subscribe_websocket(websocket_id).await
+            {
+                let _ =
+                    message_tx.send(Message::SubscribedWebSocket(Box::new(subscribed_websocket)));
             };
         });
         if self.details_tab_index == 2 && websocket_id.is_none() {
@@ -313,10 +313,10 @@ impl App {
     }
 
     fn maybe_clear_notifier(&mut self) {
-        if let Some((_, _, timeout_step)) = &self.current_notifier {
-            if self.step > *timeout_step {
-                self.current_notifier = None;
-            }
+        if let Some((_, _, timeout_step)) = &self.current_notifier
+            && self.step > *timeout_step
+        {
+            self.current_notifier = None;
         }
     }
 
@@ -429,13 +429,13 @@ impl App {
                                         next_idx(self.traffics.len(), self.selected_traffic_index);
                                 }
                                 View::Details => {
-                                    if let Some(size) = self.details_scroll_size {
-                                        if size > 0 {
-                                            if self.details_scroll_offset == size {
-                                                self.details_scroll_offset = 0
-                                            } else {
-                                                self.details_scroll_offset += 1;
-                                            }
+                                    if let Some(size) = self.details_scroll_size
+                                        && size > 0
+                                    {
+                                        if self.details_scroll_offset == size {
+                                            self.details_scroll_offset = 0
+                                        } else {
+                                            self.details_scroll_offset += 1;
                                         }
                                     }
                                 }
@@ -459,13 +459,13 @@ impl App {
                                         prev_idx(self.traffics.len(), self.selected_traffic_index);
                                 }
                                 View::Details => {
-                                    if let Some(size) = self.details_scroll_size {
-                                        if size > 0 {
-                                            if self.details_scroll_offset == 0 {
-                                                self.details_scroll_offset = size;
-                                            } else {
-                                                self.details_scroll_offset -= 1;
-                                            }
+                                    if let Some(size) = self.details_scroll_size
+                                        && size > 0
+                                    {
+                                        if self.details_scroll_offset == 0 {
+                                            self.details_scroll_offset = size;
+                                        } else {
+                                            self.details_scroll_offset -= 1;
                                         }
                                     }
                                 }
@@ -525,10 +525,8 @@ impl App {
                             self.current_popup = Some(Popup::Export(0));
                         }
                     }
-                    KeyCode::Char('/') => {
-                        if self.current_view == View::Main {
-                            self.input_mode = true;
-                        }
+                    KeyCode::Char('/') if self.current_view == View::Main => {
+                        self.input_mode = true;
                     }
                     _ => {}
                 }
@@ -580,7 +578,8 @@ impl App {
                 let mime = ellipsis_head(&head.mime.clone(), mime_width);
                 let size = format_size(head.size.map(|v| v as _));
                 let time_delta = format_time_delta(head.time.map(|v| v as _));
-                let widget = [
+
+                [
                     Cell::from(method),
                     Cell::from(uri),
                     Cell::from(status),
@@ -590,8 +589,7 @@ impl App {
                 ]
                 .into_iter()
                 .collect::<Row>()
-                .height(1);
-                widget
+                .height(1)
             });
             let table = Table::new(
                 rows,
@@ -640,7 +638,7 @@ impl App {
 
             frame.render_stateful_widget(table, area, &mut table_state);
 
-            let sub = if area.height % 2 == 0 { 2 } else { 3 };
+            let sub = if area.height.is_multiple_of(2) { 2 } else { 3 };
             traffics_len > (area.height.saturating_sub(sub) / 2) as usize
         };
 
@@ -840,17 +838,15 @@ fn beautify((traffic, req_body, res_body): &mut (Traffic, Option<Body>, Option<B
 }
 
 fn beautify_body(body: &mut Option<Body>, content_type: Option<&str>) {
-    if let (Some(body), Some(content_type)) = (body, content_type) {
-        if content_type.starts_with("application/json") {
-            if let Some(beautified) = body
-                .value
-                .parse::<serde_json::Value>()
-                .ok()
-                .and_then(|v| serde_json::to_string_pretty(&v).ok())
-            {
-                *body = Body::text(&beautified);
-            }
-        }
+    if let (Some(body), Some(content_type)) = (body, content_type)
+        && content_type.starts_with("application/json")
+        && let Some(beautified) = body
+            .value
+            .parse::<serde_json::Value>()
+            .ok()
+            .and_then(|v| serde_json::to_string_pretty(&v).ok())
+    {
+        *body = Body::text(&beautified);
     }
 }
 
