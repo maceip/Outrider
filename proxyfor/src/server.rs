@@ -56,6 +56,7 @@ use tokio_tungstenite::tungstenite;
 pub const CERT_PREFIX: &str = "http://proxyfor.local/";
 pub const WEB_PREFIX: &str = "/__proxyfor__";
 const WEB_INDEX: &str = include_str!("../assets/index.html");
+const INSPECTOR_INDEX: &str = include_str!("../assets/inspector.html");
 const CERT_INDEX: &str = include_str!("../assets/install-certificate.html");
 
 type Request = hyper::Request<Incoming>;
@@ -361,6 +362,13 @@ impl Server {
             set_cors_header(&mut res);
             let ret = if path.is_empty() || path == "/" {
                 self.handle_web_index(&mut res).await
+            } else if path == "/inspector" || path == "/inspector/" {
+                set_res_body(&mut res, INSPECTOR_INDEX);
+                res.headers_mut().insert(
+                    CONTENT_TYPE,
+                    HeaderValue::from_static("text/html; charset=UTF-8"),
+                );
+                Ok(())
             } else if path == "/subscribe/traffics" {
                 self.handle_subscribe_traffics(&mut res).await
             } else if let Some(id) = path.strip_prefix("/subscribe/websocket/") {

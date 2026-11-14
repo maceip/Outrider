@@ -379,6 +379,7 @@
       <div>
         <span class="brand">OUTRIDER</span>
         <span class="caption">/ COMMERCE & EVIDENCE WORKBENCH</span>
+        <a href="/__proxyfor__/inspector" id="inspector-link" class="meta">MCP Inspector →</a>
       </div>
       <div class="auth">
         <span id="connection" class="meta">Connecting</span
@@ -565,6 +566,9 @@
         try {
           snapshot = await api("/snapshot");
           authorized = true;
+          try {
+            sessionStorage.setItem("outrider-admin-token", token);
+          } catch {}
           message("Authenticated. Reading persisted runtime state.");
           await refresh();
           void events();
