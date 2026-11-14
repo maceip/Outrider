@@ -336,7 +336,11 @@ impl CommerceGateway {
             .collect())
     }
     /// Entitled tool ids with their descriptor digests: what `tools/list` adds for a session.
-    fn tool_view(&self, session: &str, subject: &str) -> Result<std::collections::BTreeSet<String>> {
+    fn tool_view(
+        &self,
+        session: &str,
+        subject: &str,
+    ) -> Result<std::collections::BTreeSet<String>> {
         let entitled = self.entitled(session, subject)?;
         Ok(self
             .catalog()?

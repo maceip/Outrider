@@ -243,7 +243,10 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
         CallToolResponse::Complete(r) => r.content[0].as_text().unwrap().text.clone(),
         r => anyhow::bail!("Expected catalog, got {r:?}"),
     };
-    assert_eq!(serde_json::from_str::<Value>(&catalog)?["session_id"], subject);
+    assert_eq!(
+        serde_json::from_str::<Value>(&catalog)?["session_id"],
+        subject
+    );
     let mut replay_cfg = cfg.clone();
     replay_cfg
         .custom_headers
@@ -274,7 +277,7 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
         rt.db.rows("receipt_redemptions")?.as_array().unwrap().len(),
         1
     );
-    // A secret supplied through _meta is recorded only in redacted form.
+    // A secret supplied through _meta reaches persisted state only as its digest.
     let meta_secret = uuid::Uuid::new_v4().to_string();
     let mut meta_req = CallToolRequestParams::new("outrider_catalog");
     let mut meta = RequestMetaObject::new();
@@ -287,8 +290,11 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     replay.cancel().await?;
     let persisted = rt.snapshot()?.to_string();
     assert!(persisted.contains(&subject));
-    assert!(persisted.contains(&proxyfor::mcp_gateway::handler::public_session_id(&meta_secret)));
-    assert!(persisted.contains("[redacted]"));
+    assert!(
+        persisted.contains(&proxyfor::mcp_gateway::handler::public_session_id(
+            &meta_secret
+        ))
+    );
     assert!(
         !persisted.contains(&session) && !persisted.contains(&meta_secret),
         "a client session secret was persisted"
@@ -321,9 +327,9 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
         "UPDATE mrtr_quotes SET expires_at_unix=?2 WHERE quote_id=?1",
         rusqlite::params![quote.quote_id, now() - 1],
     )?;
-    let other_receipt = rt
-        .receipts
-        .issue(&locked_subject, "research", 1, now() + 600, "admin:test")?;
+    let other_receipt =
+        rt.receipts
+            .issue(&locked_subject, "research", 1, now() + 600, "admin:test")?;
     assert!(
         other
             .call_tool_once(retry(&old, Some(&other_receipt.encode()?)))

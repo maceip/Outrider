@@ -253,7 +253,8 @@ async fn evaluated_session_state_infers_no_verdict_from_the_pick() -> Result<()>
     // Stored evaluation rows as the scorer writes them: one answered false, one answered true.
     let connection = rusqlite::Connection::open(&path)?;
     for (session, pick) in [("answered-false", "false"), ("answered-true", "true")] {
-        rt.db.record_session(session, session, &json!({}), "stdio")?;
+        rt.db
+            .record_session(session, session, &json!({}), "stdio")?;
         connection.execute(
             "INSERT INTO clef_evaluations(evaluation_id,session_id,question,status,pick,created_at) VALUES (?1,?2,?3,'Verified',?4,?5)",
             rusqlite::params![
