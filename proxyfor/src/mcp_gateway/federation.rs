@@ -36,7 +36,9 @@ impl Federation {
      tx.execute("DELETE FROM catalog_items WHERE upstream_name=?1",[name])?;
      for mut tool in tools {let original=tool.name.to_string();let alias=format!("{name}__{original}");tool.name=alias.clone().into();let descriptor=json!({"tool":tool,"remote_name":original});tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES (?1,'tool',?2,?3,?4)",params![alias,digest(&descriptor)?,descriptor.to_string(),name])?;}
      for prompt in prompts {let item=format!("{name}__prompt__{}",prompt.name);let descriptor=json!({"prompt":prompt});tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES (?1,'prompt',?2,?3,?4)",params![item,digest(&descriptor)?,descriptor.to_string(),name])?;}
-     for resource in resources {let uri=resource.uri.clone();let item=format!("{name}__resource__{uri}");let descriptor=json!({"resource":resource,"remote_uri":uri});tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES (?1,'resource',?2,?3,?4)",params![item,digest(&descriptor)?,descriptor.to_string(),name])?;}
+     for mut resource in resources {let uri=resource.uri.clone();
+      use base64::Engine as _;
+      resource.uri=format!("mcp-upstream://{name}/{}",base64::engine::general_purpose::URL_SAFE_NO_PAD.encode(uri.as_bytes()));let item=format!("{name}__resource__{uri}");let descriptor=json!({"resource":resource,"remote_uri":uri});tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES (?1,'resource',?2,?3,?4)",params![item,digest(&descriptor)?,descriptor.to_string(),name])?;}
      tx.execute("UPDATE upstream_servers SET status='Connected',error=NULL,updated_at=?2 WHERE name=?1",params![name,now()])?;tx.commit()?;
     }
     self.clients.write().await.insert(name.into(),Arc::new(service));
