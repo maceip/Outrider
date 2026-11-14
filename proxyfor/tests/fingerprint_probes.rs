@@ -40,7 +40,7 @@ async fn real_client_default_auto_off_and_declined()->Result<()> {
   let count=Arc::new(AtomicUsize::new(0));let client=ProbeClient{count:count.clone(),decline}.serve(client).await?;
   tokio::time::timeout(std::time::Duration::from_secs(5),async{loop {
    let rows=rt.db.rows("probe_runs").unwrap();
-   if policy==ProbePolicy::Off {client.ping().await.unwrap();tokio::time::sleep(std::time::Duration::from_millis(100)).await;assert_eq!(count.load(Ordering::SeqCst),0);assert_eq!(rows,json!([]));break}
+   if policy==ProbePolicy::Off {client.list_tools(Default::default()).await.unwrap();tokio::time::sleep(std::time::Duration::from_millis(100)).await;assert_eq!(count.load(Ordering::SeqCst),0);assert_eq!(rows,json!([]));break}
    if let Some(row)=rows.as_array().unwrap().first(){assert_eq!(row["status"],expected);assert!(row["latency_ms"].is_i64());assert!(row["input_tokens"].is_null());assert!(row["output_tokens"].is_null());if !decline{assert_eq!(row["structural_compliance"],1)}break}
    tokio::time::sleep(std::time::Duration::from_millis(10)).await;
   }}).await?;
