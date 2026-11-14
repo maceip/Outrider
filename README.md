@@ -32,7 +32,9 @@ build also checks the installed library hashes. Cargo never downloads native cod
 
 ## MCP Inspector
 
-`http://127.0.0.1:8080/__proxyfor__/inspector` (admin token required) connects to any
+`http://127.0.0.1:8080/__proxyfor__/inspector` (admin token required) is the dashboard's
+Inspector page (`dashboard/src/views/inspector-page.tsx`); it is only served when the
+dashboard export (`dashboard/out`) is built in or `OUTRIDER_DASHBOARD_DIR` points at it. It connects to any
 MCP server over Streamable HTTP or a stdio command, or to this gateway's own `/mcp`
 to see exactly what agents see. It lists and calls tools through forms generated from
 their schemas, reads resources and templates, gets prompts with completions, fetches

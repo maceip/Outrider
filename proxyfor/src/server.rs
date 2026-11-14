@@ -56,7 +56,6 @@ use tokio_tungstenite::tungstenite;
 pub const CERT_PREFIX: &str = "http://proxyfor.local/";
 pub const WEB_PREFIX: &str = "/__proxyfor__";
 const WEB_INDEX: &str = include_str!("../assets/index.html");
-const INSPECTOR_INDEX: &str = include_str!("../assets/inspector.html");
 const CERT_INDEX: &str = include_str!("../assets/install-certificate.html");
 
 include!(concat!(env!("OUT_DIR"), "/dashboard_assets.rs"));
@@ -604,13 +603,14 @@ impl Server {
         if path.is_empty() || path == "/" {
             self.handle_web_index(res, is_head).await
         } else if path == "/inspector" || path == "/inspector/" {
-            write_asset_response(
+            *res.status_mut() = StatusCode::NOT_FOUND;
+            set_res_body(
                 res,
-                Bytes::from_static(INSPECTOR_INDEX.as_bytes()),
-                "text/html; charset=UTF-8",
-                false,
-                is_head,
-            )
+                "The MCP Inspector is part of the dashboard, which this build does not include. \
+                 Run `npm --prefix dashboard ci && npm --prefix dashboard run build`, then rebuild Outrider \
+                 or set OUTRIDER_DASHBOARD_DIR=dashboard/out.",
+            );
+            Ok(())
         } else {
             *res.status_mut() = StatusCode::NOT_FOUND;
             Ok(())
