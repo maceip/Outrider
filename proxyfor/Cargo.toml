@@ -1,10 +1,11 @@
 [package]
 name = "proxyfor"
 version = "0.5.0"
+default-run = "outrider"
 edition = "2024"
 rust-version = "1.88"
 authors = ["sigoden <sigoden@gmail.com>"]
-description = "A powerful and flexible proxy CLI for capturing and inspecting HTTP(S) and WS(S) traffic"
+description = "Outrider: inspecting HTTP(S)/WS proxy and MCP dynamic commerce gateway with native CLEF execution"
 license = "MIT OR Apache-2.0"
 homepage = "https://github.com/sigoden/proxyfor"
 repository = "https://github.com/sigoden/proxyfor"

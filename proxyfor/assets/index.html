@@ -1,75 +1,1164 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Outrider</title><link rel="icon" href="data:,">
-<style>
-:root{color-scheme:dark;--bg:#101415;--panel:#14191a;--line:#303a3c;--muted:#8b9a9d;--text:#dce5e4;--accent:#b7e49b;--left:248px;--right:354px;font:12px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);height:100dvh;display:grid;grid-template-rows:36px 36px 1fr 27px;overflow:hidden}button,input,select,textarea{font:inherit;color:inherit;background:transparent;border:1px solid var(--line);border-radius:0;min-height:25px}button{padding:2px 9px;cursor:pointer}button:hover:not(:disabled){background:#253328;border-color:var(--accent)}button:disabled{opacity:.38;cursor:not-allowed}button.active{color:var(--accent);border-color:var(--accent)}input,select{padding:2px 6px}input[type=password]{width:200px}a{color:var(--accent)}header,.actions{height:36px;display:flex;align-items:center;gap:8px;padding:0 12px;border-bottom:1px solid var(--line);white-space:nowrap}header{justify-content:space-between;background:#192020}.brand{letter-spacing:3px;font-size:14px;color:var(--accent)}.caption{font-size:10px;color:var(--muted);letter-spacing:1px}.auth{display:flex;align-items:center;gap:6px}.actions{overflow-x:auto;background:var(--panel)}.workspace{min-height:0;display:grid;grid-template-columns:minmax(180px,var(--left)) 5px minmax(300px,1fr) 5px minmax(260px,var(--right))}.divider{cursor:col-resize;touch-action:none;background:linear-gradient(90deg,transparent 2px,var(--line) 2px,var(--line) 3px,transparent 3px)}.divider:hover{background:linear-gradient(90deg,transparent 2px,var(--accent) 2px,var(--accent) 3px,transparent 3px)}aside,main{min-width:0;overflow:auto}aside{background:var(--panel)}.pane-label,.section-label{position:sticky;top:0;z-index:1;margin:0;padding:8px 12px;background:var(--panel);border-bottom:1px solid var(--line);font-size:10px;letter-spacing:1.4px;color:var(--muted);font-weight:400}.session{width:100%;display:block;border:0;border-bottom:1px solid var(--line);text-align:left;padding:10px 12px;min-height:60px}.session.selected{background:#243024;box-shadow:inset 2px 0 var(--accent)}.row-title{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{color:var(--muted);font-size:10px}.state{color:var(--accent);font-size:10px}.empty{padding:20px 12px;color:var(--muted)}.tabs{height:36px;display:flex;align-items:center;gap:4px;padding:0 9px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:2}.tabs button{border:0;font-size:11px}.tabs button.active{border-bottom:1px solid var(--accent)}table{border-collapse:collapse;width:100%;font-size:11px;text-align:left}th{color:var(--muted);font-weight:400;font-size:10px;position:sticky;top:36px;background:var(--bg)}td,th{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}tr.selected{background:#202e24}td.limit{max-width:310px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.cite{border:0;color:var(--accent);padding:0;min-height:0;white-space:nowrap}section.inspector{padding:12px;border-bottom:1px solid var(--line)}section.inspector h2{font-size:10px;font-weight:400;color:var(--muted);letter-spacing:1.2px;margin:0 0 10px}dl{margin:0;display:grid;grid-template-columns:100px 1fr;gap:6px}dt{color:var(--muted)}dd{margin:0;overflow-wrap:anywhere}pre{font:11px/1.55 ui-monospace,monospace;white-space:pre-wrap;overflow-wrap:anywhere;margin:8px 0;color:#b9c7c6}.banner{padding:8px;border-left:2px solid var(--accent);background:#1d2720}.error{color:#f2a7a0}.notice{color:var(--muted);font-size:10px}#message{flex:1;overflow:hidden;text-overflow:ellipsis}footer{display:flex;gap:18px;align-items:center;padding:0 12px;border-top:1px solid var(--line);font-size:10px;color:var(--muted)}#control-reasons{font-size:10px;color:var(--muted)}dialog{padding:0;border:1px solid #667269;max-width:600px;width:calc(100% - 36px);background:var(--panel);color:var(--text)}dialog::backdrop{background:#000a}dialog h2{margin:0;padding:10px 14px;font-size:12px;font-weight:400;border-bottom:1px solid var(--line)}form{padding:14px}label{display:grid;gap:4px;margin-bottom:12px;font-size:11px}textarea{width:100%;min-height:110px;padding:8px}form .buttons{display:flex;gap:8px;justify-content:flex-end}#form-error{margin-bottom:10px}.mobile-title{display:none}@media(max-width:1000px){:root{--left:200px;--right:280px}.caption{display:none}.workspace{grid-template-columns:180px 5px minmax(260px,1fr) 5px 270px}.auth input{width:130px}}@media(max-width:720px){body{overflow:auto;min-width:650px}.workspace{grid-template-columns:180px 5px minmax(260px,1fr) 5px 270px}header{min-width:650px}}
-</style>
-</head>
-<body>
-<header><div><span class="brand">OUTRIDER</span> <span class="caption">/ COMMERCE & EVIDENCE WORKBENCH</span></div><div class="auth"><span id="connection" class="meta">Connecting</span><input id="admin-token" type="password" autocomplete="off" aria-label="Admin token" placeholder="Admin token"><button id="unlock">Unlock</button></div></header>
-<nav class="actions" aria-label="Selection actions"><button data-action="probe">Probe Session</button><button data-action="evaluate">Run CLEF Eval</button><button data-action="synthesize">Synthesize Offer</button><button data-action="issue">Issue Receipt</button><button data-action="revoke">Revoke Receipt</button><button data-action="upstream">Connect Upstream</button></nav>
-<div class="workspace" id="workspace">
-<aside aria-label="Agent sessions"><h1 class="pane-label">AGENT SESSIONS</h1><div id="sessions"></div><h2 class="pane-label">SESSION OFFERS</h2><div id="offers"></div></aside>
-<div class="divider" data-split="left" role="separator" aria-label="Resize sessions pane" tabindex="0"></div>
-<main><nav class="tabs"><button data-tab="traffic" class="active">HTTP / WS</button><button data-tab="mcp">MCP / MRTR</button><button data-tab="receipts">RECEIPTS</button></nav><div id="canvas"></div></main>
-<div class="divider" data-split="right" role="separator" aria-label="Resize inspector pane" tabindex="0"></div>
-<aside aria-label="Evidence inspector"><section class="inspector"><h2>SESSION / HANDSHAKE EVIDENCE</h2><div id="fingerprint"></div></section><section class="inspector"><h2>CLEF LENS</h2><div id="clef"></div></section><section class="inspector"><h2>BUNDLE / RECEIPT</h2><div id="receipt"></div></section><section class="inspector"><h2>SELECTED EVIDENCE</h2><div id="evidence"></div></section><section class="inspector"><h2>CONTROL PRECONDITIONS</h2><div id="control-reasons"></div></section></aside>
-</div>
-<footer><span id="message" role="status">Enter the admin token to inspect persisted commerce state.</span><span id="source">SQLite · awaiting authenticated read</span></footer>
-<dialog id="action-dialog"><h2 id="form-title"></h2><form id="action-form"><div id="form-fields"></div><div id="form-error" class="error" role="alert"></div><div class="buttons"><button type="button" id="cancel-form">Cancel</button><button type="submit" id="submit-form">Apply</button></div></form></dialog>
-<script type="module">
-const $=s=>document.querySelector(s), base='/__proxyfor__/commerce';
-let snapshot=null, publicStatus=null, selectedSession=null, selectedReceipt=null, selectedEvidence=null, tab='traffic', authorized=false, busy=false, token='', streamAbort=null, formAction=null, refreshTimer=null;
-const el=(tag,text,cls)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=String(text);if(cls)n.className=cls;return n};
-const rows=name=>snapshot?.[name]||[], session=()=>rows('agent_sessions').find(s=>s.session_id===selectedSession);
-function message(text,error=false){$('#message').textContent=text;$('#message').className=error?'error':''}
-async function api(path,body){const response=await fetch(base+path,{method:body===undefined?'GET':'POST',headers:{...(token?{Authorization:'Bearer '+token}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},body:body===undefined?undefined:JSON.stringify(body)});const value=await response.json();if(!response.ok)throw new Error(`${response.status}: ${value.error||response.statusText}`);return value}
-async function refresh(){if(!authorized)return;try{snapshot=await api('/snapshot');if(selectedSession&&!session())selectedSession=null;if(!selectedSession&&rows('agent_sessions').length)selectedSession=rows('agent_sessions')[0].session_id;render();$('#source').textContent='SQLite · '+new Date().toLocaleTimeString();return true;}catch(error){authorized=false;streamAbort?.abort();$('#connection').textContent='Disconnected';message(error.message,true);render();return false}}
-function scheduleRefresh(){clearTimeout(refreshTimer);refreshTimer=setTimeout(refresh,70)}
-async function events(){streamAbort?.abort();streamAbort=new AbortController();try{const response=await fetch(base+'/events',{headers:{Authorization:'Bearer '+token},signal:streamAbort.signal});if(!response.ok)throw new Error('Live stream: '+response.status);$('#connection').textContent='Live';const reader=response.body.getReader();while(true){const {done}=await reader.read();if(done)throw new Error('Live stream ended');scheduleRefresh()}}catch(error){if(error.name!=='AbortError'){message(error.message,true);$('#connection').textContent='Stream disconnected';}}}
-$('#unlock').onclick=async()=>{token=$('#admin-token').value;try{snapshot=await api('/snapshot');authorized=true;message('Authenticated. Reading persisted runtime state.');await refresh();void events()}catch(error){authorized=false;message(error.message,true);render()}};
-$('#admin-token').addEventListener('keydown',e=>{if(e.key==='Enter')$('#unlock').click()});
-function reasons(){const ready=(snapshot?.clef||publicStatus?.clef)?.status==='Ready';const s=session();const all={};for(const a of ['probe','evaluate','synthesize','issue','revoke','upstream'])all[a]=!authorized?'Admin token required':busy?'Backend action in progress':'';
-if(authorized&&!busy){for(const a of ['probe','evaluate','synthesize','issue'])if(!s)all[a]='Select an agent session';
-if(s){const peer=rows('active_peers').find(p=>p.session_id===s.session_id&&p.connected);if((snapshot?.probe_policy||publicStatus?.probe_policy)==='off')all.probe='Probes disabled by operator';else if(s.client_config?.protocolVersion==='2026-07-28')all.probe='MCP 2026: the agent must invoke outrider_run_probe to carry the input-required round trip';else if(!peer?.sampling)all.probe='No connected sampling-capable client';}
-if(!ready)all.evaluate=(snapshot?.clef||publicStatus?.clef)?.status==='ModelError'?'CLEF ModelError':'CLEF Unconfigured';
-if(!rows('bundles').length){all.synthesize='Configure at least one bundle';all.issue='Configure at least one bundle';}
-const receipt=rows('capability_receipts').find(r=>r.receipt_id===selectedReceipt);if(!receipt)all.revoke='Select a receipt';else if(receipt.revoked)all.revoke='Receipt already revoked';}return all}
-function render(){const why=reasons();for(const button of document.querySelectorAll('[data-action]')){button.disabled=!!why[button.dataset.action];button.title=why[button.dataset.action]||button.textContent;}
-$('#control-reasons').replaceChildren(...Object.entries(why).filter(([,v])=>v).map(([k,v])=>el('div',k+': '+v)));
-const sessions=$('#sessions');sessions.replaceChildren();if(!rows('agent_sessions').length)sessions.append(el('div',authorized?'No MCP sessions recorded.':'Admin token required to read sessions.','empty'));
-for(const s of rows('agent_sessions')){const b=el('button',undefined,'session'+(s.session_id===selectedSession?' selected':''));b.dataset.sessionId=s.session_id;b.append(el('span',s.client_config?.clientInfo?.name||'Unreported client','row-title'),el('span',s.session_id.slice(0,18)+' · '+s.transport,'meta'),el('div',s.state,'state'));b.onclick=()=>{selectedSession=s.session_id;selectedEvidence=null;render()};sessions.append(b)}
-const offers=rows('session_offers').filter(o=>o.session_id===selectedSession);$('#offers').replaceChildren(...(offers.length?offers.map(o=>{const n=el('div',undefined,'session');n.append(el('div',o.bundle_id),el('div',o.source,'meta'));return n}):[el('div',authorized?'No persisted offers for this session.':'No authenticated read.','empty')]));
-renderCanvas();renderInspector();if(snapshot?.errors?.length)message(snapshot.errors.at(-1),true)}
-function table(headers,data,build){if(!data.length)return el('div','No persisted '+tab+' records.','empty');const t=el('table'),thead=el('thead'),tr=el('tr');headers.forEach(h=>tr.append(el('th',h)));thead.append(tr);t.append(thead);const body=el('tbody');data.forEach(r=>{const tr=el('tr');build(r).forEach(value=>{const td=el('td',undefined,'limit');td.append(value instanceof Node?value:document.createTextNode(String(value??'—')));tr.append(td)});body.append(tr)});t.append(body);return t}
-function cite(label,record){const b=el('button','['+label+']','cite');b.onclick=()=>{selectedEvidence={label,record};renderInspector()};return b}
-function renderCanvas(){let content;if(tab==='traffic'){content=table(['REF','METHOD','TARGET','STATUS','MS'],rows('proxy_traffic'),r=>[cite('T-'+r.id,{...r,websocket_messages:rows('proxy_websocket_messages').filter(m=>m.run_id===r.run_id&&m.websocket_id===r.head.websocket_id)}),r.head.method,r.head.uri,r.head.status,r.head.time]);}
-else if(tab==='mcp'){content=table(['REF','DIRECTION','METHOD','SESSION / UPSTREAM'],rows('mcp_frames').filter(r=>!selectedSession||r.session_id===selectedSession||r.upstream_name),r=>[cite('M-'+r.frame_id,r),r.direction,r.method,r.upstream_name||r.session_id?.slice(0,12)]);}
-else{const wrap=el('div');wrap.append(table(['RECEIPT','SUBJECT','QUOTA','REVOKED'],rows('capability_receipts'),r=>{const b=el('button',r.receipt_id.slice(0,12),'cite');b.dataset.receiptId=r.receipt_id;b.onclick=()=>{selectedReceipt=r.receipt_id;selectedEvidence={label:'Receipt',record:r};render()};return[b,r.subject.slice(0,14),r.remaining_calls,r.revoked?'yes':'no']}));wrap.append(el('h2','REDEMPTIONS','section-label'));wrap.append(table(['REF','RECEIPT','TOOL','TIME'],rows('receipt_redemptions'),r=>[cite('R-'+r.redemption_id.slice(0,8),r),r.receipt_id.slice(0,12),r.tool_name,new Date(r.created_at*1000).toLocaleTimeString()]));content=wrap;}$('#canvas').replaceChildren(content)}
-function kv(entries){const d=el('dl');for(const[k,v]of entries){d.append(el('dt',k),el('dd',typeof v==='object'?JSON.stringify(v):v??'Not captured'))}return d}
-function renderInspector(){const s=session();const observations=rows('fingerprint_observations').filter(o=>o.session_id===selectedSession);const fp=$('#fingerprint');fp.replaceChildren();if(s){fp.append(kv([['Subject',s.subject],['Transport',s.transport]]));for(const o of observations.filter(o=>o.kind==='client_hello'||o.kind==='negotiated_tls'||o.kind==='http_header_order').slice(0,6)){fp.append(el('div',o.kind,'meta'),el('pre',JSON.stringify(o.evidence,null,2)))}if(!observations.some(o=>o.kind==='client_hello'))fp.append(el('p','No ClientHello captured for this session.','notice'));}else fp.append(el('p','Select a session to inspect captured evidence.','notice'));
-const lens=$('#clef');lens.replaceChildren();const state=snapshot?.clef||publicStatus?.clef;const evaluation=rows('clef_evaluations').find(e=>e.session_id===selectedSession);
-if(state?.status!=='Ready')lens.append(el('div',state?.status==='ModelError'?'ModelError: '+state.error:'Unconfigured · no model loaded','banner'));
-else lens.append(kv([['Model',state.model_path],['Backend',state.backend]]));
-if(evaluation){lens.append(kv([['Evaluation',evaluation.status],['Pick',evaluation.pick],['Input tokens',evaluation.input_tokens],['Output tokens',evaluation.output_tokens],['Latency',evaluation.latency_ms===null?null:evaluation.latency_ms+' ms']]));if(evaluation.error)lens.append(el('p',evaluation.error,'error'));}else lens.append(el('p','No CLEF evaluation recorded for this session.','notice'));
-lens.append(el('p','Option distributions are unavailable from the measured runtime.','notice'));
-const receipt=$('#receipt');receipt.replaceChildren();const r=rows('capability_receipts').find(r=>r.receipt_id===selectedReceipt);
-if(r){receipt.append(kv([['Receipt',r.receipt_id],['Bundle',r.bundle_id],['Signature',r.signature_verified?'Ed25519 verified':'Verification failed'],['Remaining',r.remaining_calls],['Expiry',new Date(r.expires_at_unix*1000).toLocaleString()],['Revoked',r.revoked?'yes':'no']]));receipt.append(el('pre',JSON.stringify(r.payload.item_digests,null,2)));}
-else{const bundles=rows('bundles');receipt.append(el('p',bundles.length?bundles.map(b=>b.bundle_id+' · '+b.items.join(', ')).join('\n'):'No bundles configured.','notice'));}
-$('#evidence').replaceChildren(...(selectedEvidence?[el('div',selectedEvidence.label,'state'),el('pre',JSON.stringify(selectedEvidence.record,null,2))]:[el('p','Select a [T-xx] or [M-xx] citation.','notice')]));}
-for(const button of document.querySelectorAll('[data-tab]'))button.onclick=()=>{tab=button.dataset.tab;document.querySelectorAll('[data-tab]').forEach(b=>b.classList.toggle('active',b===button));renderCanvas()};
-function field(name,label,type='text',value='',options=null){const l=el('label',label);let input;if(options){input=el('select');for(const option of options){const o=el('option',option.label??option.value);o.value=option.value;input.append(o)}}else{input=el(type==='textarea'?'textarea':'input');if(type!=='textarea')input.type=type;input.value=value}input.name=name;input.required=true;l.append(input);return l}
-function openForm(action){formAction=action;const fields=$('#form-fields');fields.replaceChildren();$('#form-error').textContent='';$('#form-title').textContent=({issue:'Issue operator receipt',upstream:'Connect MCP upstream',evaluate:'Evaluate recorded session'})[action];
-if(action==='issue'){fields.append(field('bundle_id','Bundle','text','',rows('bundles').map(b=>({value:b.bundle_id,label:b.bundle_id}))),field('max_calls','Maximum calls','number',''),field('expires_at_unix','Expiry (Unix seconds)','number',''));}
-if(action==='upstream')fields.append(field('name','Upstream name'),field('endpoint','Command or HTTP URL'));
-if(action==='evaluate')fields.append(field('question','SystemOne question (JSON)','textarea',JSON.stringify({type:'noul',question:'Does the recorded session contain a completed, structurally compliant capability probe?'},null,2)));
-$('#action-dialog').showModal();fields.querySelector('input,select,textarea')?.focus()}
-async function mutate(path,body){busy=true;render();try{const value=await api(path,body);if(await refresh()===false)throw new Error('Mutation persisted, but refreshing the stored state failed');message('Persisted backend result: '+path);if(value.token){selectedEvidence={label:'Issued capability receipt — retain this token for the agent',record:value};selectedReceipt=value.signed_receipt.receipt.receipt_id;tab='receipts';render()}return value}catch(error){message(error.message,true);throw error}finally{busy=false;render()}}
-for(const b of document.querySelectorAll('[data-action]'))b.onclick=async()=>{const action=b.dataset.action;if(['issue','upstream','evaluate'].includes(action)){openForm(action);return}try{if(action==='probe')await mutate('/probe',{session_id:selectedSession});if(action==='synthesize')await mutate('/offers/synthesize',{session_id:selectedSession});if(action==='revoke')await mutate('/receipts/revoke',{receipt_id:selectedReceipt});}catch{}};
-$('#cancel-form').onclick=()=>$('#action-dialog').close();$('#action-form').onsubmit=async e=>{e.preventDefault();const data=Object.fromEntries(new FormData(e.currentTarget));try{let path,body;if(formAction==='issue'){path='/receipts/issue';body={subject:session().subject,bundle_id:data.bundle_id,max_calls:Number(data.max_calls),expires_at_unix:Number(data.expires_at_unix)};}else if(formAction==='upstream'){path='/upstreams/connect';body=data;}else{path='/evaluate';body={session_id:selectedSession,question:JSON.parse(data.question)}}await mutate(path,body);$('#action-dialog').close()}catch(error){$('#form-error').textContent=error.message}};
-for(const divider of document.querySelectorAll('[data-split]')){divider.onpointerdown=e=>{divider.setPointerCapture(e.pointerId);const move=event=>{const rect=$('#workspace').getBoundingClientRect();const value=divider.dataset.split==='left'?event.clientX-rect.left:rect.right-event.clientX;document.documentElement.style.setProperty('--'+divider.dataset.split,Math.max(divider.dataset.split==='left'?180:260,Math.min(value,rect.width*.45))+'px')};divider.onpointermove=move;divider.onpointerup=()=>{divider.onpointermove=null}};divider.onkeydown=e=>{if(['ArrowLeft','ArrowRight'].includes(e.key)){const key='--'+divider.dataset.split;const current=parseInt(getComputedStyle(document.documentElement).getPropertyValue(key));document.documentElement.style.setProperty(key,(current+(e.key==='ArrowRight'?10:-10))+'px')}}}
-try{publicStatus=await api('/status');$('#connection').textContent='Admin locked';render()}catch(error){message(error.message,true);$('#connection').textContent='Backend unavailable';render()}
-setInterval(()=>{if(authorized&&!busy)void refresh()},5000);
-</script>
-</body></html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Outrider</title>
+    <link rel="icon" href="data:," />
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #101415;
+        --panel: #14191a;
+        --line: #303a3c;
+        --muted: #8b9a9d;
+        --text: #dce5e4;
+        --accent: #b7e49b;
+        --left: 248px;
+        --right: 354px;
+        font:
+          12px/1.55 ui-monospace,
+          SFMono-Regular,
+          Consolas,
+          monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        height: 100dvh;
+        display: grid;
+        grid-template-rows: 36px 36px 1fr 27px;
+        overflow: hidden;
+      }
+      button,
+      input,
+      select,
+      textarea {
+        font: inherit;
+        color: inherit;
+        background: transparent;
+        border: 1px solid var(--line);
+        border-radius: 0;
+        min-height: 25px;
+      }
+      button {
+        padding: 2px 9px;
+        cursor: pointer;
+      }
+      button:hover:not(:disabled) {
+        background: #253328;
+        border-color: var(--accent);
+      }
+      button:disabled {
+        opacity: 0.38;
+        cursor: not-allowed;
+      }
+      button.active {
+        color: var(--accent);
+        border-color: var(--accent);
+      }
+      input,
+      select {
+        padding: 2px 6px;
+      }
+      input[type="password"] {
+        width: 200px;
+      }
+      a {
+        color: var(--accent);
+      }
+      header,
+      .actions {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0 12px;
+        border-bottom: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      header {
+        justify-content: space-between;
+        background: #192020;
+      }
+      .brand {
+        letter-spacing: 3px;
+        font-size: 14px;
+        color: var(--accent);
+      }
+      .caption {
+        font-size: 10px;
+        color: var(--muted);
+        letter-spacing: 1px;
+      }
+      .auth {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .actions {
+        overflow-x: auto;
+        background: var(--panel);
+      }
+      .workspace {
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(180px, var(--left)) 5px minmax(
+            300px,
+            1fr
+          ) 5px minmax(260px, var(--right));
+      }
+      .divider {
+        cursor: col-resize;
+        touch-action: none;
+        background: linear-gradient(
+          90deg,
+          transparent 2px,
+          var(--line) 2px,
+          var(--line) 3px,
+          transparent 3px
+        );
+      }
+      .divider:hover {
+        background: linear-gradient(
+          90deg,
+          transparent 2px,
+          var(--accent) 2px,
+          var(--accent) 3px,
+          transparent 3px
+        );
+      }
+      aside,
+      main {
+        min-width: 0;
+        overflow: auto;
+      }
+      aside {
+        background: var(--panel);
+      }
+      .pane-label,
+      .section-label {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        margin: 0;
+        padding: 8px 12px;
+        background: var(--panel);
+        border-bottom: 1px solid var(--line);
+        font-size: 10px;
+        letter-spacing: 1.4px;
+        color: var(--muted);
+        font-weight: 400;
+      }
+      .session {
+        width: 100%;
+        display: block;
+        border: 0;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        padding: 10px 12px;
+        min-height: 60px;
+      }
+      .session.selected {
+        background: #243024;
+        box-shadow: inset 2px 0 var(--accent);
+      }
+      .row-title {
+        display: block;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .meta {
+        color: var(--muted);
+        font-size: 10px;
+      }
+      .state {
+        color: var(--accent);
+        font-size: 10px;
+      }
+      .empty {
+        padding: 20px 12px;
+        color: var(--muted);
+      }
+      .tabs {
+        height: 36px;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        padding: 0 9px;
+        border-bottom: 1px solid var(--line);
+        position: sticky;
+        top: 0;
+        background: var(--bg);
+        z-index: 2;
+      }
+      .tabs button {
+        border: 0;
+        font-size: 11px;
+      }
+      .tabs button.active {
+        border-bottom: 1px solid var(--accent);
+      }
+      table {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 11px;
+        text-align: left;
+      }
+      th {
+        color: var(--muted);
+        font-weight: 400;
+        font-size: 10px;
+        position: sticky;
+        top: 36px;
+        background: var(--bg);
+      }
+      td,
+      th {
+        padding: 8px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      tr.selected {
+        background: #202e24;
+      }
+      td.limit {
+        max-width: 310px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .cite {
+        border: 0;
+        color: var(--accent);
+        padding: 0;
+        min-height: 0;
+        white-space: nowrap;
+      }
+      section.inspector {
+        padding: 12px;
+        border-bottom: 1px solid var(--line);
+      }
+      section.inspector h2 {
+        font-size: 10px;
+        font-weight: 400;
+        color: var(--muted);
+        letter-spacing: 1.2px;
+        margin: 0 0 10px;
+      }
+      dl {
+        margin: 0;
+        display: grid;
+        grid-template-columns: 100px 1fr;
+        gap: 6px;
+      }
+      dt {
+        color: var(--muted);
+      }
+      dd {
+        margin: 0;
+        overflow-wrap: anywhere;
+      }
+      pre {
+        font:
+          11px/1.55 ui-monospace,
+          monospace;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        margin: 8px 0;
+        color: #b9c7c6;
+      }
+      .banner {
+        padding: 8px;
+        border-left: 2px solid var(--accent);
+        background: #1d2720;
+      }
+      .error {
+        color: #f2a7a0;
+      }
+      .notice {
+        color: var(--muted);
+        font-size: 10px;
+      }
+      #message {
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      footer {
+        display: flex;
+        gap: 18px;
+        align-items: center;
+        padding: 0 12px;
+        border-top: 1px solid var(--line);
+        font-size: 10px;
+        color: var(--muted);
+      }
+      #control-reasons {
+        font-size: 10px;
+        color: var(--muted);
+      }
+      dialog {
+        padding: 0;
+        border: 1px solid #667269;
+        max-width: 600px;
+        width: calc(100% - 36px);
+        background: var(--panel);
+        color: var(--text);
+      }
+      dialog::backdrop {
+        background: #000a;
+      }
+      dialog h2 {
+        margin: 0;
+        padding: 10px 14px;
+        font-size: 12px;
+        font-weight: 400;
+        border-bottom: 1px solid var(--line);
+      }
+      form {
+        padding: 14px;
+      }
+      label {
+        display: grid;
+        gap: 4px;
+        margin-bottom: 12px;
+        font-size: 11px;
+      }
+      textarea {
+        width: 100%;
+        min-height: 110px;
+        padding: 8px;
+      }
+      form .buttons {
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+      }
+      #form-error {
+        margin-bottom: 10px;
+      }
+      .mobile-title {
+        display: none;
+      }
+      @media (max-width: 1000px) {
+        :root {
+          --left: 200px;
+          --right: 280px;
+        }
+        .caption {
+          display: none;
+        }
+        .workspace {
+          grid-template-columns: 180px 5px minmax(260px, 1fr) 5px 270px;
+        }
+        .auth input {
+          width: 130px;
+        }
+      }
+      @media (max-width: 720px) {
+        body {
+          overflow: auto;
+          min-width: 650px;
+        }
+        .workspace {
+          grid-template-columns: 180px 5px minmax(260px, 1fr) 5px 270px;
+        }
+        header {
+          min-width: 650px;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <div>
+        <span class="brand">OUTRIDER</span>
+        <span class="caption">/ COMMERCE & EVIDENCE WORKBENCH</span>
+      </div>
+      <div class="auth">
+        <span id="connection" class="meta">Connecting</span
+        ><input
+          id="admin-token"
+          type="password"
+          autocomplete="off"
+          aria-label="Admin token"
+          placeholder="Admin token"
+        /><button id="unlock">Unlock</button>
+      </div>
+    </header>
+    <nav class="actions" aria-label="Selection actions">
+      <button data-action="probe">Probe Session</button
+      ><button data-action="evaluate">Run CLEF Eval</button
+      ><button data-action="synthesize">Synthesize Offer</button
+      ><button data-action="issue">Issue Receipt</button
+      ><button data-action="revoke">Revoke Receipt</button
+      ><button data-action="upstream">Connect Upstream</button>
+    </nav>
+    <div class="workspace" id="workspace">
+      <aside aria-label="Agent sessions">
+        <h1 class="pane-label">AGENT SESSIONS</h1>
+        <div id="sessions"></div>
+        <h2 class="pane-label">SESSION OFFERS</h2>
+        <div id="offers"></div>
+      </aside>
+      <div
+        class="divider"
+        data-split="left"
+        role="separator"
+        aria-label="Resize sessions pane"
+        tabindex="0"
+      ></div>
+      <main>
+        <nav class="tabs">
+          <button data-tab="traffic" class="active">HTTP / WS</button
+          ><button data-tab="mcp">MCP / MRTR</button
+          ><button data-tab="receipts">RECEIPTS</button>
+        </nav>
+        <div id="canvas"></div>
+      </main>
+      <div
+        class="divider"
+        data-split="right"
+        role="separator"
+        aria-label="Resize inspector pane"
+        tabindex="0"
+      ></div>
+      <aside aria-label="Evidence inspector">
+        <section class="inspector">
+          <h2>SESSION / HANDSHAKE EVIDENCE</h2>
+          <div id="fingerprint"></div>
+        </section>
+        <section class="inspector">
+          <h2>CLEF LENS</h2>
+          <div id="clef"></div>
+        </section>
+        <section class="inspector">
+          <h2>BUNDLE / RECEIPT</h2>
+          <div id="receipt"></div>
+        </section>
+        <section class="inspector">
+          <h2>SELECTED EVIDENCE</h2>
+          <div id="evidence"></div>
+        </section>
+        <section class="inspector">
+          <h2>CONTROL PRECONDITIONS</h2>
+          <div id="control-reasons"></div>
+        </section>
+      </aside>
+    </div>
+    <footer>
+      <span id="message" role="status"
+        >Enter the admin token to inspect persisted commerce state.</span
+      ><span id="source">SQLite · awaiting authenticated read</span>
+    </footer>
+    <dialog id="action-dialog">
+      <h2 id="form-title"></h2>
+      <form id="action-form">
+        <div id="form-fields"></div>
+        <div id="form-error" class="error" role="alert"></div>
+        <div class="buttons">
+          <button type="button" id="cancel-form">Cancel</button
+          ><button type="submit" id="submit-form">Apply</button>
+        </div>
+      </form>
+    </dialog>
+    <script type="module">
+      const $ = (s) => document.querySelector(s),
+        base = "/__proxyfor__/commerce";
+      let snapshot = null,
+        publicStatus = null,
+        selectedSession = null,
+        selectedReceipt = null,
+        selectedEvidence = null,
+        tab = "traffic",
+        authorized = false,
+        busy = false,
+        token = "",
+        streamAbort = null,
+        formAction = null,
+        refreshTimer = null;
+      const el = (tag, text, cls) => {
+        const n = document.createElement(tag);
+        if (text !== undefined) n.textContent = String(text);
+        if (cls) n.className = cls;
+        return n;
+      };
+      const rows = (name) => snapshot?.[name] || [],
+        session = () =>
+          rows("agent_sessions").find((s) => s.session_id === selectedSession);
+      function message(text, error = false) {
+        $("#message").textContent = text;
+        $("#message").className = error ? "error" : "";
+      }
+      async function api(path, body) {
+        const response = await fetch(base + path, {
+          method: body === undefined ? "GET" : "POST",
+          headers: {
+            ...(token ? { Authorization: "Bearer " + token } : {}),
+            ...(body === undefined
+              ? {}
+              : { "Content-Type": "application/json" }),
+          },
+          body: body === undefined ? undefined : JSON.stringify(body),
+        });
+        const value = await response.json();
+        if (!response.ok)
+          throw new Error(
+            `${response.status}: ${value.error || response.statusText}`,
+          );
+        return value;
+      }
+      async function refresh() {
+        if (!authorized) return;
+        try {
+          snapshot = await api("/snapshot");
+          if (selectedSession && !session()) selectedSession = null;
+          if (!selectedSession && rows("agent_sessions").length)
+            selectedSession = rows("agent_sessions")[0].session_id;
+          render();
+          $("#source").textContent =
+            "SQLite · " + new Date().toLocaleTimeString();
+          return true;
+        } catch (error) {
+          authorized = false;
+          streamAbort?.abort();
+          $("#connection").textContent = "Disconnected";
+          message(error.message, true);
+          render();
+          return false;
+        }
+      }
+      function scheduleRefresh() {
+        clearTimeout(refreshTimer);
+        refreshTimer = setTimeout(refresh, 70);
+      }
+      async function events() {
+        streamAbort?.abort();
+        streamAbort = new AbortController();
+        try {
+          const response = await fetch(base + "/events", {
+            headers: { Authorization: "Bearer " + token },
+            signal: streamAbort.signal,
+          });
+          if (!response.ok) throw new Error("Live stream: " + response.status);
+          $("#connection").textContent = "Live";
+          const reader = response.body.getReader();
+          while (true) {
+            const { done } = await reader.read();
+            if (done) throw new Error("Live stream ended");
+            scheduleRefresh();
+          }
+        } catch (error) {
+          if (error.name !== "AbortError") {
+            message(error.message, true);
+            $("#connection").textContent = "Stream disconnected";
+          }
+        }
+      }
+      $("#unlock").onclick = async () => {
+        token = $("#admin-token").value;
+        try {
+          snapshot = await api("/snapshot");
+          authorized = true;
+          message("Authenticated. Reading persisted runtime state.");
+          await refresh();
+          void events();
+        } catch (error) {
+          authorized = false;
+          message(error.message, true);
+          render();
+        }
+      };
+      $("#admin-token").addEventListener("keydown", (e) => {
+        if (e.key === "Enter") $("#unlock").click();
+      });
+      function reasons() {
+        const ready =
+          (snapshot?.clef || publicStatus?.clef)?.status === "Ready";
+        const s = session();
+        const all = {};
+        for (const a of [
+          "probe",
+          "evaluate",
+          "synthesize",
+          "issue",
+          "revoke",
+          "upstream",
+        ])
+          all[a] = !authorized
+            ? "Admin token required"
+            : busy
+              ? "Backend action in progress"
+              : "";
+        if (authorized && !busy) {
+          for (const a of ["probe", "evaluate", "synthesize", "issue"])
+            if (!s) all[a] = "Select an agent session";
+          if (s) {
+            const peer = rows("active_peers").find(
+              (p) => p.session_id === s.session_id && p.connected,
+            );
+            if (
+              (snapshot?.probe_policy || publicStatus?.probe_policy) === "off"
+            )
+              all.probe = "Probes disabled by operator";
+            else if (s.client_config?.protocolVersion === "2026-07-28")
+              all.probe =
+                "MCP 2026: the agent must invoke outrider_run_probe to carry the input-required round trip";
+            else if (!peer?.sampling)
+              all.probe = "No connected sampling-capable client";
+          }
+          if (!ready)
+            all.evaluate =
+              (snapshot?.clef || publicStatus?.clef)?.status === "ModelError"
+                ? "CLEF ModelError"
+                : "CLEF Unconfigured";
+          if (!rows("bundles").length) {
+            all.synthesize = "Configure at least one bundle";
+            all.issue = "Configure at least one bundle";
+          }
+          const receipt = rows("capability_receipts").find(
+            (r) => r.receipt_id === selectedReceipt,
+          );
+          if (!receipt) all.revoke = "Select a receipt";
+          else if (receipt.revoked) all.revoke = "Receipt already revoked";
+        }
+        return all;
+      }
+      function render() {
+        const why = reasons();
+        for (const button of document.querySelectorAll("[data-action]")) {
+          button.disabled = !!why[button.dataset.action];
+          button.title = why[button.dataset.action] || button.textContent;
+        }
+        $("#control-reasons").replaceChildren(
+          ...Object.entries(why)
+            .filter(([, v]) => v)
+            .map(([k, v]) => el("div", k + ": " + v)),
+        );
+        const sessions = $("#sessions");
+        sessions.replaceChildren();
+        if (!rows("agent_sessions").length)
+          sessions.append(
+            el(
+              "div",
+              authorized
+                ? "No MCP sessions recorded."
+                : "Admin token required to read sessions.",
+              "empty",
+            ),
+          );
+        for (const s of rows("agent_sessions")) {
+          const b = el(
+            "button",
+            undefined,
+            "session" + (s.session_id === selectedSession ? " selected" : ""),
+          );
+          b.dataset.sessionId = s.session_id;
+          b.append(
+            el(
+              "span",
+              s.client_config?.clientInfo?.name || "Unreported client",
+              "row-title",
+            ),
+            el("span", s.session_id.slice(0, 18) + " · " + s.transport, "meta"),
+            el("div", s.state, "state"),
+          );
+          b.onclick = () => {
+            selectedSession = s.session_id;
+            selectedEvidence = null;
+            render();
+          };
+          sessions.append(b);
+        }
+        const offers = rows("session_offers").filter(
+          (o) => o.session_id === selectedSession,
+        );
+        $("#offers").replaceChildren(
+          ...(offers.length
+            ? offers.map((o) => {
+                const n = el("div", undefined, "session");
+                n.append(el("div", o.bundle_id), el("div", o.source, "meta"));
+                return n;
+              })
+            : [
+                el(
+                  "div",
+                  authorized
+                    ? "No persisted offers for this session."
+                    : "No authenticated read.",
+                  "empty",
+                ),
+              ]),
+        );
+        renderCanvas();
+        renderInspector();
+        if (snapshot?.errors?.length) message(snapshot.errors.at(-1), true);
+      }
+      function table(headers, data, build) {
+        if (!data.length)
+          return el("div", "No persisted " + tab + " records.", "empty");
+        const t = el("table"),
+          thead = el("thead"),
+          tr = el("tr");
+        headers.forEach((h) => tr.append(el("th", h)));
+        thead.append(tr);
+        t.append(thead);
+        const body = el("tbody");
+        data.forEach((r) => {
+          const tr = el("tr");
+          build(r).forEach((value) => {
+            const td = el("td", undefined, "limit");
+            td.append(
+              value instanceof Node
+                ? value
+                : document.createTextNode(String(value ?? "—")),
+            );
+            tr.append(td);
+          });
+          body.append(tr);
+        });
+        t.append(body);
+        return t;
+      }
+      function cite(label, record) {
+        const b = el("button", "[" + label + "]", "cite");
+        b.onclick = () => {
+          selectedEvidence = { label, record };
+          renderInspector();
+        };
+        return b;
+      }
+      function renderCanvas() {
+        let content;
+        if (tab === "traffic") {
+          content = table(
+            ["REF", "METHOD", "TARGET", "STATUS", "MS"],
+            rows("proxy_traffic"),
+            (r) => [
+              cite("T-" + r.id, {
+                ...r,
+                websocket_messages: rows("proxy_websocket_messages").filter(
+                  (m) =>
+                    m.run_id === r.run_id &&
+                    m.websocket_id === r.head.websocket_id,
+                ),
+              }),
+              r.head.method,
+              r.head.uri,
+              r.head.status,
+              r.head.time,
+            ],
+          );
+        } else if (tab === "mcp") {
+          content = table(
+            ["REF", "DIRECTION", "METHOD", "SESSION / UPSTREAM"],
+            rows("mcp_frames").filter(
+              (r) =>
+                !selectedSession ||
+                r.session_id === selectedSession ||
+                r.upstream_name,
+            ),
+            (r) => [
+              cite("M-" + r.frame_id, r),
+              r.direction,
+              r.method,
+              r.upstream_name || r.session_id?.slice(0, 12),
+            ],
+          );
+        } else {
+          const wrap = el("div");
+          wrap.append(
+            table(
+              ["RECEIPT", "SUBJECT", "QUOTA", "REVOKED"],
+              rows("capability_receipts"),
+              (r) => {
+                const b = el("button", r.receipt_id.slice(0, 12), "cite");
+                b.dataset.receiptId = r.receipt_id;
+                b.onclick = () => {
+                  selectedReceipt = r.receipt_id;
+                  selectedEvidence = { label: "Receipt", record: r };
+                  render();
+                };
+                return [
+                  b,
+                  r.subject.slice(0, 14),
+                  r.remaining_calls,
+                  r.revoked ? "yes" : "no",
+                ];
+              },
+            ),
+          );
+          wrap.append(el("h2", "REDEMPTIONS", "section-label"));
+          wrap.append(
+            table(
+              ["REF", "RECEIPT", "TOOL", "TIME"],
+              rows("receipt_redemptions"),
+              (r) => [
+                cite("R-" + r.redemption_id.slice(0, 8), r),
+                r.receipt_id.slice(0, 12),
+                r.tool_name,
+                new Date(r.created_at * 1000).toLocaleTimeString(),
+              ],
+            ),
+          );
+          content = wrap;
+        }
+        $("#canvas").replaceChildren(content);
+      }
+      function kv(entries) {
+        const d = el("dl");
+        for (const [k, v] of entries) {
+          d.append(
+            el("dt", k),
+            el(
+              "dd",
+              typeof v === "object" ? JSON.stringify(v) : (v ?? "Not captured"),
+            ),
+          );
+        }
+        return d;
+      }
+      function renderInspector() {
+        const s = session();
+        const observations = rows("fingerprint_observations").filter(
+          (o) => o.session_id === selectedSession,
+        );
+        const fp = $("#fingerprint");
+        fp.replaceChildren();
+        if (s) {
+          fp.append(
+            kv([
+              ["Subject", s.subject],
+              ["Transport", s.transport],
+            ]),
+          );
+          for (const o of observations
+            .filter(
+              (o) =>
+                o.kind === "client_hello" ||
+                o.kind === "negotiated_tls" ||
+                o.kind === "http_header_order",
+            )
+            .slice(0, 6)) {
+            fp.append(
+              el("div", o.kind, "meta"),
+              el("pre", JSON.stringify(o.evidence, null, 2)),
+            );
+          }
+          if (!observations.some((o) => o.kind === "client_hello"))
+            fp.append(
+              el("p", "No ClientHello captured for this session.", "notice"),
+            );
+        } else
+          fp.append(
+            el("p", "Select a session to inspect captured evidence.", "notice"),
+          );
+        const lens = $("#clef");
+        lens.replaceChildren();
+        const state = snapshot?.clef || publicStatus?.clef;
+        const evaluation = rows("clef_evaluations").find(
+          (e) => e.session_id === selectedSession,
+        );
+        if (state?.status !== "Ready")
+          lens.append(
+            el(
+              "div",
+              state?.status === "ModelError"
+                ? "ModelError: " + state.error
+                : "Unconfigured · no model loaded",
+              "banner",
+            ),
+          );
+        else
+          lens.append(
+            kv([
+              ["Model", state.model_path],
+              ["Backend", state.backend],
+            ]),
+          );
+        if (evaluation) {
+          lens.append(
+            kv([
+              ["Evaluation", evaluation.status],
+              ["Pick", evaluation.pick],
+              ["Input tokens", evaluation.input_tokens],
+              ["Output tokens", evaluation.output_tokens],
+              [
+                "Latency",
+                evaluation.latency_ms === null
+                  ? null
+                  : evaluation.latency_ms + " ms",
+              ],
+            ]),
+          );
+          if (evaluation.error) lens.append(el("p", evaluation.error, "error"));
+        } else
+          lens.append(
+            el("p", "No CLEF evaluation recorded for this session.", "notice"),
+          );
+        lens.append(
+          el(
+            "p",
+            "Option distributions are unavailable from the measured runtime.",
+            "notice",
+          ),
+        );
+        const receipt = $("#receipt");
+        receipt.replaceChildren();
+        const r = rows("capability_receipts").find(
+          (r) => r.receipt_id === selectedReceipt,
+        );
+        if (r) {
+          receipt.append(
+            kv([
+              ["Receipt", r.receipt_id],
+              ["Bundle", r.bundle_id],
+              [
+                "Signature",
+                r.signature_verified
+                  ? "Ed25519 verified"
+                  : "Verification failed",
+              ],
+              ["Remaining", r.remaining_calls],
+              ["Expiry", new Date(r.expires_at_unix * 1000).toLocaleString()],
+              ["Revoked", r.revoked ? "yes" : "no"],
+            ]),
+          );
+          receipt.append(
+            el("pre", JSON.stringify(r.payload.item_digests, null, 2)),
+          );
+        } else {
+          const bundles = rows("bundles");
+          receipt.append(
+            el(
+              "p",
+              bundles.length
+                ? bundles
+                    .map((b) => b.bundle_id + " · " + b.items.join(", "))
+                    .join("\n")
+                : "No bundles configured.",
+              "notice",
+            ),
+          );
+        }
+        $("#evidence").replaceChildren(
+          ...(selectedEvidence
+            ? [
+                el("div", selectedEvidence.label, "state"),
+                el("pre", JSON.stringify(selectedEvidence.record, null, 2)),
+              ]
+            : [el("p", "Select a [T-xx] or [M-xx] citation.", "notice")]),
+        );
+      }
+      for (const button of document.querySelectorAll("[data-tab]"))
+        button.onclick = () => {
+          tab = button.dataset.tab;
+          document
+            .querySelectorAll("[data-tab]")
+            .forEach((b) => b.classList.toggle("active", b === button));
+          renderCanvas();
+        };
+      function field(name, label, type = "text", value = "", options = null) {
+        const l = el("label", label);
+        let input;
+        if (options) {
+          input = el("select");
+          for (const option of options) {
+            const o = el("option", option.label ?? option.value);
+            o.value = option.value;
+            input.append(o);
+          }
+        } else {
+          input = el(type === "textarea" ? "textarea" : "input");
+          if (type !== "textarea") input.type = type;
+          input.value = value;
+        }
+        input.name = name;
+        input.required = true;
+        l.append(input);
+        return l;
+      }
+      function openForm(action) {
+        formAction = action;
+        const fields = $("#form-fields");
+        fields.replaceChildren();
+        $("#form-error").textContent = "";
+        $("#form-title").textContent = {
+          issue: "Issue operator receipt",
+          upstream: "Connect MCP upstream",
+          evaluate: "Evaluate recorded session",
+        }[action];
+        if (action === "issue") {
+          fields.append(
+            field(
+              "bundle_id",
+              "Bundle",
+              "text",
+              "",
+              rows("bundles").map((b) => ({
+                value: b.bundle_id,
+                label: b.bundle_id,
+              })),
+            ),
+            field("max_calls", "Maximum calls", "number", ""),
+            field("expires_at_unix", "Expiry (Unix seconds)", "number", ""),
+          );
+        }
+        if (action === "upstream")
+          fields.append(
+            field("name", "Upstream name"),
+            field("endpoint", "Command or HTTP URL"),
+          );
+        if (action === "evaluate")
+          fields.append(
+            field(
+              "question",
+              "SystemOne question (JSON)",
+              "textarea",
+              JSON.stringify(
+                {
+                  type: "noul",
+                  question:
+                    "Does the recorded session contain a completed, structurally compliant capability probe?",
+                },
+                null,
+                2,
+              ),
+            ),
+          );
+        $("#action-dialog").showModal();
+        fields.querySelector("input,select,textarea")?.focus();
+      }
+      async function mutate(path, body) {
+        busy = true;
+        render();
+        try {
+          const value = await api(path, body);
+          if ((await refresh()) === false)
+            throw new Error(
+              "Mutation persisted, but refreshing the stored state failed",
+            );
+          message("Persisted backend result: " + path);
+          if (value.token) {
+            selectedEvidence = {
+              label:
+                "Issued capability receipt — retain this token for the agent",
+              record: value,
+            };
+            selectedReceipt = value.signed_receipt.receipt.receipt_id;
+            tab = "receipts";
+            render();
+          }
+          return value;
+        } catch (error) {
+          message(error.message, true);
+          throw error;
+        } finally {
+          busy = false;
+          render();
+        }
+      }
+      for (const b of document.querySelectorAll("[data-action]"))
+        b.onclick = async () => {
+          const action = b.dataset.action;
+          if (["issue", "upstream", "evaluate"].includes(action)) {
+            openForm(action);
+            return;
+          }
+          try {
+            if (action === "probe")
+              await mutate("/probe", { session_id: selectedSession });
+            if (action === "synthesize")
+              await mutate("/offers/synthesize", {
+                session_id: selectedSession,
+              });
+            if (action === "revoke")
+              await mutate("/receipts/revoke", { receipt_id: selectedReceipt });
+          } catch {}
+        };
+      $("#cancel-form").onclick = () => $("#action-dialog").close();
+      $("#action-form").onsubmit = async (e) => {
+        e.preventDefault();
+        const data = Object.fromEntries(new FormData(e.currentTarget));
+        try {
+          let path, body;
+          if (formAction === "issue") {
+            path = "/receipts/issue";
+            body = {
+              subject: session().subject,
+              bundle_id: data.bundle_id,
+              max_calls: Number(data.max_calls),
+              expires_at_unix: Number(data.expires_at_unix),
+            };
+          } else if (formAction === "upstream") {
+            path = "/upstreams/connect";
+            body = data;
+          } else {
+            path = "/evaluate";
+            body = {
+              session_id: selectedSession,
+              question: JSON.parse(data.question),
+            };
+          }
+          await mutate(path, body);
+          $("#action-dialog").close();
+        } catch (error) {
+          $("#form-error").textContent = error.message;
+        }
+      };
+      for (const divider of document.querySelectorAll("[data-split]")) {
+        divider.onpointerdown = (e) => {
+          divider.setPointerCapture(e.pointerId);
+          const move = (event) => {
+            const rect = $("#workspace").getBoundingClientRect();
+            const value =
+              divider.dataset.split === "left"
+                ? event.clientX - rect.left
+                : rect.right - event.clientX;
+            document.documentElement.style.setProperty(
+              "--" + divider.dataset.split,
+              Math.max(
+                divider.dataset.split === "left" ? 180 : 260,
+                Math.min(value, rect.width * 0.45),
+              ) + "px",
+            );
+          };
+          divider.onpointermove = move;
+          divider.onpointerup = () => {
+            divider.onpointermove = null;
+          };
+        };
+        divider.onkeydown = (e) => {
+          if (["ArrowLeft", "ArrowRight"].includes(e.key)) {
+            const key = "--" + divider.dataset.split;
+            const current = parseInt(
+              getComputedStyle(document.documentElement).getPropertyValue(key),
+            );
+            document.documentElement.style.setProperty(
+              key,
+              current + (e.key === "ArrowRight" ? 10 : -10) + "px",
+            );
+          }
+        };
+      }
+      try {
+        publicStatus = await api("/status");
+        $("#connection").textContent = "Admin locked";
+        render();
+      } catch (error) {
+        message(error.message, true);
+        $("#connection").textContent = "Backend unavailable";
+        render();
+      }
+      setInterval(() => {
+        if (authorized && !busy) void refresh();
+      }, 5000);
+    </script>
+  </body>
+</html>

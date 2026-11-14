@@ -25,10 +25,12 @@ pub struct Workbench {
     pub status: String,
     pub input: Option<(char, String)>,
     pub authorized: bool,
+    pub inspector_scroll: u16,
+    pub evidence_index: usize,
 }
 impl Workbench {
     pub fn new(commerce: Arc<Commerce>, authorized: bool) -> Result<Self> {
-        let mut ui=Self{commerce,snapshot:Value::Null,session:None,receipt:None,tab:0,status:"p probe · e CLEF · s synthesize · i issue · r revoke · u upstream · Tab view · ↑↓ session · [ ] receipt · q quit".into(),input:None,authorized};
+        let mut ui=Self{commerce,snapshot:Value::Null,session:None,receipt:None,tab:0,status:"p probe · e CLEF · s synthesize · i issue · r revoke · u upstream · Tab view · ↑↓ session · [ ] receipt · j/k evidence · PgUp/PgDn inspector · q quit".into(),input:None,authorized};
         ui.refresh()?;
         Ok(ui)
     }
@@ -183,7 +185,27 @@ impl Workbench {
         }
         match key.code {
             KeyCode::Char('q') => return false,
-            KeyCode::Tab => self.tab = (self.tab + 1) % 3,
+            KeyCode::Tab => {
+                self.tab = (self.tab + 1) % 3;
+                self.evidence_index = 0;
+                self.inspector_scroll = 0;
+            }
+            KeyCode::PageDown => self.inspector_scroll = self.inspector_scroll.saturating_add(10),
+            KeyCode::PageUp => self.inspector_scroll = self.inspector_scroll.saturating_sub(10),
+            KeyCode::Char('j') => {
+                let table = match self.tab {
+                    0 => "proxy_traffic",
+                    1 => "mcp_frames",
+                    _ => "capability_receipts",
+                };
+                self.evidence_index =
+                    (self.evidence_index + 1).min(self.rows(table).len().saturating_sub(1));
+                self.inspector_scroll = 0;
+            }
+            KeyCode::Char('k') => {
+                self.evidence_index = self.evidence_index.saturating_sub(1);
+                self.inspector_scroll = 0;
+            }
             KeyCode::Up | KeyCode::Down => {
                 let ids = self
                     .rows("agent_sessions")
@@ -376,6 +398,12 @@ impl Workbench {
             .rows("capability_receipts")
             .iter()
             .find(|r| r["receipt_id"].as_str() == self.receipt.as_deref());
+        let evidence_table = match self.tab {
+            0 => "proxy_traffic",
+            1 => "mcp_frames",
+            _ => "capability_receipts",
+        };
+        let selected_evidence = self.rows(evidence_table).get(self.evidence_index);
         let mut inspector = format!(
             "CLEF {}\n{}\n\nHANDSHAKE EVIDENCE\n{}\n\nRECEIPT\n{}",
             self.snapshot["clef"]["status"]
@@ -385,6 +413,11 @@ impl Workbench {
             serde_json::to_string_pretty(&observations).unwrap_or_default(),
             serde_json::to_string_pretty(&receipt).unwrap_or_default()
         );
+        inspector = format!(
+            "SELECTED EVIDENCE · j/k to navigate\n{}\n\n{}",
+            serde_json::to_string_pretty(&selected_evidence).unwrap_or_default(),
+            inspector
+        );
         for action in ['p', 'e', 's', 'i', 'r', 'u'] {
             if let Some(reason) = self.reason(action) {
                 inspector.push_str(&format!("\n[{action}] {reason}"));
@@ -392,6 +425,7 @@ impl Workbench {
         }
         frame.render_widget(
             Paragraph::new(inspector)
+                .scroll((self.inspector_scroll, 0))
                 .block(
                     Block::default()
                         .title(" EVIDENCE INSPECTOR ")

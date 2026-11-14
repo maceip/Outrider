@@ -108,7 +108,7 @@ pub fn synthesize(
     let evaluations = db.evaluations(session)?;
     let latest = evaluations.iter().rev().find(|e| e["status"] == "Verified");
     let source = if matches!(status, EngineStatus::Ready { .. }) && latest.is_some() {
-        "CLEF"
+        "Configured rules using recorded CLEF picks"
     } else {
         "Static configured catalog — CLEF unavailable or unevaluated"
     };
@@ -127,7 +127,20 @@ pub fn synthesize(
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
     tx.execute("DELETE FROM session_offers WHERE session_id=?1", [session])?;
     for bundle in &selected {
-        tx.execute("INSERT INTO session_offers(offer_id,session_id,bundle_id,source,evaluation_id,created_at) VALUES (?1,?2,?3,?4,?5,?6)",params![id(),session,bundle.bundle_id,source,latest.and_then(|e|e["evaluation_id"].as_str()),now()])?;
+        let used_clef = bundle.rules.get("required_pick").is_some();
+        let offer_source = if used_clef {
+            "CLEF"
+        } else if matches!(status, EngineStatus::Ready { .. }) && latest.is_some() {
+            "Static configured catalog — no CLEF rule applied"
+        } else {
+            "Static configured catalog — CLEF unavailable or unevaluated"
+        };
+        let evaluation = if used_clef {
+            latest.and_then(|e| e["evaluation_id"].as_str())
+        } else {
+            None
+        };
+        tx.execute("INSERT INTO session_offers(offer_id,session_id,bundle_id,source,evaluation_id,created_at) VALUES (?1,?2,?3,?4,?5,?6)",params![id(),session,bundle.bundle_id,offer_source,evaluation,now()])?;
     }
     super::receipt::audit(
         &tx,

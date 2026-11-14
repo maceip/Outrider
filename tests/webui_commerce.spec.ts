@@ -1,39 +1,294 @@
-import { test, expect } from '@playwright/test';
-import { spawn } from 'node:child_process';
-import { mkdtemp, readFile, rm } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
-import net from 'node:net';
-import { DatabaseSync } from 'node:sqlite';
-const root=path.resolve(import.meta.dirname,'..');
-const binary=path.join(root,'target/debug/proxyfor'), upstreamBinary=path.join(root,'target/debug/outrider');
-const model=process.env.OUTRIDER_CLEF_MODEL;
-async function poll<T>(fn:()=>Promise<T>,ready:(v:T)=>boolean){let last:unknown;for(let i=0;i<200;i++){try{const value=await fn();if(ready(value))return value;}catch(e){last=e;}await new Promise(r=>setTimeout(r,100));}throw new Error('Timed out waiting for runtime: '+String(last));}
-async function port(){const s=net.createServer();await new Promise<void>(r=>s.listen(0,'127.0.0.1',r));const p=(s.address() as net.AddressInfo).port;await new Promise<void>(r=>s.close(()=>r()));return p;}
-function query(dbPath:string,sql:string){const db=new DatabaseSync(dbPath,{readOnly:true});try{return db.prepare(sql).all();}finally{db.close();}}
-async function start(withModel=false){const dir=await mkdtemp(path.join(tmpdir(),'outrider-webui-'));const p=await port();const url=`http://127.0.0.1:${p}`;const env={...process.env};delete env.OUTRIDER_CLEF_MODEL;const args=['--web','--listen',`127.0.0.1:${p}`,'--config-dir',dir,'--db',path.join(dir,'db.sqlite'),'--probe-policy','on-request'];if(withModel)args.push('--clef-model',model!);const server=spawn(binary,args,{cwd:root,env,stdio:'ignore'});await poll(()=>fetch(url+'/__proxyfor__/commerce/status').then(r=>r.status),s=>s===200);const token=await readFile(path.join(dir,'outrider-admin-token'),'utf8');const ready=path.join(dir,'client-ready');const clientEnv={...env,OUTRIDER_CLIENT_READY:ready};const client=spawn(path.join(root,'target/debug/examples/commerce_live_client'),[url+'/mcp'],{cwd:root,env:clientEnv,stdio:'ignore'});await poll(()=>readFile(ready,'utf8'),s=>s.length>0);return{dir,url,token,db:path.join(dir,'db.sqlite'),server,client,async close(){for(const child of [client,server]){child.kill('SIGINT');await Promise.race([new Promise(r=>child.once('exit',r)),new Promise(r=>setTimeout(r,2000))]);child.kill('SIGKILL');}await rm(dir,{recursive:true,force:true});}};}
-for(const withModel of [false,true])test(withModel?'real-model controls persist CLEF measurements':'Unconfigured controls and authenticated commerce transitions',async({page,request})=>{
- test.skip(withModel&&!model,'OUTRIDER_CLEF_MODEL unset; real-model browser gate is skipped');
- const app=await start(withModel);const errors:string[]=[];const unexpectedResponses:string[]=[];let unauthorizedResponses=0;
- page.on('pageerror',e=>errors.push(e.message));page.on('console',m=>{if(m.type()==='error'&&!m.text().includes('401'))errors.push(m.text());});page.on('requestfailed',r=>{if(!r.failure()?.errorText.includes('ERR_ABORTED'))errors.push(r.url()+': '+r.failure()?.errorText);});page.on('response',r=>{if(r.status()===401)unauthorizedResponses++;if(r.status()>=400&&r.status()!==401)unexpectedResponses.push(r.url()+' '+r.status());});
- try{
-  await page.goto(app.url+'/__proxyfor__/');await expect(page.locator('.brand')).toHaveText('OUTRIDER');
-  await expect(page.getByRole('button',{name:'Issue Receipt',exact:true})).toBeDisabled();
-  await page.getByLabel('Admin token',{exact:true}).fill('incorrect');await page.getByRole('button',{name:'Unlock',exact:true}).click();await expect(page.getByRole('status')).toContainText('401');
-  const denied=await request.post(app.url+'/__proxyfor__/commerce/receipts/issue',{data:{}});expect(denied.status()).toBe(401);
-  await page.getByLabel('Admin token',{exact:true}).fill(app.token);await page.getByRole('button',{name:'Unlock',exact:true}).click();await expect(page.locator('.session.selected')).toContainText('Outrider live validation client');
-  await expect(page.getByRole('button',{name:'Probe Session',exact:true})).toBeDisabled();await expect(page.locator('#control-reasons')).toContainText('MCP 2026');
-  expect(query(app.db,'SELECT COUNT(*) AS n FROM probe_runs')[0].n).toBe(0);
-  if(!withModel){await expect(page.locator('#clef')).toContainText('Unconfigured');await expect(page.getByRole('button',{name:'Run CLEF Eval',exact:true})).toBeDisabled();expect(query(app.db,'SELECT COUNT(*) AS n FROM clef_evaluations')[0].n).toBe(0);}
-  await page.getByRole('button',{name:'Connect Upstream',exact:true}).click();await page.getByLabel('Upstream name',{exact:true}).fill('live');await page.getByLabel('Command or HTTP URL',{exact:true}).fill(`${upstreamBinary} --stdio --probe-policy off --config-dir ${path.join(app.dir,'child')}`);await page.getByRole('button',{name:'Apply',exact:true}).click();await expect(page.locator('#action-dialog')).not.toBeVisible();expect(query(app.db,"SELECT status FROM upstream_servers WHERE name='live'")[0].status).toBe('Connected');
-  const put=await request.post(app.url+'/__proxyfor__/commerce/bundles/put',{headers:{Authorization:'Bearer '+app.token},data:{bundle_id:'research',title:'Live upstream research',items:['live__outrider_catalog'],rules:{}}});expect(put.status()).toBe(200);
-  await expect(page.getByRole('button',{name:'Synthesize Offer',exact:true})).toBeEnabled();await page.getByRole('button',{name:'Synthesize Offer',exact:true}).click();await expect.poll(()=>query(app.db,'SELECT COUNT(*) AS n FROM session_offers')[0].n).toBe(1);await expect(page.locator('#offers')).toContainText('research');
-  await page.getByRole('button',{name:'Issue Receipt',exact:true}).click();await page.getByLabel('Maximum calls',{exact:true}).fill('3');await page.getByLabel('Expiry (Unix seconds)',{exact:true}).fill(String(Math.floor(Date.now()/1000)+600));await page.getByRole('button',{name:'Apply',exact:true}).click();await expect(page.locator('#action-dialog')).not.toBeVisible();expect(query(app.db,'SELECT remaining_calls FROM capability_receipts')[0].remaining_calls).toBe(3);await expect(page.locator('#receipt')).toContainText('Ed25519 verified');
-  await page.getByRole('button',{name:'Revoke Receipt',exact:true}).click();await expect.poll(()=>query(app.db,'SELECT revoked FROM capability_receipts')[0].revoked).toBe(1);await expect(page.getByRole('button',{name:'Revoke Receipt',exact:true})).toBeDisabled();
-  if(withModel){await page.getByRole('button',{name:'Run CLEF Eval',exact:true}).click();await page.getByRole('button',{name:'Apply',exact:true}).click();await expect(page.locator('#action-dialog')).not.toBeVisible({timeout:60_000});const row=query(app.db,'SELECT status,input_tokens,output_tokens,latency_ms,option_scores FROM clef_evaluations')[0];expect(row.status).toBe('Verified');expect(Number(row.input_tokens)).toBeGreaterThan(0);expect(Number(row.output_tokens)).toBeGreaterThan(0);expect(row.option_scores).toBeNull();await expect(page.locator('#clef')).toContainText('Input tokens');}
-  await page.getByRole('button',{name:'MCP / MRTR',exact:true}).click();await page.locator('.cite').first().click();await expect(page.locator('#evidence')).toContainText('frame_id');
-  const before=await page.locator('[aria-label="Agent sessions"]').boundingBox();const divider=page.getByRole('separator',{name:'Resize sessions pane'});const box=(await divider.boundingBox())!;await page.mouse.move(box.x+2,box.y+100);await page.mouse.down();await page.mouse.move(box.x+50,box.y+100);await page.mouse.up();const after=await page.locator('[aria-label="Agent sessions"]').boundingBox();expect(after!.width).toBeGreaterThan(before!.width);
-  await expect(page.locator('[class*="score-bar"]')).toHaveCount(0);expect(query(app.db,'SELECT COUNT(*) AS n FROM admin_audit_log')[0].n).toBeGreaterThanOrEqual(5);
-  expect(unauthorizedResponses).toBe(1);expect(errors).toEqual([]);expect(unexpectedResponses).toEqual([]);await page.screenshot({path:path.join(root,'test-results',withModel?'workbench-real-model.png':'workbench-unconfigured.png'),fullPage:true});
- }finally{await page.close();await app.close();}
-});
+import { test, expect } from "@playwright/test";
+import { spawn } from "node:child_process";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import net from "node:net";
+import { DatabaseSync } from "node:sqlite";
+const root = path.resolve(import.meta.dirname, "..");
+const binary = path.join(root, "target/debug/proxyfor"),
+  upstreamBinary = path.join(root, "target/debug/outrider");
+const model = process.env.OUTRIDER_CLEF_MODEL;
+async function poll<T>(fn: () => Promise<T>, ready: (v: T) => boolean) {
+  let last: unknown;
+  for (let i = 0; i < 200; i++) {
+    try {
+      const value = await fn();
+      if (ready(value)) return value;
+    } catch (e) {
+      last = e;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error("Timed out waiting for runtime: " + String(last));
+}
+async function port() {
+  const s = net.createServer();
+  await new Promise<void>((r) => s.listen(0, "127.0.0.1", r));
+  const p = (s.address() as net.AddressInfo).port;
+  await new Promise<void>((r) => s.close(() => r()));
+  return p;
+}
+function query(dbPath: string, sql: string) {
+  const db = new DatabaseSync(dbPath, { readOnly: true });
+  try {
+    return db.prepare(sql).all();
+  } finally {
+    db.close();
+  }
+}
+async function start(withModel = false) {
+  const dir = await mkdtemp(path.join(tmpdir(), "outrider-webui-"));
+  const p = await port();
+  const url = `http://127.0.0.1:${p}`;
+  const env = { ...process.env };
+  delete env.OUTRIDER_CLEF_MODEL;
+  const args = [
+    "--web",
+    "--listen",
+    `127.0.0.1:${p}`,
+    "--config-dir",
+    dir,
+    "--db",
+    path.join(dir, "db.sqlite"),
+    "--probe-policy",
+    "on-request",
+  ];
+  if (withModel) args.push("--clef-model", model!);
+  const server = spawn(binary, args, { cwd: root, env, stdio: "ignore" });
+  await poll(
+    () => fetch(url + "/__proxyfor__/commerce/status").then((r) => r.status),
+    (s) => s === 200,
+  );
+  const token = await readFile(path.join(dir, "outrider-admin-token"), "utf8");
+  const ready = path.join(dir, "client-ready");
+  const clientEnv = { ...env, OUTRIDER_CLIENT_READY: ready };
+  const client = spawn(
+    path.join(root, "target/debug/examples/commerce_live_client"),
+    [url + "/mcp"],
+    { cwd: root, env: clientEnv, stdio: "ignore" },
+  );
+  await poll(
+    () => readFile(ready, "utf8"),
+    (s) => s.length > 0,
+  );
+  return {
+    dir,
+    url,
+    token,
+    db: path.join(dir, "db.sqlite"),
+    server,
+    client,
+    async close() {
+      for (const child of [client, server]) {
+        child.kill("SIGINT");
+        await Promise.race([
+          new Promise((r) => child.once("exit", r)),
+          new Promise((r) => setTimeout(r, 2000)),
+        ]);
+        child.kill("SIGKILL");
+      }
+      await rm(dir, { recursive: true, force: true });
+    },
+  };
+}
+for (const withModel of [false, true])
+  test(
+    withModel
+      ? "real-model controls persist CLEF measurements"
+      : "Unconfigured controls and authenticated commerce transitions",
+    async ({ page, request }) => {
+      test.skip(
+        withModel && !model,
+        "OUTRIDER_CLEF_MODEL unset; real-model browser gate is skipped",
+      );
+      const app = await start(withModel);
+      const errors: string[] = [];
+      const unexpectedResponses: string[] = [];
+      let unauthorizedResponses = 0;
+      page.on("pageerror", (e) => errors.push(e.message));
+      page.on("console", (m) => {
+        if (m.type() === "error" && !m.text().includes("401"))
+          errors.push(m.text());
+      });
+      page.on("requestfailed", (r) => {
+        if (!r.failure()?.errorText.includes("ERR_ABORTED"))
+          errors.push(r.url() + ": " + r.failure()?.errorText);
+      });
+      page.on("response", (r) => {
+        if (r.status() === 401) unauthorizedResponses++;
+        if (r.status() >= 400 && r.status() !== 401)
+          unexpectedResponses.push(r.url() + " " + r.status());
+      });
+      try {
+        await page.goto(app.url + "/__proxyfor__/");
+        await expect(page.locator(".brand")).toHaveText("OUTRIDER");
+        await expect(
+          page.getByRole("button", { name: "Issue Receipt", exact: true }),
+        ).toBeDisabled();
+        await page.getByLabel("Admin token", { exact: true }).fill("incorrect");
+        await page.getByRole("button", { name: "Unlock", exact: true }).click();
+        await expect(page.getByRole("status")).toContainText("401");
+        const denied = await request.post(
+          app.url + "/__proxyfor__/commerce/receipts/issue",
+          { data: {} },
+        );
+        expect(denied.status()).toBe(401);
+        await page.getByLabel("Admin token", { exact: true }).fill(app.token);
+        await page.getByRole("button", { name: "Unlock", exact: true }).click();
+        await expect(page.locator(".session.selected")).toContainText(
+          "Outrider live validation client",
+        );
+        await expect(
+          page.getByRole("button", { name: "Probe Session", exact: true }),
+        ).toBeDisabled();
+        await expect(page.locator("#control-reasons")).toContainText(
+          "MCP 2026",
+        );
+        expect(query(app.db, "SELECT COUNT(*) AS n FROM probe_runs")[0].n).toBe(
+          0,
+        );
+        if (!withModel) {
+          await expect(page.locator("#clef")).toContainText("Unconfigured");
+          await expect(
+            page.getByRole("button", { name: "Run CLEF Eval", exact: true }),
+          ).toBeDisabled();
+          expect(
+            query(app.db, "SELECT COUNT(*) AS n FROM clef_evaluations")[0].n,
+          ).toBe(0);
+        }
+        await page
+          .getByRole("button", { name: "Connect Upstream", exact: true })
+          .click();
+        await page.getByLabel("Upstream name", { exact: true }).fill("live");
+        await page
+          .getByLabel("Command or HTTP URL", { exact: true })
+          .fill(
+            `${upstreamBinary} --stdio --probe-policy off --config-dir ${path.join(app.dir, "child")}`,
+          );
+        await page.getByRole("button", { name: "Apply", exact: true }).click();
+        await expect(page.locator("#action-dialog")).not.toBeVisible();
+        expect(
+          query(
+            app.db,
+            "SELECT status FROM upstream_servers WHERE name='live'",
+          )[0].status,
+        ).toBe("Connected");
+        const put = await request.post(
+          app.url + "/__proxyfor__/commerce/bundles/put",
+          {
+            headers: { Authorization: "Bearer " + app.token },
+            data: {
+              bundle_id: "research",
+              title: "Live upstream research",
+              items: ["live__outrider_catalog"],
+              rules: {},
+            },
+          },
+        );
+        expect(put.status()).toBe(200);
+        await expect(
+          page.getByRole("button", { name: "Synthesize Offer", exact: true }),
+        ).toBeEnabled();
+        await page
+          .getByRole("button", { name: "Synthesize Offer", exact: true })
+          .click();
+        await expect
+          .poll(
+            () =>
+              query(app.db, "SELECT COUNT(*) AS n FROM session_offers")[0].n,
+          )
+          .toBe(1);
+        await expect(page.locator("#offers")).toContainText("research");
+        await page
+          .getByRole("button", { name: "Issue Receipt", exact: true })
+          .click();
+        await page.getByLabel("Maximum calls", { exact: true }).fill("3");
+        await page
+          .getByLabel("Expiry (Unix seconds)", { exact: true })
+          .fill(String(Math.floor(Date.now() / 1000) + 600));
+        await page.getByRole("button", { name: "Apply", exact: true }).click();
+        await expect(page.locator("#action-dialog")).not.toBeVisible();
+        expect(
+          query(app.db, "SELECT remaining_calls FROM capability_receipts")[0]
+            .remaining_calls,
+        ).toBe(3);
+        await expect(page.locator("#receipt")).toContainText(
+          "Ed25519 verified",
+        );
+        await page
+          .getByRole("button", { name: "Revoke Receipt", exact: true })
+          .click();
+        await expect
+          .poll(
+            () =>
+              query(app.db, "SELECT revoked FROM capability_receipts")[0]
+                .revoked,
+          )
+          .toBe(1);
+        await expect(
+          page.getByRole("button", { name: "Revoke Receipt", exact: true }),
+        ).toBeDisabled();
+        if (withModel) {
+          await page
+            .getByRole("button", { name: "Run CLEF Eval", exact: true })
+            .click();
+          await page
+            .getByRole("button", { name: "Apply", exact: true })
+            .click();
+          await expect(page.locator("#action-dialog")).not.toBeVisible({
+            timeout: 60_000,
+          });
+          const row = query(
+            app.db,
+            "SELECT status,input_tokens,output_tokens,latency_ms,option_scores FROM clef_evaluations",
+          )[0];
+          expect(row.status).toBe("Verified");
+          expect(Number(row.input_tokens)).toBeGreaterThan(0);
+          expect(Number(row.output_tokens)).toBeGreaterThan(0);
+          expect(row.option_scores).toBeNull();
+          await expect(page.locator("#clef")).toContainText("Input tokens");
+        }
+        await page
+          .getByRole("button", { name: "MCP / MRTR", exact: true })
+          .click();
+        await page.locator(".cite").first().click();
+        await expect(page.locator("#evidence")).toContainText("frame_id");
+        const before = await page
+          .locator('[aria-label="Agent sessions"]')
+          .boundingBox();
+        const divider = page.getByRole("separator", {
+          name: "Resize sessions pane",
+        });
+        const box = (await divider.boundingBox())!;
+        await page.mouse.move(box.x + 2, box.y + 100);
+        await page.mouse.down();
+        await page.mouse.move(box.x + 50, box.y + 100);
+        await page.mouse.up();
+        const after = await page
+          .locator('[aria-label="Agent sessions"]')
+          .boundingBox();
+        expect(after!.width).toBeGreaterThan(before!.width);
+        await expect(page.locator('[class*="score-bar"]')).toHaveCount(0);
+        expect(
+          query(app.db, "SELECT COUNT(*) AS n FROM admin_audit_log")[0].n,
+        ).toBeGreaterThanOrEqual(5);
+        expect(unauthorizedResponses).toBe(1);
+        expect(errors).toEqual([]);
+        expect(unexpectedResponses).toEqual([]);
+        await page.screenshot({
+          path: path.join(
+            root,
+            "test-results",
+            withModel
+              ? "workbench-real-model.png"
+              : "workbench-unconfigured.png",
+          ),
+          fullPage: true,
+        });
+      } finally {
+        await page.close();
+        await app.close();
+      }
+    },
+  );
