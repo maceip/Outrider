@@ -137,7 +137,7 @@ impl CertificateAuthority {
 
     pub fn gen_cert(&self, authority: &Authority) -> Result<CertificateDer<'static>> {
         let mut params = CertificateParams::default();
-        params.serial_number = Some(thread_rng().gen::<u64>().into());
+        params.serial_number = Some(thread_rng().r#gen::<u64>().into());
 
         let not_before = OffsetDateTime::now_utc() - Duration::seconds(NOT_BEFORE_OFFSET);
         params.not_before = not_before;

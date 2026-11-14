@@ -2,5 +2,10 @@
   "rust_crate": "litert-lm-rust=0.2.4",
   "release": "https://github.com/meephubub/Noema/releases/tag/v1.0.0",
   "url": "https://github.com/meephubub/Noema/releases/download/v1.0.0/prebuilt.zip",
-  "archive_sha256": "833ce1d0ea361074e2cdc6fbd592f73cd321c1e93fb00fb65ce604239c8c587b"
+  "archive_sha256": "833ce1d0ea361074e2cdc6fbd592f73cd321c1e93fb00fb65ce604239c8c587b",
+  "runtime": {
+    "version": "litert-lm-api 0.18.0 (official macOS arm64 wheel C API)",
+    "url": "https://files.pythonhosted.org/packages/cc/df/147e5fa60cf8964bdcbc022cbd38502f91ea415bf82bed2c9335fcf9be9d/litert_lm_api-0.18.0-py3-none-macosx_12_0_arm64.whl",
+    "archive_sha256": "9fd0c55835e469a035c1b75cde4797b26292963c2c36d9fcdfceb965ffa08a37"
+  }
 }

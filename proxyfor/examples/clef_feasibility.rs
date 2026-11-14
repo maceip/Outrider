@@ -11,7 +11,7 @@ fn main() -> Result<()> {
         Ok("gpu") => Backend::Gpu,
         _ => Backend::Cpu,
     };
-    let engine = Engine::builder(&model).backend(backend).num_threads(4)
+    let engine = Engine::builder(&model).backend(backend.clone()).num_threads(4)
         .cache_dir(std::env::temp_dir().join("outrider-clef-spike"))
         .max_num_tokens(2048).build()?;
     let mut results = Vec::new();
