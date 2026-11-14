@@ -34,7 +34,12 @@ build also checks the installed library hashes. Cargo never downloads native cod
 
 MCP 2026 HTTP is stateless. Supply `Outrider-Session-Id: <UUID>` on each request,
 or `_meta["outrider/session_id"]`, to retain a logical session across connections.
-The catalog tool returns the session ID and receipt subject. Optional HTTPS CIMD
+That value is a secret chosen by the client: generate it randomly and do not share
+it, because a receipt presented in a session stays usable by later requests that
+carry the same value. Outrider stores, logs and displays only a SHA-256-derived
+session ID, which cannot be sent back to name the session. The catalog tool returns
+that derived session ID and the receipt subject; issue session-bound receipts to it.
+Subscribers receive `tools/list_changed` only when their own tool list changes. Optional HTTPS CIMD
 metadata uses `_meta["outrider/client_id"]`; metadata validation does not establish
 ownership of the client identity.
 
@@ -117,5 +122,6 @@ counts use the loaded engine's tokenizer on saved text; probe token counts use
 that tokenizer, and do not claim the remote client's provider usage.
 
 Measured native generation supplies picks but no usable per-option score source.
-`option_scores` stays SQL NULL and the interfaces omit probability bars. CLEF
-Verified/Restricted are model evaluation states, not security certification.
+`option_scores` stays SQL NULL and the interfaces omit probability bars. A session
+with a completed evaluation is shown as **CLEF Evaluated** alongside the question
+and the model's pick; Outrider infers no verdict from the pick.

@@ -171,7 +171,6 @@ pub mod tui;
 
 impl Commerce {
     fn refresh_session_states(&self) -> Result<()> {
-        use serde_json::Value;
         let sessions = self.db.rows("agent_sessions")?;
         let evaluations = self.db.rows("clef_evaluations")?;
         let probes = self.db.rows("probe_runs")?;
@@ -211,12 +210,9 @@ impl Commerce {
                 .find(|e| e["session_id"] == id);
             let state = if entitled {
                 "Entitled"
-            } else if let Some(e) = latest.filter(|e| e["status"] == "Verified") {
-                if e["pick"] == Value::Bool(false) {
-                    "CLEF Restricted"
-                } else {
-                    "CLEF Verified"
-                }
+            } else if latest.is_some_and(|e| e["status"] == "Verified") {
+                // The pick answers the operator's own question; no verdict is inferred from it.
+                "CLEF Evaluated"
             } else if probes
                 .as_array()
                 .unwrap()

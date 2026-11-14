@@ -33,7 +33,10 @@ pub async fn evaluate_session(
     let tx = conn.transaction()?;
     match result {
         Ok(e) => {
-            tx.execute("UPDATE agent_sessions SET state=CASE WHEN ?2='false' THEN 'CLEF Restricted' ELSE 'CLEF Verified' END WHERE session_id=?1",params![session,e.pick.to_string()])?;
+            tx.execute(
+                "UPDATE agent_sessions SET state='CLEF Evaluated' WHERE session_id=?1",
+                [session],
+            )?;
             tx.execute("INSERT INTO clef_evaluations(evaluation_id,session_id,question,status,model_path,backend,prompt,rendered_input,raw_output,pick,input_tokens,output_tokens,latency_ms,created_at) VALUES (?1,?2,?3,'Verified',?4,?5,?6,?7,?8,?9,?10,?11,?12,?13)",params![evaluation_id,session,question_json,model,backend,e.prompt,e.rendered_input,e.raw_output,e.pick.to_string(),e.input_tokens as i64,e.output_tokens as i64,e.latency_ms as i64,now()])?;
         }
         Err(error) => {

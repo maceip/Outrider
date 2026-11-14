@@ -29,6 +29,38 @@ fn error(e: impl std::fmt::Display) -> ErrorData {
 fn complete(v: Value) -> CallToolResponse {
     CallToolResult::success(vec![ContentBlock::text(v.to_string())]).into()
 }
+/// The `Outrider-Session-Id` a client supplies is a secret it chose. Outrider stores,
+/// logs and displays only this one-way digest, so a session id read from the catalog,
+/// the database, the event stream or either workbench cannot be replayed to name the session.
+pub fn public_session_id(secret: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let digest = Sha256::digest(format!("outrider-session-v1:{secret}").as_bytes());
+    let mut bytes = [0u8; 16];
+    bytes.copy_from_slice(&digest[..16]);
+    uuid::Uuid::from_bytes(bytes).to_string()
+}
+/// Remove the session secret from a request body before it is persisted.
+fn redact(body: &Value) -> Value {
+    let mut body = body.clone();
+    if let Some(meta) = body.get_mut("_meta").and_then(Value::as_object_mut)
+        && meta.contains_key("outrider/session_id")
+    {
+        meta.insert("outrider/session_id".into(), "[redacted]".into());
+    }
+    body
+}
+/// Events that cannot change any session's tool list.
+fn may_change_tools(event: &Value, session: &str) -> bool {
+    let kind = event["kind"].as_str().unwrap_or("");
+    if matches!(
+        kind,
+        "traffic.persisted" | "websocket.persisted" | "persistence.error" | "session.connected"
+    ) || kind.starts_with("probe.")
+    {
+        return false;
+    }
+    event["session_id"].as_str().is_none_or(|s| s == session)
+}
 const BUILTINS: [&str; 7] = [
     "outrider_catalog",
     "outrider_fingerprint_me",
@@ -67,11 +99,22 @@ impl CommerceGateway {
     ) -> Result<(String, String)> {
         let meta = serde_json::to_value(&context.meta)?;
         let parts = context.extensions.get::<http::request::Parts>();
-        let explicit = meta["outrider/session_id"].as_str().or_else(|| {
-            parts
-                .and_then(|p| p.headers.get("outrider-session-id"))
-                .and_then(|h| h.to_str().ok())
-        });
+        let explicit = meta["outrider/session_id"]
+            .as_str()
+            .or_else(|| {
+                parts
+                    .and_then(|p| p.headers.get("outrider-session-id"))
+                    .and_then(|h| h.to_str().ok())
+            })
+            .map(|secret| {
+                ensure!(
+                    uuid::Uuid::parse_str(secret).is_ok(),
+                    "Outrider session id must be a UUID"
+                );
+                Ok(public_session_id(secret))
+            })
+            .transpose()?;
+        let explicit = explicit.as_deref();
         let sealed = quote
             .map(|s| self.commerce.codec.open_json::<Value>(s))
             .transpose()?;
@@ -101,10 +144,6 @@ impl CommerceGateway {
                 .context("Sealed state has no session")?
                 .to_owned()
         } else if let Some(explicit) = explicit {
-            ensure!(
-                uuid::Uuid::parse_str(explicit).is_ok(),
-                "Outrider session id must be a UUID"
-            );
             explicit.into()
         } else if let Some(receipt) = &signed {
             if !receipt.receipt.subject.starts_with("https://") {
@@ -223,7 +262,7 @@ impl CommerceGateway {
             None,
             "request",
             method,
-            body,
+            &redact(body),
         )?;
         let parts = context.extensions.get::<http::request::Parts>();
         let mut cadence = self
@@ -294,6 +333,24 @@ impl CommerceGateway {
             .into_iter()
             .filter(|b| receipts.iter().any(|r| r.receipt.bundle_id == b.bundle_id))
             .flat_map(|b| b.items)
+            .collect())
+    }
+    /// Entitled tool ids with their descriptor digests: what `tools/list` adds for a session.
+    fn tool_view(&self, session: &str, subject: &str) -> Result<std::collections::BTreeSet<String>> {
+        let entitled = self.entitled(session, subject)?;
+        Ok(self
+            .catalog()?
+            .iter()
+            .filter(|row| {
+                row["kind"] == "tool" && entitled.contains(row["item_id"].as_str().unwrap_or(""))
+            })
+            .map(|row| {
+                format!(
+                    "{}\n{}",
+                    row["item_id"].as_str().unwrap_or(""),
+                    row["digest"].as_str().unwrap_or("")
+                )
+            })
             .collect())
     }
     fn catalog(&self) -> Result<Vec<Value>> {
@@ -573,7 +630,7 @@ impl ServerHandler for CommerceGateway {
         Cow::Borrowed(&[ProtocolVersion::V_2026_07_28])
     }
     fn get_info(&self) -> ServerConfig {
-        let mut info=ServerConfig::new(ServerCapabilities::builder().enable_tools().enable_tool_list_changed().enable_resources().enable_prompts().enable_skills_with_directory_read().enable_tasks().build()).with_instructions("Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id to retain a logical session across stateless HTTP connections. Automatic capability probes disclose their purpose.");
+        let mut info=ServerConfig::new(ServerCapabilities::builder().enable_tools().enable_tool_list_changed().enable_resources().enable_prompts().enable_skills_with_directory_read().enable_tasks().build()).with_instructions("Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.");
         info.protocol_version = ProtocolVersion::V_2026_07_28;
         info
     }
@@ -643,13 +700,30 @@ impl ServerHandler for CommerceGateway {
         Some(r.supported_by(&self.get_info().capabilities))
     }
     async fn listen(&self, c: SubscriptionContext) -> Result<(), ErrorData> {
-        let (_session, _) = self
+        let (session, subject) = self
             .session(c.request_context(), None)
             .await
             .map_err(error)?;
         let mut events = self.commerce.events.subscribe();
+        let mut sent = self.tool_view(&session, &subject).map_err(error)?;
         loop {
-            tokio::select! {_=c.cancelled()=>return Ok(()),e=events.recv()=>{if e.is_err(){continue}c.sink().notify_tool_list_changed().await.map_err(error)?;}}
+            tokio::select! {
+                _ = c.cancelled() => return Ok(()),
+                event = events.recv() => {
+                    use tokio::sync::broadcast::error::RecvError;
+                    match event {
+                        Ok(event) if !may_change_tools(&event, &session) => continue,
+                        Err(RecvError::Closed) => return Ok(()),
+                        // A relevant event, or missed events: compare against what was last sent.
+                        Ok(_) | Err(RecvError::Lagged(_)) => {}
+                    }
+                    let current = self.tool_view(&session, &subject).map_err(error)?;
+                    if current != sent {
+                        sent = current;
+                        c.sink().notify_tool_list_changed().await.map_err(error)?;
+                    }
+                }
+            }
         }
     }
     async fn list_skills(
