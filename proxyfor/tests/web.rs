@@ -31,7 +31,7 @@ async fn test_web_index() -> Result<()> {
     let status = res.status();
     let text = res.text().await?;
     assert_eq!(status, 200);
-    assert!(text.contains("<title>proxyfor</title>"));
+    assert!(text.contains("<title>Outrider</title>"));
 
     let _ = stop_proxy.send(());
     Ok(())
