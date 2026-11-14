@@ -166,7 +166,9 @@ function kpiValue(page: Page, title: string) {
     .locator('[data-slot="kpi"]')
     .filter({
       has: page.locator('[data-slot="kpi-title"]', {
-        hasText: new RegExp(`^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`),
+        hasText: new RegExp(
+          `^${title.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+        ),
       }),
     })
     .locator('[data-slot="kpi-value"]');
@@ -178,7 +180,7 @@ async function navigateSidebar(page: Page, label: string) {
     .filter({ hasText: label });
   await item.click();
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(label);
-  await expect(item).toHaveAttribute("aria-current", "page");
+  await expect(item).toHaveAttribute("data-current", "true");
 }
 
 test("HeroUI Pro routes exercise real commerce, evidence, audit, settings, and certificate substrates", async ({
@@ -267,9 +269,9 @@ test("HeroUI Pro routes exercise real commerce, evidence, audit, settings, and c
       .first()
       .click();
     await expect(dialog).toBeVisible();
-    await expect(
-      dialog.getByLabel("Subject", { exact: true }),
-    ).not.toHaveValue("");
+    await expect(dialog.getByLabel("Subject", { exact: true })).not.toHaveValue(
+      "",
+    );
     await dialog.getByLabel("Maximum calls", { exact: true }).fill("4");
     await dialog
       .getByLabel("Expiry (Unix seconds)", { exact: true })
@@ -415,14 +417,13 @@ test("HeroUI Pro routes exercise real commerce, evidence, audit, settings, and c
       .getByRole("button", { name: "Synthesize Offer", exact: true })
       .click();
     await expect
-      .poll(
-        () =>
-          Number(query(app.db, "SELECT COUNT(*) AS n FROM session_offers")[0].n),
+      .poll(() =>
+        Number(query(app.db, "SELECT COUNT(*) AS n FROM session_offers")[0].n),
       )
       .toBe(1);
-    expect(query(app.db, "SELECT bundle_id FROM session_offers")[0].bundle_id).toBe(
-      "ops-suite",
-    );
+    expect(
+      query(app.db, "SELECT bundle_id FROM session_offers")[0].bundle_id,
+    ).toBe("ops-suite");
 
     // Segment switching across Observations, Probe Runs, MCP Frames, Proxy HTTP / WS Traffic
     const evidenceSegment = page.locator(
@@ -458,7 +459,8 @@ test("HeroUI Pro routes exercise real commerce, evidence, audit, settings, and c
     const framesGrid = page.getByRole("grid", {
       name: "Persisted MCP protocol frames",
     });
-    await expect(framesGrid).toContainText("initialize");
+    await expect(framesGrid).toContainText("server/discover");
+    await expect(framesGrid).toContainText("tools/call");
     await framesGrid
       .getByRole("button", { name: /^Inspect frame / })
       .first()
@@ -532,14 +534,18 @@ test("HeroUI Pro routes exercise real commerce, evidence, audit, settings, and c
     await expect(auditGrid).toBeVisible();
 
     // Action dropdown filter + SearchField on admin_audit_log DataGrid
-    await page.getByRole("button", { name: /All actions/ }).click();
+    await page
+      .getByRole("button", { name: "All actions", exact: true })
+      .click();
     await page
       .getByRole("menuitem", { name: "receipt.revoke", exact: true })
       .click();
     await expect(auditGrid).toContainText("receipt.revoke");
     await expect(auditGrid).not.toContainText("bundle.put");
 
-    await page.getByRole("button", { name: /receipt\.revoke/ }).click();
+    await page
+      .getByRole("button", { name: "receipt.revoke", exact: true })
+      .click();
     await page
       .getByRole("menuitem", { name: "All actions", exact: true })
       .click();
@@ -621,10 +627,8 @@ test("HeroUI Pro routes exercise real commerce, evidence, audit, settings, and c
     await expect
       .poll(
         () =>
-          query(
-            app.db,
-            "SELECT item_id FROM catalog_items WHERE kind='skill'",
-          ).length,
+          query(app.db, "SELECT item_id FROM catalog_items WHERE kind='skill'")
+            .length,
       )
       .toBe(1);
     expect(
@@ -641,6 +645,8 @@ test("HeroUI Pro routes exercise real commerce, evidence, audit, settings, and c
       .getByRole("button", { name: "Connect Upstream", exact: true })
       .click();
     await expect(dialog).toBeVisible();
+    await dialog.getByLabel("Upstream name", { exact: true }).fill("   ");
+    await dialog.getByLabel("Command or HTTP URL", { exact: true }).fill("   ");
     await dialog.getByRole("button", { name: "Apply", exact: true }).click();
     await expect(dialog.getByRole("alert")).toContainText(
       "Upstream name and command or HTTP URL are required.",

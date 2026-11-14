@@ -263,6 +263,11 @@ for (const withModel of [false, true])
           await expect(page.locator("#clef")).toContainText("Input tokens");
           // The lens shows the question beside the pick; the rail infers no verdict.
           await expect(page.locator("#clef")).toContainText("Question");
+          const clefBox = (await page.locator("#clef").boundingBox())!;
+          const clefDlBox = (await page.locator("#clef dl").boundingBox())!;
+          expect(clefDlBox.x + clefDlBox.width).toBeLessThanOrEqual(
+            clefBox.x + clefBox.width + 1,
+          );
           await expect(page.locator(".session.selected .state")).toHaveText(
             "CLEF Evaluated",
           );
@@ -302,6 +307,18 @@ for (const withModel of [false, true])
         expect(unauthorizedResponses).toBe(1);
         expect(errors).toEqual([]);
         expect(unexpectedResponses).toEqual([]);
+        const requiredHeight = await page.evaluate(() => {
+          let maxScroll = 960;
+          for (const el of Array.from(document.querySelectorAll("*"))) {
+            const node = el as HTMLElement;
+            if (node.scrollTop > 0) node.scrollTop = 0;
+            if (node.scrollHeight > node.clientHeight + 20) {
+              maxScroll = Math.max(maxScroll, node.scrollHeight + 120);
+            }
+          }
+          return Math.min(maxScroll, 2200);
+        });
+        await page.setViewportSize({ width: 1500, height: requiredHeight });
         await page.screenshot({
           path: path.join(
             root,
