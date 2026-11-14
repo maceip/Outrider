@@ -34,6 +34,17 @@ const SERVER_REQUEST_WAIT: Duration = Duration::from_secs(600);
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_REQUEST_TIMEOUT_MS: u64 = 600_000;
 
+const STANDARD_REQUESTS: &[&str] = &[
+    "ping", "initialize", "server/discover", "completion/complete", "logging/setLevel",
+    "prompts/get", "prompts/list", "resources/list", "resources/templates/list",
+    "resources/read", "subscriptions/listen", "resources/subscribe", "resources/unsubscribe",
+    "tools/call", "tools/list", "tasks/get", "tasks/update", "tasks/cancel", "skills/list",
+    "skills/get", "resources/directory/read",
+];
+const STANDARD_NOTIFICATIONS: &[&str] = &[
+    "notifications/cancelled", "notifications/progress", "notifications/initialized",
+    "notifications/roots/list_changed",
+];
 type Answer = std::result::Result<Value, String>;
 type PendingMap = Arc<Mutex<HashMap<String, (String, oneshot::Sender<Answer>)>>>;
 
@@ -441,6 +452,11 @@ impl Inspector {
         }
         let request: ClientRequest = serde_json::from_value(envelope.clone())
             .with_context(|| format!("Params do not match the {method} request schema"))?;
+        // The SDK's untagged union falls back to a custom request; for a standard
+        // method that only happens when the params do not fit its schema.
+        if matches!(request, ClientRequest::CustomRequest(_)) && STANDARD_REQUESTS.contains(&method) {
+            bail!("Params do not match the {method} request schema");
+        }
         let timeout_ms = body["timeout_ms"]
             .as_u64()
             .unwrap_or(60_000)
@@ -489,6 +505,12 @@ impl Inspector {
         }
         let notification: ClientNotification = serde_json::from_value(envelope)
             .with_context(|| format!("Params do not match the {method} notification schema"))?;
+        if matches!(notification, ClientNotification::CustomNotification(_))
+            && method.starts_with("notifications/")
+            && STANDARD_NOTIFICATIONS.contains(&method)
+        {
+            bail!("Params do not match the {method} notification schema");
+        }
         let sent = serde_json::to_value(&notification)?;
         connection.peer.send_notification(notification).await?;
         let id = connection
