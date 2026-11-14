@@ -3,6 +3,7 @@
 import hashlib
 import json
 import pathlib
+import platform
 import shutil
 import sys
 import tempfile
@@ -10,7 +11,7 @@ import urllib.request
 import zipfile
 root = pathlib.Path(__file__).resolve().parents[1]
 manifest = json.loads((root / "native/manifest.json").read_text())
-if sys.platform != "darwin":
+if sys.platform != "darwin" or platform.machine() != "arm64":
     sys.exit("The pinned archive was validated on macOS arm64 only; configure and pin native libraries for this platform first.")
 with tempfile.TemporaryDirectory(prefix="outrider-native-") as temp:
     archive = pathlib.Path(temp) / "prebuilt.zip"

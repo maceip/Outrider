@@ -109,7 +109,10 @@ impl ServerBuilder {
         self
     }
 
-    pub fn commerce(mut self, commerce: Arc<crate::commerce::Commerce>) -> Self {self.commerce=Some(commerce);self}
+    pub fn commerce(mut self, commerce: Arc<crate::commerce::Commerce>) -> Self {
+        self.commerce = Some(commerce);
+        self
+    }
 
     pub fn build(self) -> Arc<Server> {
         let temp_dir = std::env::temp_dir().join(format!("proxyfor-{}", process::id()));
@@ -129,8 +132,10 @@ impl ServerBuilder {
                 rmcp::transport::streamable_http_server::StreamableHttpServerConfig::default().with_legacy_session_mode(false),
             )
         });
-        let state=Arc::new(State::new(self.print_mode));
-        if let Some(commerce)=&self.commerce {let _=state.commerce.set(commerce.clone());}
+        let state = Arc::new(State::new(self.print_mode));
+        if let Some(commerce) = &self.commerce {
+            let _ = state.commerce.set(commerce.clone());
+        }
         Arc::new(Server {
             mcp,
             commerce: self.commerce.clone(),
@@ -146,7 +151,12 @@ impl ServerBuilder {
 }
 
 pub struct Server {
-    mcp:Option<rmcp::transport::streamable_http_server::StreamableHttpService<crate::mcp_gateway::handler::CommerceGateway,rmcp::transport::streamable_http_server::session::local::LocalSessionManager>>,
+    mcp: Option<
+        rmcp::transport::streamable_http_server::StreamableHttpService<
+            crate::mcp_gateway::handler::CommerceGateway,
+            rmcp::transport::streamable_http_server::session::local::LocalSessionManager,
+        >,
+    >,
     commerce: Option<Arc<crate::commerce::Commerce>>,
     ca: CertificateAuthority,
     reverse_proxy_url: Option<String>,
@@ -199,32 +209,75 @@ impl Server {
         Ok(stop_tx)
     }
 
-    async fn serve_socket(self: Arc<Self>, mut socket:TcpStream, peer:std::net::SocketAddr, tx:TrafficDoneSender)->Result<()> {
-        let connection=crate::fingerprint::passive::ConnectionEvidence {connection_id:crate::commerce::db::id()};
-        let mut first=[0u8;1];
-        let count=tokio::time::timeout(std::time::Duration::from_secs(5),socket.peek(&mut first)).await??;
-        if count==0 {return Ok(())}
-        if first[0]==22 {
-            let raw=crate::fingerprint::client_hello::capture(&mut socket).await;
-            if let Some(c)=&self.commerce {crate::fingerprint::passive::record_hello(&c.db,&connection.connection_id,&raw)?;}
-            let host=crate::fingerprint::client_hello::parse(&raw).ok().and_then(|h|h.sni).unwrap_or_else(||"localhost".into());
-            let authority:Authority=host.parse()?;
-            let config=self.ca.gen_server_config(&authority).await?;
-            let stream=TlsAcceptor::from(config).accept(Rewind::new_buffered(socket,Bytes::from(raw))).await?;
-            if let Some(c)=&self.commerce {crate::fingerprint::passive::record_tls(&c.db,&connection.connection_id,&stream)?;}
-            self.serve_observed(stream,peer,connection,tx).await
-        } else {self.serve_observed(socket,peer,connection,tx).await}
+    async fn serve_socket(
+        self: Arc<Self>,
+        mut socket: TcpStream,
+        peer: std::net::SocketAddr,
+        tx: TrafficDoneSender,
+    ) -> Result<()> {
+        let connection = crate::fingerprint::passive::ConnectionEvidence {
+            connection_id: crate::commerce::db::id(),
+        };
+        let mut first = [0u8; 1];
+        let count =
+            tokio::time::timeout(std::time::Duration::from_secs(5), socket.peek(&mut first))
+                .await??;
+        if count == 0 {
+            return Ok(());
+        }
+        if first[0] == 22 {
+            let raw = crate::fingerprint::client_hello::capture(&mut socket).await;
+            if let Some(c) = &self.commerce {
+                crate::fingerprint::passive::record_hello(&c.db, &connection.connection_id, &raw)?;
+            }
+            let host = crate::fingerprint::client_hello::parse(&raw)
+                .ok()
+                .and_then(|h| h.sni)
+                .unwrap_or_else(|| "localhost".into());
+            let authority: Authority = host.parse()?;
+            let config = self.ca.gen_server_config(&authority).await?;
+            let stream = TlsAcceptor::from(config)
+                .accept(Rewind::new_buffered(socket, Bytes::from(raw)))
+                .await?;
+            if let Some(c) = &self.commerce {
+                crate::fingerprint::passive::record_tls(&c.db, &connection.connection_id, &stream)?;
+            }
+            self.serve_observed(stream, peer, connection, tx).await
+        } else {
+            self.serve_observed(socket, peer, connection, tx).await
+        }
     }
-    async fn serve_observed<I>(self:Arc<Self>,mut stream:I,peer:std::net::SocketAddr,connection:crate::fingerprint::passive::ConnectionEvidence,tx:TrafficDoneSender)->Result<()>
-    where I:AsyncRead+AsyncWrite+Unpin+Send+'static {
-        let prefix=crate::fingerprint::passive::http_prefix(&mut stream).await;
-        if let Some(c)=&self.commerce {crate::fingerprint::passive::record_header_order(&c.db,&connection.connection_id,&prefix)?;}
-        let service=service_fn(move |mut req:Request| {
-            req.extensions_mut().insert(crate::commerce::http::PeerAddress(peer));
+    async fn serve_observed<I>(
+        self: Arc<Self>,
+        mut stream: I,
+        peer: std::net::SocketAddr,
+        connection: crate::fingerprint::passive::ConnectionEvidence,
+        tx: TrafficDoneSender,
+    ) -> Result<()>
+    where
+        I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
+    {
+        let prefix = crate::fingerprint::passive::http_prefix(&mut stream).await;
+        if let Some(c) = &self.commerce {
+            crate::fingerprint::passive::record_header_order(
+                &c.db,
+                &connection.connection_id,
+                &prefix,
+            )?;
+        }
+        let service = service_fn(move |mut req: Request| {
+            req.extensions_mut()
+                .insert(crate::commerce::http::PeerAddress(peer));
             req.extensions_mut().insert(connection.clone());
-            self.clone().handle(req,tx.clone())
+            self.clone().handle(req, tx.clone())
         });
-        hyper_util::server::conn::auto::Builder::new(TokioExecutor::new()).serve_connection_with_upgrades(TokioIo::new(Rewind::new_buffered(stream,Bytes::from(prefix))),service).await.map_err(|e|anyhow!(e))?;
+        hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
+            .serve_connection_with_upgrades(
+                TokioIo::new(Rewind::new_buffered(stream, Bytes::from(prefix))),
+                service,
+            )
+            .await
+            .map_err(|e| anyhow!(e))?;
         Ok(())
     }
 
@@ -237,20 +290,32 @@ impl Server {
         req: Request,
         traffic_done_tx: TrafficDoneSender,
     ) -> Result<Response, hyper::Error> {
-        if req.uri().authority().is_none() && req.uri().path()=="/mcp" {
+        if req.uri().authority().is_none() && req.uri().path() == "/mcp" {
             use hyper::service::Service;
             return Ok(match &self.mcp {
-                Some(service)=>{
-                    let response=hyper_util::service::TowerToHyperService::new(service.clone()).call(req).await.unwrap();
-                    let (parts,body)=response.into_parts();Response::from_parts(parts,body.map_err(|e|anyhow!(e)).boxed())
-                },
-                None=>crate::commerce::http::json_response(503,serde_json::json!({"error":"MCP gateway is not configured"})),
+                Some(service) => {
+                    let response = hyper_util::service::TowerToHyperService::new(service.clone())
+                        .call(req)
+                        .await
+                        .unwrap();
+                    let (parts, body) = response.into_parts();
+                    Response::from_parts(parts, body.map_err(|e| anyhow!(e)).boxed())
+                }
+                None => crate::commerce::http::json_response(
+                    503,
+                    serde_json::json!({"error":"MCP gateway is not configured"}),
+                ),
             });
         }
-        if req.uri().authority().is_none() && req.uri().path().starts_with("/__proxyfor__/commerce/") {
+        if req.uri().authority().is_none()
+            && req.uri().path().starts_with("/__proxyfor__/commerce/")
+        {
             return Ok(match &self.commerce {
-                Some(commerce)=>crate::commerce::http::route(commerce.clone(),req).await,
-                None=>crate::commerce::http::json_response(503,serde_json::json!({"error":"Commerce is not configured"})),
+                Some(commerce) => crate::commerce::http::route(commerce.clone(), req).await,
+                None => crate::commerce::http::json_response(
+                    503,
+                    serde_json::json!({"error":"Commerce is not configured"}),
+                ),
             });
         }
         let req_uri = req.uri().to_string();
@@ -710,8 +775,17 @@ impl Server {
                 return Ok(res);
             }
         };
-        let peer=req.extensions().get::<crate::commerce::http::PeerAddress>().copied();
-        let connection=req.extensions().get::<crate::fingerprint::passive::ConnectionEvidence>().cloned().unwrap_or_else(||crate::fingerprint::passive::ConnectionEvidence{connection_id:crate::commerce::db::id()});
+        let peer = req
+            .extensions()
+            .get::<crate::commerce::http::PeerAddress>()
+            .copied();
+        let connection = req
+            .extensions()
+            .get::<crate::fingerprint::passive::ConnectionEvidence>()
+            .cloned()
+            .unwrap_or_else(|| crate::fingerprint::passive::ConnectionEvidence {
+                connection_id: crate::commerce::db::id(),
+            });
         let server = self.clone();
         let fut = async move {
             match hyper::upgrade::on(&mut req).await {
@@ -741,7 +815,8 @@ impl Server {
                                 Scheme::HTTP,
                                 authority,
                                 traffic_done_tx,
-                                peer,connection.clone(),
+                                peer,
+                                connection.clone(),
                             )
                             .await
                         {
@@ -756,11 +831,18 @@ impl Server {
                             }
                         };
 
-                        let raw=crate::fingerprint::client_hello::capture(&mut upgraded).await;
-                        if let Some(c)=&self.commerce {
-                            if let Err(e)=crate::fingerprint::passive::record_hello(&c.db,&connection.connection_id,&raw) {traffic.add_error(e.to_string());return;}
+                        let raw = crate::fingerprint::client_hello::capture(&mut upgraded).await;
+                        if let Some(c) = &self.commerce {
+                            if let Err(e) = crate::fingerprint::passive::record_hello(
+                                &c.db,
+                                &connection.connection_id,
+                                &raw,
+                            ) {
+                                traffic.add_error(e.to_string());
+                                return;
+                            }
                         }
-                        let upgraded=Rewind::new_buffered(upgraded,Bytes::from(raw));
+                        let upgraded = Rewind::new_buffered(upgraded, Bytes::from(raw));
                         let stream = match TlsAcceptor::from(server_config).accept(upgraded).await {
                             Ok(stream) => stream,
                             Err(err) => {
@@ -771,11 +853,25 @@ impl Server {
                             }
                         };
 
-                        if let Some(c)=&self.commerce {
-                            if let Err(e)=crate::fingerprint::passive::record_tls(&c.db,&connection.connection_id,&stream) {traffic.add_error(e.to_string());return;}
+                        if let Some(c) = &self.commerce {
+                            if let Err(e) = crate::fingerprint::passive::record_tls(
+                                &c.db,
+                                &connection.connection_id,
+                                &stream,
+                            ) {
+                                traffic.add_error(e.to_string());
+                                return;
+                            }
                         }
                         if let Err(err) = self
-                            .serve_connect_stream(stream, Scheme::HTTPS, authority, traffic_done_tx,peer,connection)
+                            .serve_connect_stream(
+                                stream,
+                                Scheme::HTTPS,
+                                authority,
+                                traffic_done_tx,
+                                peer,
+                                connection,
+                            )
                             .await
                         {
                             if !err
@@ -827,17 +923,25 @@ impl Server {
         scheme: Scheme,
         authority: Authority,
         traffic_done_tx: TrafficDoneSender,
-        peer:Option<crate::commerce::http::PeerAddress>,
-        connection:crate::fingerprint::passive::ConnectionEvidence,
+        peer: Option<crate::commerce::http::PeerAddress>,
+        connection: crate::fingerprint::passive::ConnectionEvidence,
     ) -> Result<(), Box<dyn std::error::Error + Sync + Send>>
     where
         I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
-        let prefix=crate::fingerprint::passive::http_prefix(&mut stream).await;
-        if let Some(c)=&self.commerce {crate::fingerprint::passive::record_header_order(&c.db,&connection.connection_id,&prefix)?;}
-        let stream=Rewind::new_buffered(stream,Bytes::from(prefix));
-        let service = service_fn(|mut req:Request| {
-            if let Some(peer)=peer {req.extensions_mut().insert(peer);}
+        let prefix = crate::fingerprint::passive::http_prefix(&mut stream).await;
+        if let Some(c) = &self.commerce {
+            crate::fingerprint::passive::record_header_order(
+                &c.db,
+                &connection.connection_id,
+                &prefix,
+            )?;
+        }
+        let stream = Rewind::new_buffered(stream, Bytes::from(prefix));
+        let service = service_fn(|mut req: Request| {
+            if let Some(peer) = peer {
+                req.extensions_mut().insert(peer);
+            }
             req.extensions_mut().insert(connection.clone());
             if req.version() == hyper::Version::HTTP_10 || req.version() == hyper::Version::HTTP_11
             {

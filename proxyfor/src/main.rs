@@ -25,42 +25,88 @@ const PRIVATE_KEY_FILENAME: &str = "proxyfor-key.pem";
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let config_dir = cli.config_dir.clone().map(Ok).unwrap_or_else(ensure_config_dir)?;
+    let config_dir = cli
+        .config_dir
+        .clone()
+        .map(Ok)
+        .unwrap_or_else(ensure_config_dir)?;
     fs::create_dir_all(&config_dir)?;
     setup_logger(&config_dir)?;
     tokio_rustls::rustls::crypto::ring::default_provider()
         .install_default()
         .expect("Failed to install rustls crypto provider");
     let _clef = proxyfor::clef::engine::ClefEngine::load(proxyfor::clef::engine::ClefConfig {
-        model:cli.clef_model.clone(),backend:cli.clef_backend.clone(),threads:cli.clef_threads,
-        cache_dir:cli.clef_cache_dir.clone().unwrap_or_else(|| config_dir.join("clef-cache")),workers:2,
-    }).await?;
+        model: cli.clef_model.clone(),
+        backend: cli.clef_backend.clone(),
+        threads: cli.clef_threads,
+        cache_dir: cli
+            .clef_cache_dir
+            .clone()
+            .unwrap_or_else(|| config_dir.join("clef-cache")),
+        workers: 2,
+    })
+    .await?;
     eprintln!("CLEF: {}", serde_json::to_string(_clef.status())?);
-    let _db = proxyfor::commerce::db::Database::open(cli.db.clone().unwrap_or_else(|| config_dir.join("outrider.db")))?;
-    let (commerce,new_token)=proxyfor::commerce::Commerce::new(_db,_clef,&config_dir,cli.admin_allow_remote)?;
+    let _db = proxyfor::commerce::db::Database::open(
+        cli.db
+            .clone()
+            .unwrap_or_else(|| config_dir.join("outrider.db")),
+    )?;
+    let (commerce, new_token) =
+        proxyfor::commerce::Commerce::new(_db, _clef, &config_dir, cli.admin_allow_remote)?;
     commerce.register_local_tools()?;
-    *commerce.probe_policy.write().unwrap()=cli.probe_policy;
-    if let Some(token)=new_token {eprintln!("Outrider admin token (shown once): {token}");}
-    if let Some(Command::Receipt {command})=cli.command {
+    *commerce.probe_policy.write().unwrap() = cli.probe_policy;
+    if let Some(token) = new_token {
+        eprintln!("Outrider admin token (shown once): {token}");
+    }
+    if let Some(Command::Receipt { command }) = cli.command {
         match command {
-            ReceiptCommand::Issue {subject,bundle_id,max_calls,expires_at_unix}=>{
-                let receipt=commerce.receipts.issue(&subject,&bundle_id,max_calls,expires_at_unix,"admin:cli")?;
-                println!("{}",serde_json::to_string_pretty(&serde_json::json!({"token":receipt.encode()?,"signed_receipt":receipt}))?);
-            },
-            ReceiptCommand::Revoke {receipt_id}=>{commerce.receipts.revoke(&receipt_id,"admin:cli")?;println!("Receipt revoked");}
+            ReceiptCommand::Issue {
+                subject,
+                bundle_id,
+                max_calls,
+                expires_at_unix,
+            } => {
+                let receipt = commerce.receipts.issue(
+                    &subject,
+                    &bundle_id,
+                    max_calls,
+                    expires_at_unix,
+                    "admin:cli",
+                )?;
+                println!(
+                    "{}",
+                    serde_json::to_string_pretty(
+                        &serde_json::json!({"token":receipt.encode()?,"signed_receipt":receipt})
+                    )?
+                );
+            }
+            ReceiptCommand::Revoke { receipt_id } => {
+                commerce.receipts.revoke(&receipt_id, "admin:cli")?;
+                println!("Receipt revoked");
+            }
         }
         return Ok(());
     }
-    if let Some(path)=cli.skills_dir {
-        commerce.load_skills(&path,"admin:cli")?;
+    if let Some(path) = cli.skills_dir {
+        commerce.load_skills(&path, "admin:cli")?;
     }
     for upstream in &cli.upstream {
-        let (name,endpoint)=upstream.split_once('=').context("--upstream expects name=command_or_url")?;
-        commerce.federation.connect(&commerce,name,endpoint,"admin:cli").await?;
+        let (name, endpoint) = upstream
+            .split_once('=')
+            .context("--upstream expects name=command_or_url")?;
+        commerce
+            .federation
+            .connect(&commerce, name, endpoint, "admin:cli")
+            .await?;
     }
     if cli.stdio {
         use rmcp::ServiceExt;
-        proxyfor::mcp_gateway::handler::CommerceGateway::new(commerce).serve(rmcp::transport::stdio()).await?.waiting().await?;
+        proxyfor::mcp_gateway::handler::CommerceGateway::new(commerce)
+            .serve(rmcp::transport::stdio())
+            .await?
+            .waiting()
+            .await?;
         return Ok(());
     }
     let ca = setup_ca(&config_dir)?;
@@ -112,32 +158,37 @@ async fn main() -> Result<()> {
 #[command(author, version, about, long_about = None)]
 struct Cli {
     #[arg(long)]
-    skills_dir:Option<PathBuf>,
+    skills_dir: Option<PathBuf>,
     #[arg(long)]
-    upstream:Vec<String>,
+    upstream: Vec<String>,
     #[arg(long)]
-    stdio:bool,
+    stdio: bool,
     #[command(subcommand)]
     command: Option<Command>,
     #[arg(long)]
     config_dir: Option<PathBuf>,
     #[arg(long)]
     admin_allow_remote: bool,
-    #[arg(long,value_enum,default_value="auto")]
+    #[arg(long, value_enum, default_value = "auto")]
     probe_policy: proxyfor::fingerprint::active::ProbePolicy,
     /// Real CLEF model (.litertlm); without it CLEF is explicitly Unconfigured
     #[arg(long, env = "OUTRIDER_CLEF_MODEL")]
     clef_model: Option<PathBuf>,
     #[arg(long, default_value="cpu", value_parser=["cpu","gpu"])]
     clef_backend: String,
-    #[arg(long, default_value_t=4)]
+    #[arg(long, default_value_t = 4)]
     clef_threads: usize,
     #[arg(long)]
     clef_cache_dir: Option<PathBuf>,
     #[arg(long)]
     db: Option<PathBuf>,
     /// Listening ip and port address
-    #[clap(short = 'l', long, value_name = "ADDR", default_value = "127.0.0.1:8080")]
+    #[clap(
+        short = 'l',
+        long,
+        value_name = "ADDR",
+        default_value = "127.0.0.1:8080"
+    )]
     listen: String,
     /// Only inspect http(s) traffic whose `{method} {uri}` matches the regex
     #[clap(short = 'f', long, value_name = "REGEX")]
@@ -236,9 +287,26 @@ async fn shutdown_signal() {
 }
 
 #[derive(clap::Subcommand, Debug)]
-enum Command { Receipt {#[command(subcommand)] command: ReceiptCommand} }
-#[derive(clap::Subcommand,Debug)]
+enum Command {
+    Receipt {
+        #[command(subcommand)]
+        command: ReceiptCommand,
+    },
+}
+#[derive(clap::Subcommand, Debug)]
 enum ReceiptCommand {
-    Issue {#[arg(long)] subject:String,#[arg(long)] bundle_id:String,#[arg(long)] max_calls:i64,#[arg(long)] expires_at_unix:i64},
-    Revoke {#[arg(long)] receipt_id:String},
+    Issue {
+        #[arg(long)]
+        subject: String,
+        #[arg(long)]
+        bundle_id: String,
+        #[arg(long)]
+        max_calls: i64,
+        #[arg(long)]
+        expires_at_unix: i64,
+    },
+    Revoke {
+        #[arg(long)]
+        receipt_id: String,
+    },
 }

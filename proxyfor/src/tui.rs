@@ -52,7 +52,9 @@ const EXPORT_ACTIONS: [(&str, &str); 3] = [
 ];
 
 pub async fn run(state: Arc<State>, addr: &str) -> Result<()> {
-    if let Some(commerce)=state.commerce.get() {return crate::commerce::tui::run(commerce.clone()).await;}
+    if let Some(commerce) = state.commerce.get() {
+        return crate::commerce::tui::run(commerce.clone()).await;
+    }
 
     let mut traffic_rx = state.subscribe_traffics();
     let (message_tx, message_rx) = mpsc::unbounded_channel();

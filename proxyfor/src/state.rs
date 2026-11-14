@@ -13,7 +13,7 @@ use tokio_tungstenite::tungstenite;
 
 #[derive(Debug)]
 pub struct State {
-    pub commerce:std::sync::OnceLock<std::sync::Arc<crate::commerce::Commerce>>,
+    pub commerce: std::sync::OnceLock<std::sync::Arc<crate::commerce::Commerce>>,
     print_mode: PrintMode,
     traffics: Mutex<IndexMap<usize, Traffic>>,
     traffics_notifier: broadcast::Sender<TrafficHead>,
@@ -26,7 +26,7 @@ impl State {
         let (traffics_notifier, _) = broadcast::channel(128);
         let (websockets_notifier, _) = broadcast::channel(64);
         Self {
-            commerce:Default::default(),
+            commerce: Default::default(),
             print_mode,
             traffics: Default::default(),
             traffics_notifier,
@@ -35,31 +35,54 @@ impl State {
         }
     }
 
-    fn report_persistence_error(&self,error:anyhow::Error) {
+    fn report_persistence_error(&self, error: anyhow::Error) {
         error!("Commerce persistence failed: {error:#}");
-        if let Some(c)=self.commerce.get() {let mut errors=c.errors.lock().unwrap();errors.push(format!("{error:#}"));if errors.len()>50 {errors.remove(0);}c.changed("persistence.error",None);}
+        if let Some(c) = self.commerce.get() {
+            let mut errors = c.errors.lock().unwrap();
+            errors.push(format!("{error:#}"));
+            if errors.len() > 50 {
+                errors.remove(0);
+            }
+            c.changed("persistence.error", None);
+        }
     }
-    async fn persist_traffic(&self,id:usize,traffic:&Traffic) {
-        let Some(c)=self.commerce.get() else{return};
-        let result=(||->Result<()> {
-            let head=serde_json::to_string(&traffic.head(id))?;
-            let detail=serde_json::to_string(traffic)?;
-            c.db.0.lock().map_err(|_|anyhow!("database lock poisoned"))?.execute("INSERT INTO proxy_traffic(run_id,traffic_id,head,detail) VALUES (?1,?2,?3,?4) ON CONFLICT(run_id,traffic_id) DO UPDATE SET head=excluded.head,detail=excluded.detail",rusqlite::params![c.run_id,id as i64,head,detail])?;Ok(())
+    async fn persist_traffic(&self, id: usize, traffic: &Traffic) {
+        let Some(c) = self.commerce.get() else { return };
+        let result = (|| -> Result<()> {
+            let head = serde_json::to_string(&traffic.head(id))?;
+            let detail = serde_json::to_string(traffic)?;
+            c.db.0.lock().map_err(|_|anyhow!("database lock poisoned"))?.execute("INSERT INTO proxy_traffic(run_id,traffic_id,head,detail) VALUES (?1,?2,?3,?4) ON CONFLICT(run_id,traffic_id) DO UPDATE SET head=excluded.head,detail=excluded.detail",rusqlite::params![c.run_id,id as i64,head,detail])?;
+            Ok(())
         })();
-        if let Err(error)=result {self.report_persistence_error(error);return}
+        if let Err(error) = result {
+            self.report_persistence_error(error);
+            return;
+        }
         // Persist bodies once they have actually been read from completed capture files.
         if traffic.end_time.is_some() {
             match traffic.export("").await {
-                Ok((detail,_))=>{let result=c.db.0.lock().map_err(|_|anyhow!("database lock poisoned")).and_then(|conn|Ok(conn.execute("UPDATE proxy_traffic SET detail=?3 WHERE run_id=?1 AND traffic_id=?2",rusqlite::params![c.run_id,id as i64,detail])?));if let Err(error)=result {self.report_persistence_error(error);}},
-                Err(error)=>self.report_persistence_error(error),
+                Ok((detail, _)) => {
+                    let result=c.db.0.lock().map_err(|_|anyhow!("database lock poisoned")).and_then(|conn|Ok(conn.execute("UPDATE proxy_traffic SET detail=?3 WHERE run_id=?1 AND traffic_id=?2",rusqlite::params![c.run_id,id as i64,detail])?));
+                    if let Err(error) = result {
+                        self.report_persistence_error(error);
+                    }
+                }
+                Err(error) => self.report_persistence_error(error),
             }
         }
-        c.changed("traffic.persisted",None);
+        c.changed("traffic.persisted", None);
     }
-    fn persist_websocket(&self,id:usize,message:&WebsocketMessage) {
-        let Some(c)=self.commerce.get() else{return};
-        let result=(||->Result<()> {c.db.0.lock().map_err(|_|anyhow!("database lock poisoned"))?.execute("INSERT INTO proxy_websocket_messages(run_id,websocket_id,message,created_at) VALUES (?1,?2,?3,?4)",rusqlite::params![c.run_id,id as i64,serde_json::to_string(message)?,crate::commerce::db::now()])?;Ok(())})();
-        if let Err(error)=result {self.report_persistence_error(error);}else{c.changed("websocket.persisted",None);}
+    fn persist_websocket(&self, id: usize, message: &WebsocketMessage) {
+        let Some(c) = self.commerce.get() else { return };
+        let result = (|| -> Result<()> {
+            c.db.0.lock().map_err(|_|anyhow!("database lock poisoned"))?.execute("INSERT INTO proxy_websocket_messages(run_id,websocket_id,message,created_at) VALUES (?1,?2,?3,?4)",rusqlite::params![c.run_id,id as i64,serde_json::to_string(message)?,crate::commerce::db::now()])?;
+            Ok(())
+        })();
+        if let Err(error) = result {
+            self.report_persistence_error(error);
+        } else {
+            c.changed("websocket.persisted", None);
+        }
     }
 
     pub async fn add_traffic(&self, traffic: Traffic) {
@@ -69,7 +92,7 @@ impl State {
         let mut traffics = self.traffics.lock().await;
         let id = traffics.len() + 1;
         let head = traffic.head(id);
-        self.persist_traffic(id,&traffic).await;
+        self.persist_traffic(id, &traffic).await;
         traffics.insert(id, traffic);
         let _ = self.traffics_notifier.send(head);
     }
@@ -83,7 +106,7 @@ impl State {
         traffic.uncompress_res_file().await;
         traffic.done_res_body(raw_size);
 
-        self.persist_traffic(*id,traffic).await;
+        self.persist_traffic(*id, traffic).await;
         let head = traffic.head(*id);
         let _ = self.traffics_notifier.send(head);
         match self.print_mode {
@@ -186,7 +209,7 @@ impl State {
             return;
         };
         let message = WebsocketMessage::Error(error);
-        self.persist_websocket(id,&message);
+        self.persist_websocket(id, &message);
         messages.push(message.clone());
         let _ = self.websockets_notifier.send((id, message));
     }
@@ -211,7 +234,7 @@ impl State {
             server_to_client,
             body,
         });
-        self.persist_websocket(id,&message);
+        self.persist_websocket(id, &message);
         messages.push(message.clone());
         let _ = self.websockets_notifier.send((id, message));
     }

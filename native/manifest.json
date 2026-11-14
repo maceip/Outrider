@@ -7,5 +7,15 @@
     "version": "litert-lm-api 0.18.0 (official macOS arm64 wheel C API)",
     "url": "https://files.pythonhosted.org/packages/cc/df/147e5fa60cf8964bdcbc022cbd38502f91ea415bf82bed2c9335fcf9be9d/litert_lm_api-0.18.0-py3-none-macosx_12_0_arm64.whl",
     "archive_sha256": "9fd0c55835e469a035c1b75cde4797b26292963c2c36d9fcdfceb965ffa08a37"
+  },
+  "files_macos_arm64": {
+    "libGemmaModelConstraintProvider.dylib": "107922fe3b6357b7f8900817d7a1b4c78e08fdfc1e7ea895ba958b92ac47bd6b",
+    "libLiteRt.dylib": "9be2b79fbf6526be384f12ddffa4f99a1af92158383d164731a564dbbd28e1e0",
+    "libLiteRtMetalAccelerator.dylib": "28a3150c9db37cbdc810214e97b489fb982e156391aebad46274a0a68fa3545e",
+    "libLiteRtTopKMetalSampler.dylib": "cafcc4e0d31947b10c51072c8503e96a6e0727287d8df87043e2fb85dbc0cab4",
+    "libLiteRtTopKWebGpuSampler.dylib": "6cad3479a4c725cc7dd7feb8935e7dfac6e05968dccbfa42aa4e523972cda09e",
+    "libLiteRtWebGpuAccelerator.dylib": "2dce0d6121c4e5f8712b7970cfa81465cbd48ce60cb76ad255e27b9193980835",
+    "liblitert-lm.dylib": "cbec999a8156f10d277484ad3c6b6d9ac012375c4a03019aa1b0eab68ccaa4e9",
+    "libwebgpu_dawn.dylib": "f55d6bd0a53fedd31d38abb812b14814a491eb47c6177b22f469a86234367b1b"
   }
 }
