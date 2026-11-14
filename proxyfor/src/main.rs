@@ -25,7 +25,8 @@ const PRIVATE_KEY_FILENAME: &str = "proxyfor-key.pem";
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
-    let config_dir = ensure_config_dir()?;
+    let config_dir = cli.config_dir.clone().map(Ok).unwrap_or_else(ensure_config_dir)?;
+    fs::create_dir_all(&config_dir)?;
     setup_logger(&config_dir)?;
     tokio_rustls::rustls::crypto::ring::default_provider()
         .install_default()
@@ -36,6 +37,18 @@ async fn main() -> Result<()> {
     }).await?;
     eprintln!("CLEF: {}", serde_json::to_string(_clef.status())?);
     let _db = proxyfor::commerce::db::Database::open(cli.db.clone().unwrap_or_else(|| config_dir.join("outrider.db")))?;
+    let (commerce,new_token)=proxyfor::commerce::Commerce::new(_db,_clef,&config_dir,cli.admin_allow_remote)?;
+    if let Some(token)=new_token {eprintln!("Outrider admin token (shown once): {token}");}
+    if let Some(Command::Receipt {command})=cli.command {
+        match command {
+            ReceiptCommand::Issue {subject,bundle_id,max_calls,expires_at_unix}=>{
+                let receipt=commerce.receipts.issue(&subject,&bundle_id,max_calls,expires_at_unix,"admin:cli")?;
+                println!("{}",serde_json::to_string_pretty(&serde_json::json!({"token":receipt.encode()?,"signed_receipt":receipt}))?);
+            },
+            ReceiptCommand::Revoke {receipt_id}=>{commerce.receipts.revoke(&receipt_id,"admin:cli")?;println!("Receipt revoked");}
+        }
+        return Ok(());
+    }
     let ca = setup_ca(&config_dir)?;
     let (ip, port) =
         parse_addr(&cli.listen).ok_or_else(|| anyhow!("Invalid addr '{}'", cli.listen))?;
@@ -54,6 +67,7 @@ async fn main() -> Result<()> {
         PrintMode::Oneline
     };
     let server = ServerBuilder::new(ca)
+        .commerce(commerce)
         .reverse_proxy_url(reverse_proxy_url)
         .title_filters(title_filters)
         .mime_filters(mime_filters)
@@ -83,6 +97,12 @@ async fn main() -> Result<()> {
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Cli {
+    #[command(subcommand)]
+    command: Option<Command>,
+    #[arg(long)]
+    config_dir: Option<PathBuf>,
+    #[arg(long)]
+    admin_allow_remote: bool,
     /// Real CLEF model (.litertlm); without it CLEF is explicitly Unconfigured
     #[arg(long, env = "OUTRIDER_CLEF_MODEL")]
     clef_model: Option<PathBuf>,
@@ -95,7 +115,7 @@ struct Cli {
     #[arg(long)]
     db: Option<PathBuf>,
     /// Listening ip and port address
-    #[clap(short = 'l', long, value_name = "ADDR", default_value = "0.0.0.0:8080")]
+    #[clap(short = 'l', long, value_name = "ADDR", default_value = "127.0.0.1:8080")]
     listen: String,
     /// Only inspect http(s) traffic whose `{method} {uri}` matches the regex
     #[clap(short = 'f', long, value_name = "REGEX")]
@@ -191,4 +211,12 @@ async fn shutdown_signal() {
     tokio::signal::ctrl_c()
         .await
         .expect("Failed to install CTRL+C signal handler")
+}
+
+#[derive(clap::Subcommand, Debug)]
+enum Command { Receipt {#[command(subcommand)] command: ReceiptCommand} }
+#[derive(clap::Subcommand,Debug)]
+enum ReceiptCommand {
+    Issue {#[arg(long)] subject:String,#[arg(long)] bundle_id:String,#[arg(long)] max_calls:i64,#[arg(long)] expires_at_unix:i64},
+    Revoke {#[arg(long)] receipt_id:String},
 }

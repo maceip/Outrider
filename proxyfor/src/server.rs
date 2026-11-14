@@ -69,12 +69,14 @@ pub struct ServerBuilder {
     mime_filters: Vec<String>,
     web: bool,
     print_mode: PrintMode,
+    commerce: Option<Arc<crate::commerce::Commerce>>,
 }
 
 impl ServerBuilder {
     pub fn new(ca: CertificateAuthority) -> Self {
         Self {
             ca,
+            commerce: None,
             reverse_proxy_url: None,
             title_filters: vec![],
             mime_filters: vec![],
@@ -107,6 +109,8 @@ impl ServerBuilder {
         self
     }
 
+    pub fn commerce(mut self, commerce: Arc<crate::commerce::Commerce>) -> Self {self.commerce=Some(commerce);self}
+
     pub fn build(self) -> Arc<Server> {
         let temp_dir = std::env::temp_dir().join(format!("proxyfor-{}", process::id()));
         info!(
@@ -118,6 +122,7 @@ impl ServerBuilder {
             temp_dir.display(),
         );
         Arc::new(Server {
+            commerce: self.commerce.clone(),
             ca: self.ca,
             reverse_proxy_url: self.reverse_proxy_url,
             title_filters: self.title_filters,
@@ -130,6 +135,7 @@ impl ServerBuilder {
 }
 
 pub struct Server {
+    commerce: Option<Arc<crate::commerce::Commerce>>,
     ca: CertificateAuthority,
     reverse_proxy_url: Option<String>,
     title_filters: Vec<TitleFilter>,
@@ -154,7 +160,7 @@ impl Server {
             loop {
                 tokio::select! {
                     res = listener.accept() => {
-                        let Ok((cnx, _)) = res else {
+                        let Ok((cnx, peer)) = res else {
                             continue;
                         };
 
@@ -162,7 +168,8 @@ impl Server {
                         let traffic_done_tx = traffic_done_tx.clone();
                         let server_cloned = server_cloned.clone();
                         shutdown.spawn_task(async move {
-                            let hyper_service = service_fn(move |request: hyper::Request<Incoming>| {
+                            let hyper_service = service_fn(move |mut request: hyper::Request<Incoming>| {
+                                request.extensions_mut().insert(crate::commerce::http::PeerAddress(peer));
                                 server_cloned.clone().handle(request, traffic_done_tx.clone())
                             });
                             let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
@@ -196,6 +203,12 @@ impl Server {
         req: Request,
         traffic_done_tx: TrafficDoneSender,
     ) -> Result<Response, hyper::Error> {
+        if req.uri().authority().is_none() && req.uri().path().starts_with("/__proxyfor__/commerce/") {
+            return Ok(match &self.commerce {
+                Some(commerce)=>crate::commerce::http::route(commerce.clone(),req).await,
+                None=>crate::commerce::http::json_response(503,serde_json::json!({"error":"Commerce is not configured"})),
+            });
+        }
         let req_uri = req.uri().to_string();
         let method = req.method().clone();
 
