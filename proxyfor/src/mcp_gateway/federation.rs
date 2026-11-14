@@ -1,10 +1,10 @@
 use anyhow::{Result,Context,ensure,anyhow};
-use rmcp::{ServiceExt,service::{RunningService,RoleClient,DynService},transport::{TokioChildProcess,StreamableHttpClientTransport},model::*};
+use rmcp::{ServiceExt,service::{RunningService,RoleClient},transport::{TokioChildProcess,StreamableHttpClientTransport},model::*};
 use rusqlite::params;
 use serde_json::{Value,json};
 use std::{collections::HashMap,sync::Arc};
 use crate::commerce::{Commerce,db::{Database,now},bundler::digest};
-type Upstream=RunningService<RoleClient,Box<dyn DynService<RoleClient>>>;
+type Upstream=RunningService<RoleClient,()>;
 #[derive(Default)]
 pub struct Federation {clients:tokio::sync::RwLock<HashMap<String,Arc<Upstream>>>}
 impl Federation {
@@ -17,11 +17,11 @@ impl Federation {
   }
   let connected=tokio::time::timeout(std::time::Duration::from_secs(30),async {
    let service=if endpoint.starts_with("http://")||endpoint.starts_with("https://") {
-    ().into_dyn().serve(StreamableHttpClientTransport::from_uri(endpoint.to_owned())).await?
+    ().serve(StreamableHttpClientTransport::from_uri(endpoint.to_owned())).await?
    } else {
     let parts=shell_words::split(endpoint)?;ensure!(!parts.is_empty(),"Empty upstream command");
     let mut command=tokio::process::Command::new(&parts[0]);command.args(&parts[1..]);command.stderr(std::process::Stdio::inherit());
-    ().into_dyn().serve(TokioChildProcess::new(command)?).await?
+    ().serve(TokioChildProcess::new(command)?).await?
    };
    let tools=service.list_all_tools().await?;
    let info=service.peer_info();
