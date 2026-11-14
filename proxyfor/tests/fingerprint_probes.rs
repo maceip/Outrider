@@ -205,7 +205,7 @@ fn independent_fingerprint(raw: &[u8]) -> String {
                     .map(|b| u16::from_be_bytes([b[0], b[1]]))
                     .collect()
             }
-            43 if data[1..].as_chunks::<2>().0.iter().any(|b| *b == [3, 4]) => version = "13",
+            43 if data[1..].as_chunks::<2>().0.contains(&[3, 4]) => version = "13",
             _ => {}
         }
     }
