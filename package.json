@@ -1,1 +1,13 @@
-{"name":"outrider-workbench-tests","private":true,"scripts":{"test:web":"playwright test"},"devDependencies":{"@playwright/test":"1.58.2","@types/node":"^24.0.0","typescript":"^5.9.0"}}
+{
+  "name": "outrider-workbench-tests",
+  "private": true,
+  "scripts": {
+    "test:web": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.58.2",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  },
+  "type": "module"
+}

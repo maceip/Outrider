@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { spawn, ChildProcess } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
