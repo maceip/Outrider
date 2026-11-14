@@ -59,6 +59,8 @@ const WEB_INDEX: &str = include_str!("../assets/index.html");
 const INSPECTOR_INDEX: &str = include_str!("../assets/inspector.html");
 const CERT_INDEX: &str = include_str!("../assets/install-certificate.html");
 
+include!(concat!(env!("OUT_DIR"), "/dashboard_assets.rs"));
+
 type Request = hyper::Request<Incoming>;
 type Response = hyper::Response<BoxBody<Bytes, anyhow::Error>>;
 type TrafficDoneSender = mpsc::UnboundedSender<(usize, u64)>;
@@ -69,6 +71,7 @@ pub struct ServerBuilder {
     title_filters: Vec<TitleFilter>,
     mime_filters: Vec<String>,
     web: bool,
+    dashboard_dir: Option<PathBuf>,
     print_mode: PrintMode,
     commerce: Option<Arc<crate::commerce::Commerce>>,
 }
@@ -82,8 +85,14 @@ impl ServerBuilder {
             title_filters: vec![],
             mime_filters: vec![],
             web: false,
+            dashboard_dir: None,
             print_mode: PrintMode::Markdown,
         }
+    }
+
+    pub fn dashboard_dir(mut self, dashboard_dir: Option<PathBuf>) -> Self {
+        self.dashboard_dir = dashboard_dir;
+        self
     }
 
     pub fn reverse_proxy_url(mut self, reverse_proxy_url: Option<String>) -> Self {
@@ -145,6 +154,7 @@ impl ServerBuilder {
             title_filters: self.title_filters,
             mime_filters: self.mime_filters,
             web: self.web,
+            dashboard_dir: self.dashboard_dir,
             state,
             temp_dir,
         })
@@ -164,6 +174,7 @@ pub struct Server {
     title_filters: Vec<TitleFilter>,
     mime_filters: Vec<String>,
     web: bool,
+    dashboard_dir: Option<PathBuf>,
     state: Arc<State>,
     temp_dir: PathBuf,
 }
@@ -347,6 +358,10 @@ impl Server {
             return Ok(res);
         } else if let Some(path) = path.strip_prefix(WEB_PREFIX) {
             let mut res = Response::default();
+            if !path.is_empty() && !path.starts_with('/') {
+                *res.status_mut() = StatusCode::NOT_FOUND;
+                return Ok(res);
+            }
             if !self.web {
                 *res.status_mut() = StatusCode::BAD_REQUEST;
                 set_res_body(
@@ -355,35 +370,46 @@ impl Server {
                 );
                 return Ok(res);
             }
-            if method != Method::GET {
+            if method != Method::GET && method != Method::HEAD {
                 *res.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
                 return Ok(res);
             }
+            let is_head = method == Method::HEAD;
             set_cors_header(&mut res);
-            let ret = if path.is_empty() || path == "/" {
-                self.handle_web_index(&mut res).await
-            } else if path == "/inspector" || path == "/inspector/" {
-                set_res_body(&mut res, INSPECTOR_INDEX);
-                res.headers_mut().insert(
-                    CONTENT_TYPE,
-                    HeaderValue::from_static("text/html; charset=UTF-8"),
-                );
-                Ok(())
-            } else if path == "/subscribe/traffics" {
+            let ret = if path == "/subscribe/traffics" {
+                if is_head {
+                    *res.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+                    return Ok(res);
+                }
                 self.handle_subscribe_traffics(&mut res).await
             } else if let Some(id) = path.strip_prefix("/subscribe/websocket/") {
+                if is_head {
+                    *res.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+                    return Ok(res);
+                }
                 self.handle_subscribe_websocket(&mut res, id).await
             } else if path == "/traffics" {
+                if is_head {
+                    *res.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+                    return Ok(res);
+                }
                 let query = req.uri().query().unwrap_or_default();
                 self.handle_list_traffics(&mut res, query).await
             } else if let Some(id) = path.strip_prefix("/traffic/") {
+                if is_head {
+                    *res.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+                    return Ok(res);
+                }
                 let query = req.uri().query().unwrap_or_default();
                 self.handle_get_traffic(&mut res, id, query).await
-            } else if let Some(path) = path.strip_prefix("/certificate/") {
-                self.handle_cert_index(&mut res, path).await
+            } else if let Some(cert_path) = path.strip_prefix("/certificate/") {
+                if is_head {
+                    *res.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
+                    return Ok(res);
+                }
+                self.handle_cert_index(&mut res, cert_path).await
             } else {
-                *res.status_mut() = StatusCode::NOT_FOUND;
-                return Ok(res);
+                self.handle_dashboard_route(&mut res, path, is_head).await
             };
             if let Err(err) = ret {
                 *res.status_mut() = StatusCode::INTERNAL_SERVER_ERROR;
@@ -500,15 +526,95 @@ impl Server {
         Ok(())
     }
 
-    async fn handle_web_index(&self, res: &mut Response) -> Result<()> {
-        set_res_body(res, WEB_INDEX);
-        res.headers_mut().insert(
-            CONTENT_TYPE,
-            HeaderValue::from_static("text/html; charset=UTF-8"),
-        );
-        res.headers_mut()
-            .insert(CACHE_CONTROL, HeaderValue::from_static("no-cache"));
-        Ok(())
+    async fn handle_web_index(&self, res: &mut Response, is_head: bool) -> Result<()> {
+        write_asset_response(
+            res,
+            Bytes::from_static(WEB_INDEX.as_bytes()),
+            "text/html; charset=UTF-8",
+            false,
+            is_head,
+        )
+    }
+
+    async fn handle_dashboard_route(
+        &self,
+        res: &mut Response,
+        path: &str,
+        is_head: bool,
+    ) -> Result<()> {
+        let active_dir = self.dashboard_dir.clone().or_else(|| {
+            std::env::var_os("OUTRIDER_DASHBOARD_DIR")
+                .filter(|v| !v.is_empty())
+                .map(PathBuf::from)
+        });
+        if let Some(dir) = active_dir {
+            if let Some(decoded) = percent_decode_path(path)
+                && !has_path_traversal(&decoded)
+            {
+                for cand in dashboard_candidates(&decoded) {
+                    if let Some((bytes, mime)) = read_dir_asset(&dir, &cand).await {
+                        return write_asset_response(
+                            res,
+                            Bytes::from(bytes),
+                            mime,
+                            cand.starts_with("/_next/static/"),
+                            is_head,
+                        );
+                    }
+                }
+            }
+            *res.status_mut() = StatusCode::NOT_FOUND;
+            for fallback in ["/404.html", "/404/index.html"] {
+                if let Some((bytes, mime)) = read_dir_asset(&dir, fallback).await {
+                    return write_asset_response(res, Bytes::from(bytes), mime, false, is_head);
+                }
+            }
+            return Ok(());
+        }
+        if !DASHBOARD_ASSETS.is_empty() {
+            if let Some(decoded) = percent_decode_path(path)
+                && !has_path_traversal(&decoded)
+            {
+                for cand in dashboard_candidates(&decoded) {
+                    if let Some((mime, bytes)) = lookup_compiled_asset(&cand) {
+                        return write_asset_response(
+                            res,
+                            Bytes::from_static(bytes),
+                            mime,
+                            cand.starts_with("/_next/static/"),
+                            is_head,
+                        );
+                    }
+                }
+            }
+            *res.status_mut() = StatusCode::NOT_FOUND;
+            for fallback in ["/404.html", "/404/index.html"] {
+                if let Some((mime, bytes)) = lookup_compiled_asset(fallback) {
+                    return write_asset_response(
+                        res,
+                        Bytes::from_static(bytes),
+                        mime,
+                        false,
+                        is_head,
+                    );
+                }
+            }
+            return Ok(());
+        }
+        if path.is_empty() || path == "/" {
+            self.handle_web_index(res, is_head).await
+        } else if path == "/inspector" || path == "/inspector/" {
+            write_asset_response(
+                res,
+                Bytes::from_static(INSPECTOR_INDEX.as_bytes()),
+                "text/html; charset=UTF-8",
+                false,
+                is_head,
+            )
+        } else {
+            *res.status_mut() = StatusCode::NOT_FOUND;
+            Ok(())
+        }
     }
 
     async fn handle_subscribe_traffics(&self, res: &mut Response) -> Result<()> {
@@ -1162,10 +1268,152 @@ where
 
 fn set_res_body<T: std::fmt::Display>(res: &mut Response, body: T) {
     let body = Bytes::from(body.to_string());
+    set_res_bytes(res, body, false);
+}
+
+fn set_res_bytes(res: &mut Response, body: Bytes, is_head: bool) {
     if let Ok(header_value) = HeaderValue::from_str(&body.len().to_string()) {
         res.headers_mut().insert(CONTENT_LENGTH, header_value);
     }
-    *res.body_mut() = Full::new(body).map_err(|err| anyhow!("{err}")).boxed();
+    let payload = if is_head { Bytes::new() } else { body };
+    *res.body_mut() = Full::new(payload).map_err(|err| anyhow!("{err}")).boxed();
+}
+
+fn write_asset_response(
+    res: &mut Response,
+    bytes: Bytes,
+    mime: &str,
+    cache_immutable: bool,
+    is_head: bool,
+) -> Result<()> {
+    res.headers_mut()
+        .insert(CONTENT_TYPE, HeaderValue::from_str(mime)?);
+    res.headers_mut().insert(
+        CACHE_CONTROL,
+        HeaderValue::from_static(if cache_immutable {
+            "public, max-age=31536000, immutable"
+        } else {
+            "no-cache"
+        }),
+    );
+    set_res_bytes(res, bytes, is_head);
+    Ok(())
+}
+
+fn percent_decode_path(path: &str) -> Option<String> {
+    let bytes = path.as_bytes();
+    let mut out = Vec::with_capacity(bytes.len());
+    let mut i = 0;
+    while i < bytes.len() {
+        if bytes[i] == b'%' {
+            if i + 2 >= bytes.len() {
+                return None;
+            }
+            let hi = (bytes[i + 1] as char).to_digit(16)?;
+            let lo = (bytes[i + 2] as char).to_digit(16)?;
+            out.push(((hi << 4) | lo) as u8);
+            i += 3;
+        } else {
+            out.push(bytes[i]);
+            i += 1;
+        }
+    }
+    let decoded = String::from_utf8(out).ok()?;
+    if decoded.contains('\0') || decoded.contains('\\') {
+        return None;
+    }
+    Some(decoded)
+}
+
+fn has_path_traversal(decoded: &str) -> bool {
+    decoded.contains('\\') || decoded.contains('\0') || decoded.split('/').any(|seg| seg == "..")
+}
+
+fn dashboard_candidates(decoded: &str) -> Vec<String> {
+    let trimmed = decoded.trim_end_matches('/');
+    if trimmed.is_empty() {
+        vec!["/index.html".to_string()]
+    } else {
+        vec![
+            decoded.to_string(),
+            format!("{trimmed}/index.html"),
+            format!("{trimmed}.html"),
+        ]
+    }
+}
+
+fn dashboard_mime_for_path(path: &std::path::Path) -> &'static str {
+    match path
+        .extension()
+        .and_then(|e| e.to_str())
+        .map(|e| e.to_ascii_lowercase())
+        .as_deref()
+    {
+        Some("html") => "text/html; charset=UTF-8",
+        Some("css") => "text/css; charset=UTF-8",
+        Some("js" | "mjs") => "application/javascript; charset=UTF-8",
+        Some("json" | "map") => "application/json; charset=UTF-8",
+        Some("txt") => "text/plain; charset=UTF-8",
+        Some("svg") => "image/svg+xml",
+        Some("png") => "image/png",
+        Some("jpg" | "jpeg") => "image/jpeg",
+        Some("webp") => "image/webp",
+        Some("ico") => "image/x-icon",
+        Some("woff2") => "font/woff2",
+        Some("woff") => "font/woff",
+        Some("ttf") => "font/ttf",
+        _ => "application/octet-stream",
+    }
+}
+
+async fn read_dir_asset(
+    base_dir: &std::path::Path,
+    rel_path: &str,
+) -> Option<(Vec<u8>, &'static str)> {
+    let rel = rel_path.strip_prefix('/')?;
+    if rel.is_empty() || rel.ends_with('/') || rel.contains('\\') || rel.contains('\0') {
+        return None;
+    }
+    let mut candidate = base_dir.to_path_buf();
+    let mut has_segment = false;
+    for comp in std::path::Path::new(rel).components() {
+        match comp {
+            std::path::Component::Normal(seg) => {
+                if seg == ".." || seg == "." {
+                    return None;
+                }
+                candidate.push(seg);
+                has_segment = true;
+            }
+            _ => return None,
+        }
+    }
+    if !has_segment {
+        return None;
+    }
+    let canon_base = tokio::fs::canonicalize(base_dir).await.ok()?;
+    let canon_file = tokio::fs::canonicalize(&candidate).await.ok()?;
+    if !canon_file.starts_with(&canon_base) {
+        return None;
+    }
+    let meta = tokio::fs::metadata(&canon_file).await.ok()?;
+    if !meta.is_file() {
+        return None;
+    }
+    let bytes = tokio::fs::read(&canon_file).await.ok()?;
+    Some((bytes, dashboard_mime_for_path(&canon_file)))
+}
+
+fn lookup_compiled_asset(rel_path: &str) -> Option<(&'static str, &'static [u8])> {
+    if let Ok(idx) = DASHBOARD_ASSETS.binary_search_by_key(&rel_path, |(k, _, _)| *k) {
+        let (_, mime, bytes) = DASHBOARD_ASSETS[idx];
+        Some((mime, bytes))
+    } else {
+        DASHBOARD_ASSETS
+            .iter()
+            .find(|(k, _, _)| *k == rel_path)
+            .map(|(_, mime, bytes)| (*mime, *bytes))
+    }
 }
 
 fn set_cors_header(res: &mut Response) {

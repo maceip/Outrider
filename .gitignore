@@ -10,3 +10,10 @@
 node_modules/
 test-results/
 playwright-report/
+dashboard/node_modules/
+dashboard/.next/
+dashboard/out/
+dashboard/.turbo/
+www/node_modules/
+www/dist/
+www/test-results/

@@ -183,6 +183,21 @@ pub async fn mutate(
             commerce.load_skills(std::path::Path::new(string("path")?), actor)?;
             Ok(json!({"loaded":true}))
         }
+        "/probe-policy" => {
+            let policy: crate::fingerprint::active::ProbePolicy =
+                serde_json::from_value(body["probe_policy"].clone())?;
+            *commerce
+                .probe_policy
+                .write()
+                .map_err(|_| anyhow::anyhow!("probe_policy lock poisoned"))? = policy;
+            commerce.db.admin_audit(
+                actor,
+                "probe_policy.set",
+                "gateway",
+                &json!({"probe_policy": policy}),
+            )?;
+            Ok(json!({"probe_policy": policy}))
+        }
         "/probe" => {
             let session = string("session_id")?;
             let peer = commerce
