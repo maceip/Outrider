@@ -50,7 +50,17 @@ export function SiteFrame({ children }: { children: ReactNode }) {
       </a>
       <header className="border-b">
         <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
-          <a className="font-heading text-sm font-medium" href="https://www.silvector.com/">
+          <a
+            className="inline-flex items-center gap-2 font-heading text-sm font-medium"
+            href="https://www.silvector.com/"
+          >
+            <img
+              src="/mark/mark-white.png"
+              alt=""
+              width={1024}
+              height={1024}
+              className="size-7"
+            />
             Silvector
           </a>
           <nav aria-label="Page" className="flex flex-wrap gap-1">

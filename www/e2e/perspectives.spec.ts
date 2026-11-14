@@ -5,6 +5,11 @@ test("home visit, day strip, door, and a film route", async ({ page }) => {
   page.on("pageerror", (error) => errors.push(String(error)));
 
   await page.goto("/");
+  const mark = page.locator("header img");
+  await expect(mark).toBeVisible();
+  await expect(mark).toHaveAttribute("src", "/mark/mark-white.png");
+  const markResponse = await page.request.get("/mark/mark-white.png");
+  expect(markResponse.status()).toBe(200);
   await expect(page.getByRole("heading", { level: 1, name: "One visit. Four sides." })).toBeVisible();
   await expect(page.locator("video")).not.toHaveAttribute("autoplay", "");
 
