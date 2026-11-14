@@ -1,0 +1,104 @@
+{
+  "model": "/Users/mac/.avery/redteam-models/gemma-4-e2b-it.litertlm",
+  "backend": "Cpu",
+  "crate_version": "0.2.4",
+  "record": {
+    "method": "initialize",
+    "params": {
+      "protocolVersion": "2026-07-28",
+      "clientInfo": {
+        "name": "Outrider feasibility client",
+        "version": "1"
+      },
+      "capabilities": {}
+    },
+    "transport": "http"
+  },
+  "constrained_questions": [
+    {
+      "question_type": "noul",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "pick": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "pick"
+        ],
+        "additionalProperties": false
+      },
+      "prompt": "Evaluate this recorded MCP session. Is the recorded client initialized? Return only JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"boolean\"}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session: {\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider feasibility client\",\"version\":\"1\"},\"capabilities\":{}},\"transport\":\"http\"}",
+      "output": {
+        "pick": false
+      },
+      "raw_text": "{\"pick\":false}",
+      "input_tokens": 87,
+      "output_tokens": 5,
+      "latency_ms": 366
+    },
+    {
+      "question_type": "choice",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "pick": {
+            "type": "string",
+            "enum": [
+              "http",
+              "stdio"
+            ]
+          }
+        },
+        "required": [
+          "pick"
+        ],
+        "additionalProperties": false
+      },
+      "prompt": "Evaluate this recorded MCP session. Choose the observed transport. Return only JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session: {\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider feasibility client\",\"version\":\"1\"},\"capabilities\":{}},\"transport\":\"http\"}",
+      "output": {
+        "pick": "http"
+      },
+      "raw_text": "{\"pick\":\"http\"}",
+      "input_tokens": 92,
+      "output_tokens": 5,
+      "latency_ms": 297
+    },
+    {
+      "question_type": "score",
+      "schema": {
+        "type": "object",
+        "properties": {
+          "pick": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 5
+          }
+        },
+        "required": [
+          "pick"
+        ],
+        "additionalProperties": false
+      },
+      "prompt": "Evaluate this recorded MCP session. Score the completeness of the initialize record from 0 to 5. Return only JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"integer\",\"minimum\":0,\"maximum\":5}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session: {\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider feasibility client\",\"version\":\"1\"},\"capabilities\":{}},\"transport\":\"http\"}",
+      "output": {
+        "pick": 5
+      },
+      "raw_text": "{\"pick\":5}",
+      "input_tokens": 102,
+      "output_tokens": 5,
+      "latency_ms": 297
+    }
+  ],
+  "session_candidates": [
+    {
+      "text": "",
+      "score_at": 0.0,
+      "token_scores_at": null,
+      "token_length_at": null
+    }
+  ],
+  "option_scores_supported": false,
+  "option_scores_reason": "Generated-candidate scores are not per-option scores; no measured option-distribution source is exposed by this crate's generation API."
+}
