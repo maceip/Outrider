@@ -27,6 +27,7 @@ impl Database {
               option_scores TEXT DEFAULT NULL CHECK(option_scores IS NULL),
               error TEXT, created_at INTEGER NOT NULL
             );")?;
+        connection.execute_batch(include_str!("schema.sql"))?;
         Ok(Self(Arc::new(Mutex::new(connection))))
     }
     pub fn record_session(&self, session_id: &str, subject: &str, client: &Value, transport: &str) -> Result<()> {

@@ -12,6 +12,11 @@ categories = ["command-line-utilities"]
 keywords = ["proxy", "cli", "http", "websocket", "tui"]
 
 [dependencies]
+ed25519-dalek = { version = "2.2", features = ["rand_core", "pkcs8", "pem"] }
+sha2 = "0.10"
+subtle = "2.6"
+serde_jcs = "0.1"
+
 rusqlite = { version = "0.38", features = ["bundled"] }
 uuid = { version = "1", features = ["v4"] }
 rmcp = { path = "../rust-sdk-main/crates/rmcp", default-features = false, features = ["server", "client", "macros", "elicitation", "request-state", "skills-fs", "transport-io", "transport-child-process", "transport-streamable-http-client-reqwest", "reqwest-tls-no-provider", "transport-streamable-http-server"] }
