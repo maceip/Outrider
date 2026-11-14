@@ -12,6 +12,7 @@ categories = ["command-line-utilities"]
 keywords = ["proxy", "cli", "http", "websocket", "tui"]
 
 [dependencies]
+reqwest = { version = "0.12.2", features = ["rustls-tls-webpki-roots-no-provider", "stream", "json"], default-features = false }
 ed25519-dalek = { version = "2.2", features = ["rand_core", "pkcs8", "pem"] }
 sha2 = "0.10"
 subtle = "2.6"

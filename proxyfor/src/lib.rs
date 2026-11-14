@@ -5,6 +5,7 @@ pub mod cert;
 pub mod clef;
 pub mod commerce;
 pub mod filter;
+pub mod fingerprint;
 pub mod server;
 pub mod state;
 pub mod traffic;
