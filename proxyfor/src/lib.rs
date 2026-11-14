@@ -2,6 +2,8 @@
 extern crate log;
 
 pub mod cert;
+pub mod clef;
+pub mod commerce;
 pub mod filter;
 pub mod server;
 pub mod state;

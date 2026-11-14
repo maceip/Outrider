@@ -1,35 +1,35 @@
 use crate::{
     cert::CertificateAuthority,
-    filter::{is_match_title, is_match_type, TitleFilter},
+    filter::{TitleFilter, is_match_title, is_match_type},
     rewind::Rewind,
     state::State,
-    traffic::{extract_mime, Traffic},
+    traffic::{Traffic, extract_mime},
     utils::*,
 };
 
-use anyhow::{anyhow, Context as _, Result};
+use anyhow::{Context as _, Result, anyhow};
 use bytes::Bytes;
-use futures_util::{stream, Sink, SinkExt, Stream, StreamExt, TryStreamExt};
+use futures_util::{Sink, SinkExt, Stream, StreamExt, TryStreamExt, stream};
 use http::{
+    HeaderValue,
     header::{
         CACHE_CONTROL, CONNECTION, CONTENT_DISPOSITION, CONTENT_ENCODING, CONTENT_LENGTH,
         CONTENT_TYPE, PROXY_AUTHORIZATION,
     },
     uri::{Authority, Scheme},
-    HeaderValue,
 };
-use http_body_util::{combinators::BoxBody, BodyExt, Full, StreamBody};
+use http_body_util::{BodyExt, Full, StreamBody, combinators::BoxBody};
 use hyper::{
+    Method, StatusCode, Uri,
     body::{Body, Frame, Incoming},
     header::HOST,
     service::service_fn,
     upgrade::Upgraded,
-    Method, StatusCode, Uri,
 };
 use hyper_rustls::HttpsConnectorBuilder;
 use hyper_tungstenite::WebSocketStream;
 use hyper_util::{
-    client::legacy::{connect::HttpConnector, Client},
+    client::legacy::{Client, connect::HttpConnector},
     rt::{TokioExecutor, TokioIo},
 };
 use pin_project_lite::pin_project;
@@ -594,9 +594,9 @@ impl Server {
     async fn handle_websocket_message(
         &self,
         mut stream: impl Stream<Item = Result<tungstenite::Message, tungstenite::Error>>
-            + Unpin
-            + Send
-            + 'static,
+        + Unpin
+        + Send
+        + 'static,
         mut sink: impl Sink<tungstenite::Message, Error = tungstenite::Error> + Unpin + Send + 'static,
         id: usize,
         server_to_client: bool,

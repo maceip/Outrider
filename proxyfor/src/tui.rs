@@ -1,6 +1,6 @@
 use crate::{
     state::{State, SubscribedWebSocket, WebsocketMessage},
-    traffic::{get_header_value, Body, Headers, Traffic, TrafficHead},
+    traffic::{Body, Headers, Traffic, TrafficHead, get_header_value},
     utils::*,
 };
 
@@ -8,7 +8,7 @@ use anyhow::Result;
 use crossterm::{
     event::{self, KeyCode, KeyModifiers},
     execute,
-    terminal::{disable_raw_mode, enable_raw_mode, EnterAlternateScreen, LeaveAlternateScreen},
+    terminal::{EnterAlternateScreen, LeaveAlternateScreen, disable_raw_mode, enable_raw_mode},
 };
 use http::StatusCode;
 use ratatui::{
@@ -27,7 +27,7 @@ use std::{
     time::{Duration, Instant},
 };
 use tokio::sync::mpsc;
-use tui_input::{backend::crossterm::EventHandler, Input};
+use tui_input::{Input, backend::crossterm::EventHandler};
 use unicode_width::UnicodeWidthStr;
 
 const TICK_INTERVAL: u64 = 250;

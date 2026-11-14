@@ -11,8 +11,9 @@ setting `enable_constrained_decoding` produced Markdown-wrapped text and failed
 strict parsing. Outrider must fail rather than repair such output.
 
 **Decision: pick only.** `Session::generate_content_responses` exposes scores for
-generated candidates, not scores for each offered option. For this run both
-`score_at(0)` and `token_scores_at(0)` returned `None`. No option distribution is
+generated candidates, not scores for each offered option. For this run
+`score_at(0)` returned `Some(0.0)` for an empty generated candidate and
+`token_scores_at(0)` returned `None`. The scalar is not an option score. No option distribution is
 available. All evaluation option_scores remain SQL NULL; no probability bars
 or estimated option likelihoods are permitted. A Score question's integer pick
 is a model answer, not a token likelihood or distribution.

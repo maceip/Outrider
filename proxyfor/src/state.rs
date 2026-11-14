@@ -1,14 +1,14 @@
 use crate::{
     server::PrintMode,
-    traffic::{wrap_entries, Body, Traffic, TrafficHead},
+    traffic::{Body, Traffic, TrafficHead, wrap_entries},
 };
 
-use anyhow::{anyhow, bail, Result};
+use anyhow::{Result, anyhow, bail};
 use indexmap::IndexMap;
 use serde::Serialize;
 use serde_json::Value;
 use time::OffsetDateTime;
-use tokio::{sync::broadcast, sync::Mutex};
+use tokio::{sync::Mutex, sync::broadcast};
 use tokio_tungstenite::tungstenite;
 
 #[derive(Debug)]

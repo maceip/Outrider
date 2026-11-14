@@ -2,15 +2,15 @@
 extern crate log;
 
 use proxyfor::{
-    cert::{init_ca, CertificateAuthority},
+    cert::{CertificateAuthority, init_ca},
     filter::parse_title_filters,
     server::{PrintMode, ServerBuilder, WEB_PREFIX},
     tui,
 };
 
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use clap::Parser;
-use simplelog::{format_description, ConfigBuilder, LevelFilter, WriteLogger};
+use simplelog::{ConfigBuilder, LevelFilter, WriteLogger, format_description};
 use std::{
     fs,
     io::{self, IsTerminal},

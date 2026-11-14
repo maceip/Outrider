@@ -1,17 +1,17 @@
-use anyhow::{anyhow, Context, Result};
+use anyhow::{Context, Result, anyhow};
 use http::uri::Authority;
 use moka::future::Cache;
-use rand::{rngs::OsRng, thread_rng, Rng};
+use rand::{Rng, rngs::OsRng, thread_rng};
 use rcgen::{
     BasicConstraints, Certificate, CertificateParams, DnType, ExtendedKeyUsagePurpose, Ia5String,
     IsCa, KeyPair, KeyUsagePurpose, SanType,
 };
-use rsa::{pkcs8::EncodePrivateKey, RsaPrivateKey};
+use rsa::{RsaPrivateKey, pkcs8::EncodePrivateKey};
 use std::{fs, io::Cursor, path::Path, sync::Arc};
 use time::{Duration, OffsetDateTime};
 use tokio_rustls::rustls::{
-    pki_types::{CertificateDer, PrivateKeyDer},
     ServerConfig,
+    pki_types::{CertificateDer, PrivateKeyDer},
 };
 
 const TTL_SECS: i64 = 365 * 24 * 60 * 60;

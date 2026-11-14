@@ -1,8 +1,8 @@
 mod common;
 
 use crate::common::{
-    build_ca, build_client, build_proxy_client, mask_text, run_proxy_server, start_http_server,
-    HELLO_WORLD,
+    HELLO_WORLD, build_ca, build_client, build_proxy_client, mask_text, run_proxy_server,
+    start_http_server,
 };
 
 use anyhow::Result;

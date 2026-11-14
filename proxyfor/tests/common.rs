@@ -1,18 +1,18 @@
 #![allow(unused)]
 
-use anyhow::{anyhow, Result};
+use anyhow::{Result, anyhow};
 use async_compression::tokio::bufread::GzipEncoder;
 use bytes::{Bytes, BytesMut};
 use futures_util::{SinkExt, StreamExt, TryStreamExt};
 use http::{
-    header::{CONTENT_ENCODING, CONTENT_TYPE},
     Method, StatusCode,
+    header::{CONTENT_ENCODING, CONTENT_TYPE},
 };
-use http_body_util::{combinators::BoxBody, BodyExt, Full, StreamBody};
+use http_body_util::{BodyExt, Full, StreamBody, combinators::BoxBody};
 use hyper::{
+    Request, Response,
     body::{Frame, Incoming},
     service::service_fn,
-    Request, Response,
 };
 use hyper_util::{
     rt::{TokioExecutor, TokioIo},

@@ -1,14 +1,14 @@
 use crate::utils::*;
 
-use anyhow::{bail, Result};
+use anyhow::{Result, bail};
 use http::{HeaderMap, StatusCode, Version};
 use serde::{Deserialize, Serialize};
-use serde_json::{json, Value};
+use serde_json::{Value, json};
 use std::{
     path::Path,
     sync::atomic::{self, AtomicUsize},
 };
-use time::{format_description::well_known::Rfc3339, OffsetDateTime};
+use time::{OffsetDateTime, format_description::well_known::Rfc3339};
 
 static GLOBAL_ID: AtomicUsize = AtomicUsize::new(1);
 
