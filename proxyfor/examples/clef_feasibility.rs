@@ -29,6 +29,7 @@ fn main() -> Result<()> {
         let mut conversation = engine.create_conversation(ConversationConfig {
             session: SessionConfig { max_output_tokens: Some(128), ..Default::default() },
             enable_constrained_decoding: Some(true),
+            use_ll_guidance: Some(true),
             extra_context: Some(json!({"enable_thinking":false})),
             thinking: Some(ThinkingConfig { enable_thinking:Some(false), thinking_token_budget:Some(0) }),
             ..Default::default()
