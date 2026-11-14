@@ -1,0 +1,53 @@
+{
+  "validation": "Separate non-test live binary and real model-backed MCP client launch",
+  "git_commit": "8c3a61ba8127a8938107674334712321a3218c01",
+  "endpoint": "http://127.0.0.1:18786/mcp",
+  "model": "/Users/mac/.avery/redteam-models/gemma-4-e2b-it.litertlm",
+  "backend": "cpu",
+  "sessions": [
+    {
+      "session_id": "c25bf941-bafb-4192-90c0-c1ba7add08ab",
+      "subject": "c25bf941-bafb-4192-90c0-c1ba7add08ab",
+      "client_config": {
+        "protocolVersion": "2026-07-28",
+        "clientInfo": {
+          "name": "Outrider live validation client",
+          "version": "1"
+        },
+        "capabilities": {
+          "sampling": {}
+        }
+      },
+      "transport": "http",
+      "state": "CLEF Verified",
+      "created_at": 1794641575
+    }
+  ],
+  "probe_runs": [
+    {
+      "probe_id": "38e28bad-6415-4a85-80f6-a75f32d5c695",
+      "status": "Completed",
+      "latency_ms": 2069,
+      "input_tokens": 37,
+      "output_tokens": 6,
+      "structural_compliance": 1,
+      "error": null
+    }
+  ],
+  "clef_evaluations": [
+    {
+      "status": "Verified",
+      "model_path": "/Users/mac/.avery/redteam-models/gemma-4-e2b-it.litertlm",
+      "backend": "cpu",
+      "pick": "true",
+      "input_tokens": 1178,
+      "output_tokens": 5,
+      "latency_ms": 3537,
+      "option_scores": null,
+      "error": null
+    }
+  ],
+  "persisted_mcp_frames": 3,
+  "active_client_connections": 1,
+  "errors": []
+}
