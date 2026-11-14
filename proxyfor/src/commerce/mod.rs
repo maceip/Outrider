@@ -38,6 +38,7 @@ impl Commerce {
     }
     pub fn changed(&self,kind:&str,session:Option<&str>) {let _=self.events.send(serde_json::json!({"kind":kind,"session_id":session}));}
     pub fn snapshot(&self)->Result<serde_json::Value> {
+        self.refresh_session_states()?;
         let mut result=serde_json::Map::new();
         result.insert("errors".into(),self.errors.lock().unwrap().clone().into());
         result.insert("run_id".into(),self.run_id.clone().into());
@@ -74,3 +75,21 @@ impl Commerce {
     }
 }
 pub mod tui;
+
+impl Commerce {
+    fn refresh_session_states(&self)->Result<()> {
+        use serde_json::Value;
+        let sessions=self.db.rows("agent_sessions")?;
+        let evaluations=self.db.rows("clef_evaluations")?;
+        let probes=self.db.rows("probe_runs")?;
+        for session in sessions.as_array().unwrap() {
+            let id=session["session_id"].as_str().unwrap();let subject=session["subject"].as_str().unwrap();
+            let receipts={let conn=self.db.0.lock().map_err(|_|anyhow::anyhow!("database lock poisoned"))?;let mut stmt=conn.prepare("SELECT r.payload,r.signature FROM capability_receipts r JOIN presented_receipts p ON p.receipt_id=r.receipt_id WHERE p.session_id=?1")?;stmt.query_map([id],|r|Ok((r.get::<_,String>(0)?,r.get::<_,String>(1)?)))?.collect::<rusqlite::Result<Vec<_>>>()?};
+            let entitled=receipts.into_iter().any(|(payload,signature)|serde_json::from_str::<receipt::CapabilityReceipt>(&payload).ok().is_some_and(|receipt|{let bundle=receipt.bundle_id.clone();self.receipts.verify(&receipt::SignedReceipt{receipt,signature},subject,&bundle).is_ok()}));
+            let latest=evaluations.as_array().unwrap().iter().find(|e|e["session_id"]==id);
+            let state=if entitled {"Entitled"}else if let Some(e)=latest.filter(|e|e["status"]=="Verified") {if e["pick"]==Value::Bool(false){"CLEF Restricted"}else{"CLEF Verified"}}else if probes.as_array().unwrap().iter().any(|p|p["session_id"]==id&&p["status"]=="Completed"){"Probed"}else{"Unprobed"};
+            if session["state"]!=state {self.db.0.lock().map_err(|_|anyhow::anyhow!("database lock poisoned"))?.execute("UPDATE agent_sessions SET state=?2 WHERE session_id=?1",rusqlite::params![id,state])?;}
+        }
+        Ok(())
+    }
+}
