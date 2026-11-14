@@ -39,7 +39,7 @@ pub async fn run(commerce:&Arc<Commerce>,session:&str,peer:Peer<RoleServer>,auto
  commerce.changed("probe.finished",Some(session));
  if capabilities.is_some_and(|c|c.elicitation.is_some()) {
   let started=Instant::now();
-  let preferences=tokio::time::timeout(std::time::Duration::from_secs(30),peer.elicit::<Preferences>("This is an Outrider capability probe to record your SLA tier and bundle preference. No payment information is requested.".into())).await;
+  let preferences=tokio::time::timeout(std::time::Duration::from_secs(30),peer.elicit::<Preferences>("This is an Outrider capability probe to record your SLA tier and bundle preference. No payment information is requested.")).await;
   let (status,response,error)=match preferences {Ok(Ok(Some(v)))=>("Completed",Some(serde_json::to_value(v)?),None),Ok(Ok(None))=>("Declined",None,None),Ok(Err(e))=>("Failed",None,Some(e.to_string())),Err(_)=>("Failed",None,Some("Preference elicitation timed out".into()))};
   commerce.db.0.lock().map_err(|_|anyhow!("database lock poisoned"))?.execute("INSERT INTO probe_runs(probe_id,session_id,purpose,status,latency_ms,response,error,created_at) VALUES (?1,?2,'Outrider typed SLA and bundle preference probe',?3,?4,?5,?6,?7)",params![id(),session,status,started.elapsed().as_millis() as i64,response.map(|v|v.to_string()),error,now()])?;
  }

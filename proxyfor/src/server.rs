@@ -164,17 +164,10 @@ impl Server {
                             continue;
                         };
 
-                        let stream = TokioIo::new(cnx);
                         let traffic_done_tx = traffic_done_tx.clone();
                         let server_cloned = server_cloned.clone();
                         shutdown.spawn_task(async move {
-                            let hyper_service = service_fn(move |mut request: hyper::Request<Incoming>| {
-                                request.extensions_mut().insert(crate::commerce::http::PeerAddress(peer));
-                                server_cloned.clone().handle(request, traffic_done_tx.clone())
-                            });
-                            let _ = hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
-                                .serve_connection_with_upgrades(stream, hyper_service)
-                                .await;
+                            if let Err(error)=server_cloned.serve_socket(cnx,peer,traffic_done_tx).await {warn!("Connection failed: {error:#}");}
                         });
                     }
                     _ = guard.cancelled() => {
@@ -192,6 +185,35 @@ impl Server {
             }
         });
         Ok(stop_tx)
+    }
+
+    async fn serve_socket(self: Arc<Self>, mut socket:TcpStream, peer:std::net::SocketAddr, tx:TrafficDoneSender)->Result<()> {
+        let connection=crate::fingerprint::passive::ConnectionEvidence {connection_id:crate::commerce::db::id()};
+        let mut first=[0u8;1];
+        let count=tokio::time::timeout(std::time::Duration::from_secs(5),socket.peek(&mut first)).await??;
+        if count==0 {return Ok(())}
+        if first[0]==22 {
+            let raw=crate::fingerprint::client_hello::capture(&mut socket).await;
+            if let Some(c)=&self.commerce {crate::fingerprint::passive::record_hello(&c.db,&connection.connection_id,&raw)?;}
+            let host=crate::fingerprint::client_hello::parse(&raw).ok().and_then(|h|h.sni).unwrap_or_else(||"localhost".into());
+            let authority:Authority=host.parse()?;
+            let config=self.ca.gen_server_config(&authority).await?;
+            let stream=TlsAcceptor::from(config).accept(Rewind::new_buffered(socket,Bytes::from(raw))).await?;
+            if let Some(c)=&self.commerce {crate::fingerprint::passive::record_tls(&c.db,&connection.connection_id,&stream)?;}
+            self.serve_observed(stream,peer,connection,tx).await
+        } else {self.serve_observed(socket,peer,connection,tx).await}
+    }
+    async fn serve_observed<I>(self:Arc<Self>,mut stream:I,peer:std::net::SocketAddr,connection:crate::fingerprint::passive::ConnectionEvidence,tx:TrafficDoneSender)->Result<()>
+    where I:AsyncRead+AsyncWrite+Unpin+Send+'static {
+        let prefix=crate::fingerprint::passive::http_prefix(&mut stream).await;
+        if let Some(c)=&self.commerce {crate::fingerprint::passive::record_header_order(&c.db,&connection.connection_id,&prefix)?;}
+        let service=service_fn(move |mut req:Request| {
+            req.extensions_mut().insert(crate::commerce::http::PeerAddress(peer));
+            req.extensions_mut().insert(connection.clone());
+            self.clone().handle(req,tx.clone())
+        });
+        hyper_util::server::conn::auto::Builder::new(TokioExecutor::new()).serve_connection_with_upgrades(TokioIo::new(Rewind::new_buffered(stream,Bytes::from(prefix))),service).await.map_err(|e|anyhow!(e))?;
+        Ok(())
     }
 
     pub fn state(&self) -> Arc<State> {
@@ -666,6 +688,8 @@ impl Server {
                 return Ok(res);
             }
         };
+        let peer=req.extensions().get::<crate::commerce::http::PeerAddress>().copied();
+        let connection=req.extensions().get::<crate::fingerprint::passive::ConnectionEvidence>().cloned().unwrap_or_else(||crate::fingerprint::passive::ConnectionEvidence{connection_id:crate::commerce::db::id()});
         let server = self.clone();
         let fut = async move {
             match hyper::upgrade::on(&mut req).await {
@@ -695,6 +719,7 @@ impl Server {
                                 Scheme::HTTP,
                                 authority,
                                 traffic_done_tx,
+                                peer,connection.clone(),
                             )
                             .await
                         {
@@ -709,6 +734,11 @@ impl Server {
                             }
                         };
 
+                        let raw=crate::fingerprint::client_hello::capture(&mut upgraded).await;
+                        if let Some(c)=&self.commerce {
+                            if let Err(e)=crate::fingerprint::passive::record_hello(&c.db,&connection.connection_id,&raw) {traffic.add_error(e.to_string());return;}
+                        }
+                        let upgraded=Rewind::new_buffered(upgraded,Bytes::from(raw));
                         let stream = match TlsAcceptor::from(server_config).accept(upgraded).await {
                             Ok(stream) => stream,
                             Err(err) => {
@@ -719,8 +749,11 @@ impl Server {
                             }
                         };
 
+                        if let Some(c)=&self.commerce {
+                            if let Err(e)=crate::fingerprint::passive::record_tls(&c.db,&connection.connection_id,&stream) {traffic.add_error(e.to_string());return;}
+                        }
                         if let Err(err) = self
-                            .serve_connect_stream(stream, Scheme::HTTPS, authority, traffic_done_tx)
+                            .serve_connect_stream(stream, Scheme::HTTPS, authority, traffic_done_tx,peer,connection)
                             .await
                         {
                             if !err
@@ -768,15 +801,22 @@ impl Server {
 
     async fn serve_connect_stream<I>(
         self: Arc<Self>,
-        stream: I,
+        mut stream: I,
         scheme: Scheme,
         authority: Authority,
         traffic_done_tx: TrafficDoneSender,
+        peer:Option<crate::commerce::http::PeerAddress>,
+        connection:crate::fingerprint::passive::ConnectionEvidence,
     ) -> Result<(), Box<dyn std::error::Error + Sync + Send>>
     where
         I: AsyncRead + AsyncWrite + Unpin + Send + 'static,
     {
-        let service = service_fn(|mut req| {
+        let prefix=crate::fingerprint::passive::http_prefix(&mut stream).await;
+        if let Some(c)=&self.commerce {crate::fingerprint::passive::record_header_order(&c.db,&connection.connection_id,&prefix)?;}
+        let stream=Rewind::new_buffered(stream,Bytes::from(prefix));
+        let service = service_fn(|mut req:Request| {
+            if let Some(peer)=peer {req.extensions_mut().insert(peer);}
+            req.extensions_mut().insert(connection.clone());
             if req.version() == hyper::Version::HTTP_10 || req.version() == hyper::Version::HTTP_11
             {
                 let (mut parts, body) = req.into_parts();

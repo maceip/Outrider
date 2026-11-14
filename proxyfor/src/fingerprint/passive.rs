@@ -38,3 +38,21 @@ pub async fn cimd(raw:&str)->Result<Value> {
  if let Some(method)=document["token_endpoint_auth_method"].as_str(){ensure!(!method.starts_with("client_secret"),"CIMD shared-secret auth is forbidden");}
  Ok(document)
 }
+pub async fn http_prefix<I:tokio::io::AsyncRead+Unpin>(stream:&mut I)->Vec<u8> {
+ use tokio::io::AsyncReadExt;
+ let mut raw=Vec::new();let mut buffer=[0u8;4096];
+ while raw.len()<65536 {
+  if raw.windows(4).any(|w|w==b"\r\n\r\n") || raw.starts_with(b"PRI * HTTP/2.0"){break}
+  match tokio::time::timeout(std::time::Duration::from_secs(5),stream.read(&mut buffer)).await {Ok(Ok(n)) if n>0=>raw.extend_from_slice(&buffer[..n]),_=>break}
+ }
+ raw
+}
+pub fn record_header_order(db:&Database,connection:&str,raw:&[u8])->Result<()> {
+ use sha2::{Sha256,Digest};
+ if raw.starts_with(b"PRI * HTTP/2.0") {return observe(db,None,Some(connection),"http_header_order",json!({"status":"Unavailable","reason":"HTTP/2 headers are compressed; no wire-order digest captured"}));}
+ let Some(end)=raw.windows(4).position(|w|w==b"\r\n\r\n") else{return Ok(())};
+ let text=std::str::from_utf8(&raw[..end])?;let mut lines=text.split("\r\n");let request_line=lines.next().unwrap_or("");
+ let names=lines.map(|s|s.split_once(':').map(|(name,_)|name.to_owned())).collect::<Option<Vec<_>>>();
+ if let Some(names)=names {let digest=format!("{:x}",Sha256::digest(names.join("\n").as_bytes()));observe(db,None,Some(connection),"http_header_order",json!({"status":"Captured","scope":"first HTTP/1 request on connection","request_line":request_line,"header_names_in_wire_order":names,"sha256":digest}))?;}
+ Ok(())
+}
