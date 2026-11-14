@@ -43,3 +43,10 @@ CREATE TABLE IF NOT EXISTS mcp_frames (
 CREATE INDEX IF NOT EXISTS observation_session ON fingerprint_observations(session_id);
 CREATE INDEX IF NOT EXISTS receipt_subject ON capability_receipts(subject);
 CREATE INDEX IF NOT EXISTS redemption_receipt ON receipt_redemptions(receipt_id);
+CREATE TABLE IF NOT EXISTS proxy_traffic (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,run_id TEXT NOT NULL,traffic_id INTEGER NOT NULL,
+ head TEXT NOT NULL CHECK(json_valid(head)),detail TEXT NOT NULL CHECK(json_valid(detail)),
+ UNIQUE(run_id,traffic_id));
+CREATE TABLE IF NOT EXISTS proxy_websocket_messages (
+ id INTEGER PRIMARY KEY AUTOINCREMENT,run_id TEXT NOT NULL,websocket_id INTEGER NOT NULL,
+ message TEXT NOT NULL CHECK(json_valid(message)),created_at INTEGER NOT NULL);

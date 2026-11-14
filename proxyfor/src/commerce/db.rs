@@ -56,7 +56,7 @@ impl Database {
 }
 impl Database {
     pub fn rows(&self,table:&str)->Result<Value> {
-        anyhow::ensure!(["agent_sessions","fingerprint_observations","probe_runs","clef_evaluations","upstream_servers","catalog_items","bundles","session_offers","mrtr_quotes","capability_receipts","receipt_redemptions","admin_audit_log","mcp_frames"].contains(&table),"Invalid table");
+        anyhow::ensure!(["agent_sessions","fingerprint_observations","probe_runs","clef_evaluations","upstream_servers","catalog_items","bundles","session_offers","mrtr_quotes","capability_receipts","receipt_redemptions","admin_audit_log","mcp_frames","proxy_traffic","proxy_websocket_messages"].contains(&table),"Invalid table");
         let conn=self.0.lock().map_err(|_|anyhow::anyhow!("database lock poisoned"))?;
         let mut stmt=conn.prepare(&format!("SELECT * FROM {table} ORDER BY rowid DESC LIMIT 1000"))?;
         let columns:Vec<String>=stmt.column_names().into_iter().map(str::to_owned).collect();
@@ -65,7 +65,7 @@ impl Database {
             for (i,name) in columns.iter().enumerate() {
                 let value=match r.get_ref(i)? {rusqlite::types::ValueRef::Null=>Value::Null,rusqlite::types::ValueRef::Integer(n)=>Value::from(n),rusqlite::types::ValueRef::Real(n)=>Value::from(n),rusqlite::types::ValueRef::Text(s)=>{
                     let s=String::from_utf8_lossy(s).to_string();
-                    if ["client_config","evidence","question","pick","descriptor","items","rules","request","item_digests","payload","details","body","response"].contains(&name.as_str()) {serde_json::from_str(&s).unwrap_or(Value::String(s))} else {Value::String(s)}
+                    if ["client_config","evidence","question","pick","descriptor","items","rules","request","item_digests","payload","details","body","response","head","detail","message"].contains(&name.as_str()) {serde_json::from_str(&s).unwrap_or(Value::String(s))} else {Value::String(s)}
                 },rusqlite::types::ValueRef::Blob(_)=>Value::Null};
                 obj.insert(name.clone(),value);
             }

@@ -12,6 +12,8 @@ use receipt::ReceiptAuthority;
 use db::Database;
 
 pub struct Commerce {
+    pub run_id:String,
+    pub errors:std::sync::Mutex<Vec<String>>,
     pub db:Database,pub clef:ClefEngine,pub receipts:ReceiptAuthority,pub auth:AdminAuth,
     pub codec:rmcp::model::RequestStateCodec,
     pub auto_probed:std::sync::Mutex<std::collections::HashSet<String>>,
@@ -32,17 +34,24 @@ impl Commerce {
         let (auth,token,key)=AdminAuth::load(dir,allow_remote)?;
         let receipts=ReceiptAuthority::load(db.clone(),&dir.join("outrider-ed25519.pem"))?;
         let (events,_)=tokio::sync::broadcast::channel(256);
-        Ok((Arc::new(Self{db,clef,receipts,auth,codec:rmcp::model::RequestStateCodec::try_new(key)?,auto_probed:Default::default(),cadence:Default::default(),federation:Default::default(),skills:Default::default(),tasks:rmcp::task_manager::TaskManager::new(),task_owners:Default::default(),probe_policy:Default::default(),peers:Default::default(),events}),token))
+        Ok((Arc::new(Self{run_id:db::id(),errors:Default::default(),db,clef,receipts,auth,codec:rmcp::model::RequestStateCodec::try_new(key)?,auto_probed:Default::default(),cadence:Default::default(),federation:Default::default(),skills:Default::default(),tasks:rmcp::task_manager::TaskManager::new(),task_owners:Default::default(),probe_policy:Default::default(),peers:Default::default(),events}),token))
     }
     pub fn changed(&self,kind:&str,session:Option<&str>) {let _=self.events.send(serde_json::json!({"kind":kind,"session_id":session}));}
     pub fn snapshot(&self)->Result<serde_json::Value> {
         let mut result=serde_json::Map::new();
+        result.insert("errors".into(),self.errors.lock().unwrap().clone().into());
+        result.insert("run_id".into(),self.run_id.clone().into());
         result.insert("clef".into(),serde_json::to_value(self.clef.status())?);
         result.insert("active_peers".into(),self.peers.lock().map_err(|_|anyhow::anyhow!("peer registry poisoned"))?.iter().map(|(session,peer)|serde_json::json!({"session_id":session,"connected":!peer.is_transport_closed(),"sampling":peer.peer_info().is_some_and(|p|p.capabilities.sampling.is_some())})).collect::<Vec<_>>().into());
         result.insert("probe_policy".into(),serde_json::to_value(*self.probe_policy.read().unwrap())?);
         result.insert("public_key".into(),self.receipts.public_key().into());
-        for table in ["agent_sessions","fingerprint_observations","probe_runs","clef_evaluations","upstream_servers","catalog_items","bundles","session_offers","mrtr_quotes","capability_receipts","receipt_redemptions","admin_audit_log","mcp_frames"] {
-            result.insert(table.into(),self.db.rows(table)?);
+        for table in ["agent_sessions","fingerprint_observations","probe_runs","clef_evaluations","upstream_servers","catalog_items","bundles","session_offers","mrtr_quotes","capability_receipts","receipt_redemptions","admin_audit_log","mcp_frames","proxy_traffic","proxy_websocket_messages"] {
+            let mut rows=self.db.rows(table)?;
+            if table=="capability_receipts" {for row in rows.as_array_mut().unwrap() {
+                let signed=receipt::SignedReceipt{receipt:serde_json::from_value(row["payload"].clone())?,signature:row["signature"].as_str().unwrap_or("").into()};
+                row["signature_verified"]=self.receipts.verify_signature(&signed).is_ok().into();
+            }}
+            result.insert(table.into(),rows);
         }
         Ok(result.into())
     }
