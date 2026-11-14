@@ -73,3 +73,4 @@ impl Commerce {
         self.db.0.lock().map_err(|_|anyhow::anyhow!("database lock poisoned"))?.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor) VALUES ('outrider_session_evidence','tool',?1,?2) ON CONFLICT(item_id) DO UPDATE SET digest=excluded.digest,descriptor=excluded.descriptor",rusqlite::params![bundler::digest(&descriptor)?,descriptor.to_string()])?;Ok(())
     }
 }
+pub mod tui;
