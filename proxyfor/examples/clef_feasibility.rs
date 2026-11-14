@@ -11,8 +11,10 @@ fn main() -> Result<()> {
         Ok("gpu") => Backend::Gpu,
         _ => Backend::Cpu,
     };
+    let cache = std::env::temp_dir().join("outrider-clef-spike");
+    std::fs::create_dir_all(&cache)?;
     let engine = Engine::builder(&model).backend(backend.clone()).num_threads(4)
-        .cache_dir(std::env::temp_dir().join("outrider-clef-spike"))
+        .cache_dir(&cache)
         .max_num_tokens(2048).build()?;
     let mut results = Vec::new();
     let cases = [
