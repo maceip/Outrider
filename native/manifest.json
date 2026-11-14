@@ -1,0 +1,6 @@
+{
+  "rust_crate": "litert-lm-rust=0.2.4",
+  "release": "https://github.com/meephubub/Noema/releases/tag/v1.0.0",
+  "url": "https://github.com/meephubub/Noema/releases/download/v1.0.0/prebuilt.zip",
+  "archive_sha256": "833ce1d0ea361074e2cdc6fbd592f73cd321c1e93fb00fb65ce604239c8c587b"
+}

@@ -1,0 +1,9 @@
+[workspace]
+members = ["proxyfor"]
+exclude = ["rust-sdk-main"]
+resolver = "3"
+
+[profile.release]
+lto = true
+strip = true
+opt-level = "z"
