@@ -150,6 +150,7 @@ pub fn build_proxy_server(web: bool) -> Result<Arc<Server>> {
 }
 
 pub fn build_proxy_client(proxy: &str) -> Result<reqwest::Client> {
+    let _ = tokio_rustls::rustls::crypto::ring::default_provider().install_default();
     let proxy = reqwest::Proxy::all(proxy)?;
     let ca_cert_file = resolve_fixture_path("proxyfor-ca-cert.cer");
     let ca_cert_data = std::fs::read_to_string(ca_cert_file)?;
@@ -167,6 +168,7 @@ pub fn build_proxy_client(proxy: &str) -> Result<reqwest::Client> {
 }
 
 pub fn build_client() -> Result<reqwest::Client> {
+    let _ = tokio_rustls::rustls::crypto::ring::default_provider().install_default();
     let ca_cert_file = resolve_fixture_path("proxyfor-ca-cert.cer");
     let ca_cert_data = std::fs::read_to_string(ca_cert_file)?;
     let ca_cert = reqwest::tls::Certificate::from_pem(ca_cert_data.as_bytes())?;
