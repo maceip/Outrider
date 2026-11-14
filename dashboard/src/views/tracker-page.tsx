@@ -84,7 +84,7 @@ export function TrackerPage() {
     clefStatus,
     mutate,
     openDialog,
-    probePolicy,
+    publicStatus,
     refresh,
     selectedSession,
     selectedSessionId,
@@ -442,7 +442,9 @@ export function TrackerPage() {
           (p) => p.session_id === selectedSession.session_id && p.connected,
         );
 
-        if (probePolicy === "off") {
+        const observedProbePolicy = snapshot?.probe_policy ?? publicStatus?.probe_policy ?? null;
+
+        if (observedProbePolicy === "off") {
           next.probe = "Probes disabled by operator (policy: off)";
         } else if (selectedSession.client_config?.protocolVersion === "2026-07-28") {
           next.probe =
@@ -457,7 +459,9 @@ export function TrackerPage() {
         next.evaluate =
           clefStatus?.status === "ModelError"
             ? `CLEF ModelError: ${clefStatus.error}`
-            : "CLEF Unconfigured: no model loaded";
+            : clefStatus?.status === "Unconfigured"
+              ? "CLEF Unconfigured: no model loaded"
+              : "CLEF engine status not yet loaded";
       }
 
       if ((snapshot?.bundles.length ?? 0) === 0) {
@@ -467,7 +471,7 @@ export function TrackerPage() {
     }
 
     return next;
-  }, [busy, clefStatus, probePolicy, selectedSession, snapshot, unlocked]);
+  }, [busy, clefStatus, publicStatus?.probe_policy, selectedSession, snapshot, unlocked]);
 
   const unmetReasons = useMemo(
     () => Object.entries(actionReasons).filter(([, reason]) => Boolean(reason)),
@@ -1123,13 +1127,13 @@ export function TrackerPage() {
         allowsSorting: true,
         cell: (row) => (
           <span className="text-muted font-mono text-xs tabular-nums">
-            {row.head.size ?? 0} B
+            {row.head.size === undefined ? "—" : `${row.head.size} B`}
           </span>
         ),
         header: "Bytes",
         id: "size",
         minWidth: 95,
-        sortFn: (a, b) => (a.head.size ?? 0) - (b.head.size ?? 0),
+        sortFn: (a, b) => (a.head.size ?? -1) - (b.head.size ?? -1),
       },
       {
         align: "end",
