@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360" role="img" aria-label="Human customer storyboard">
+  <rect width="640" height="360" fill="#0B0F14"/>
+  <g fill="none" stroke="#F4F1EA" stroke-width="1.5">
+    <rect x="28" y="28" width="184" height="304" rx="6"/>
+    <rect x="228" y="28" width="184" height="304" rx="6"/>
+    <rect x="428" y="28" width="184" height="304" rx="6"/>
+    <circle cx="120" cy="118" r="28"/>
+    <path d="M78 196c8-28 76-28 84 0"/>
+    <rect x="86" y="230" width="68" height="44" rx="4"/>
+    <path d="M292 150h56M292 170h40"/>
+    <circle cx="320" cy="112" r="18"/>
+    <path d="M300 250h40l8 28H292z"/>
+    <rect x="468" y="96" width="104" height="140" rx="4"/>
+    <path d="M484 124h72M484 144h72M484 164h48"/>
+  </g>
+  <g fill="#F4F1EA" font-family="IBM Plex Sans, sans-serif" font-size="13">
+    <text x="40" y="52">01 Greet</text>
+    <text x="240" y="52">02 Confirm</text>
+    <text x="440" y="52">03 Receipt</text>
+  </g>
+</svg>
