@@ -616,28 +616,35 @@ export function EmployeesTable() {
         {/* 3 Grounded Evidence Panels: CLEF Lens (#clef), Session Offers (#offers), Receipt (#receipt) */}
         <div className="border-border grid grid-cols-1 border-b lg:grid-cols-3">
           {/* CLEF Lens */}
-          <div className="border-border flex flex-col gap-2 border-b p-3 lg:border-b-0 lg:border-r" id="clef">
+          <div
+            className="border-border flex min-w-0 flex-col gap-2 border-b p-3 lg:border-b-0 lg:border-r"
+            id="clef"
+          >
             <h3 className="text-foreground text-xs font-semibold">CLEF Evaluation</h3>
             {clefStatus?.status !== "Ready" ? (
-              <div className="banner border-border bg-background text-muted rounded-lg border p-2.5 text-xs">
+              <div className="banner border-border bg-background text-muted rounded-lg border p-2.5 text-xs [overflow-wrap:anywhere]">
                 {clefStatus?.status === "ModelError"
                   ? `ModelError: ${clefStatus.error}`
                   : "Unconfigured · no model loaded"}
               </div>
             ) : (
-              <div className="text-muted font-mono text-xs">
+              <div className="text-muted truncate font-mono text-xs">
                 {clefStatus.backend} · {clefStatus.model_path.split("/").pop()}
               </div>
             )}
 
             {latestEvaluation ? (
-              <dl className="grid grid-cols-[100px_1fr] gap-x-2 gap-y-1 text-xs">
+              <dl className="grid grid-cols-[100px_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs">
                 <dt className="text-muted">Status</dt>
-                <dd className="font-mono">{latestEvaluation.status}</dd>
+                <dd className="min-w-0 font-mono">{latestEvaluation.status}</dd>
                 <dt className="text-muted">Question</dt>
-                <dd className="break-words font-mono">{JSON.stringify(latestEvaluation.question)}</dd>
+                <dd className="min-w-0 font-mono [overflow-wrap:anywhere]">
+                  {JSON.stringify(latestEvaluation.question)}
+                </dd>
                 <dt className="text-muted">Pick</dt>
-                <dd className="font-mono">{JSON.stringify(latestEvaluation.pick)}</dd>
+                <dd className="min-w-0 font-mono [overflow-wrap:anywhere]">
+                  {JSON.stringify(latestEvaluation.pick)}
+                </dd>
                 <dt className="text-muted">Input tokens</dt>
                 <dd className="font-mono tabular-nums">{latestEvaluation.input_tokens ?? 0}</dd>
                 <dt className="text-muted">Output tokens</dt>
@@ -655,7 +662,10 @@ export function EmployeesTable() {
           </div>
 
           {/* Session Offers */}
-          <div className="border-border flex flex-col gap-2 border-b p-3 lg:border-b-0 lg:border-r" id="offers">
+          <div
+            className="border-border flex min-w-0 flex-col gap-2 border-b p-3 lg:border-b-0 lg:border-r"
+            id="offers"
+          >
             <h3 className="text-foreground text-xs font-semibold">Session Offers</h3>
             {sessionOffers.length === 0 ? (
               <p className="text-muted text-xs">
@@ -668,10 +678,12 @@ export function EmployeesTable() {
                 {sessionOffers.map((offer) => (
                   <li
                     key={offer.offer_id}
-                    className="border-border bg-background flex flex-col gap-0.5 rounded-lg border p-2 text-xs"
+                    className="border-border bg-background flex min-w-0 flex-col gap-0.5 rounded-lg border p-2 text-xs"
                   >
-                    <span className="text-foreground font-mono font-medium">{offer.bundle_id}</span>
-                    <span className="text-muted text-xs">{offer.source}</span>
+                    <span className="text-foreground font-mono font-medium [overflow-wrap:anywhere]">
+                      {offer.bundle_id}
+                    </span>
+                    <span className="text-muted text-xs [overflow-wrap:anywhere]">{offer.source}</span>
                   </li>
                 ))}
               </ul>
@@ -679,14 +691,18 @@ export function EmployeesTable() {
           </div>
 
           {/* Capability Receipt */}
-          <div className="flex flex-col gap-2 p-3" id="receipt">
+          <div className="flex min-w-0 flex-col gap-2 p-3" id="receipt">
             <h3 className="text-foreground text-xs font-semibold">Capability Receipt</h3>
             {selectedReceipt ? (
-              <dl className="grid grid-cols-[92px_1fr] gap-x-2 gap-y-1 text-xs">
+              <dl className="grid grid-cols-[92px_minmax(0,1fr)] gap-x-2 gap-y-1 text-xs">
                 <dt className="text-muted">Receipt</dt>
-                <dd className="truncate font-mono tabular-nums">{selectedReceipt.receipt_id}</dd>
+                <dd className="min-w-0 truncate font-mono tabular-nums">
+                  {selectedReceipt.receipt_id}
+                </dd>
                 <dt className="text-muted">Bundle</dt>
-                <dd className="font-mono">{selectedReceipt.bundle_id}</dd>
+                <dd className="min-w-0 font-mono [overflow-wrap:anywhere]">
+                  {selectedReceipt.bundle_id}
+                </dd>
                 <dt className="text-muted">Signature</dt>
                 <dd className="text-success font-medium">
                   {selectedReceipt.signature_verified
@@ -701,7 +717,7 @@ export function EmployeesTable() {
                 <dd className="font-mono">{selectedReceipt.revoked ? "yes" : "no"}</dd>
               </dl>
             ) : (snapshot?.bundles.length ?? 0) > 0 ? (
-              <div className="text-muted flex flex-col gap-1 font-mono text-xs">
+              <div className="text-muted flex flex-col gap-1 font-mono text-xs [overflow-wrap:anywhere]">
                 {snapshot!.bundles.map((b) => (
                   <div key={b.bundle_id}>
                     {b.bundle_id} · {b.items.join(", ")}
