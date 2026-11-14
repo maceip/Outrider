@@ -235,3 +235,43 @@ async fn real_http_admin_auth_and_no_agent_issuance() -> Result<()> {
     let _ = stop.send(());
     Ok(())
 }
+
+#[tokio::test]
+async fn evaluated_session_state_infers_no_verdict_from_the_pick() -> Result<()> {
+    let dir = tempfile::tempdir()?;
+    let path = dir.path().join("state.db");
+    let db = Database::open(&path)?;
+    let engine = ClefEngine::load(ClefConfig {
+        model: None,
+        backend: "cpu".into(),
+        threads: 1,
+        cache_dir: dir.path().into(),
+        workers: 1,
+    })
+    .await?;
+    let (rt, _) = Commerce::new(db, engine, dir.path(), false)?;
+    // Stored evaluation rows as the scorer writes them: one answered false, one answered true.
+    let connection = rusqlite::Connection::open(&path)?;
+    for (session, pick) in [("answered-false", "false"), ("answered-true", "true")] {
+        rt.db.record_session(session, session, &json!({}), "stdio")?;
+        connection.execute(
+            "INSERT INTO clef_evaluations(evaluation_id,session_id,question,status,pick,created_at) VALUES (?1,?2,?3,'Verified',?4,?5)",
+            rusqlite::params![
+                format!("evaluation-{session}"),
+                session,
+                json!({"type":"noul","question":"Is this client abusive?"}).to_string(),
+                pick,
+                now()
+            ],
+        )?;
+    }
+    let snapshot = rt.snapshot()?;
+    let states: Vec<_> = snapshot["agent_sessions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .map(|s| s["state"].as_str().unwrap().to_owned())
+        .collect();
+    assert_eq!(states, ["CLEF Evaluated", "CLEF Evaluated"]);
+    Ok(())
+}

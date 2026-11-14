@@ -86,7 +86,10 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
     let stop = server.run(listener).await?;
+    // The header value is the client's secret; receipts bind to the derived public id.
     let session = uuid::Uuid::new_v4().to_string();
+    let subject = proxyfor::mcp_gateway::handler::public_session_id(&session);
+    assert_ne!(subject, session);
     let mut cfg = StreamableHttpClientTransportConfig::with_uri(format!("http://{addr}/mcp"));
     cfg.custom_headers
         .insert("outrider-session-id".parse()?, session.parse()?);
@@ -108,6 +111,19 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     let mut subscription = client
         .listen(SubscriptionFilter::builder().tools_list_changed().build())
         .await?;
+    // Unrelated activity, another session's redemption, and an admin change that leaves
+    // this session's tools untouched must not announce a tool-list change.
+    tokio::time::sleep(std::time::Duration::from_millis(200)).await;
+    rt.changed("traffic.persisted", None);
+    rt.changed("websocket.persisted", None);
+    rt.changed("receipt.redeemed", Some("another-session"));
+    rt.changed("/offers/synthesize", None);
+    assert!(
+        tokio::time::timeout(std::time::Duration::from_millis(500), subscription.next())
+            .await
+            .is_err(),
+        "tool-list notification sent although this session's tool list did not change"
+    );
     let state = match client
         .call_tool_once(CallToolRequestParams::new("up__outrider_catalog"))
         .await?
@@ -140,7 +156,7 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     );
     let valid = rt
         .receipts
-        .issue(&session, "research", 8, now() + 600, "admin:test")?;
+        .issue(&subject, "research", 8, now() + 600, "admin:test")?;
     let mut forged = valid.clone();
     forged.receipt.max_calls = 100;
     assert!(
@@ -151,7 +167,7 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     );
     let revoked = rt
         .receipts
-        .issue(&session, "research", 2, now() + 600, "admin:test")?;
+        .issue(&subject, "research", 2, now() + 600, "admin:test")?;
     rt.receipts
         .revoke(&revoked.receipt.receipt_id, "admin:test")?;
     assert!(
@@ -162,7 +178,7 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     );
     let expired = rt
         .receipts
-        .issue(&session, "research", 1, now() + 1, "admin:test")?;
+        .issue(&subject, "research", 1, now() + 1, "admin:test")?;
     tokio::time::sleep(std::time::Duration::from_millis(1100)).await;
     assert!(
         client
@@ -218,8 +234,68 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
         .read_resource(ReadResourceRequestParams::new("skill://research/SKILL.md"))
         .await?;
     assert!(!read.contents.is_empty());
+    // The session id Outrider reports is a digest. Replaying it as Outrider-Session-Id
+    // names a different session: no entitled tools, no skills, and no redemption.
+    let catalog = match client
+        .call_tool_once(CallToolRequestParams::new("outrider_catalog"))
+        .await?
+    {
+        CallToolResponse::Complete(r) => r.content[0].as_text().unwrap().text.clone(),
+        r => anyhow::bail!("Expected catalog, got {r:?}"),
+    };
+    assert_eq!(serde_json::from_str::<Value>(&catalog)?["session_id"], subject);
+    let mut replay_cfg = cfg.clone();
+    replay_cfg
+        .custom_headers
+        .insert("outrider-session-id".parse()?, subject.parse()?);
+    let replay = ClientConfig::default()
+        .serve_with_lifecycle(
+            StreamableHttpClientTransport::with_client(rmcp_http_client()?, replay_cfg),
+            ClientLifecycleMode::Discover {
+                preferred_versions: vec![ProtocolVersion::V_2026_07_28],
+            },
+        )
+        .await?;
+    assert!(
+        !replay
+            .list_all_tools()
+            .await?
+            .iter()
+            .any(|t| t.name == "up__outrider_catalog")
+    );
+    assert!(replay.list_all_skills().await?.is_empty());
+    assert!(matches!(
+        replay
+            .call_tool_once(CallToolRequestParams::new("up__outrider_catalog"))
+            .await?,
+        CallToolResponse::InputRequired(_)
+    ));
+    assert_eq!(
+        rt.db.rows("receipt_redemptions")?.as_array().unwrap().len(),
+        1
+    );
+    // A secret supplied through _meta is recorded only in redacted form.
+    let meta_secret = uuid::Uuid::new_v4().to_string();
+    let mut meta_req = CallToolRequestParams::new("outrider_catalog");
+    let mut meta = RequestMetaObject::new();
+    meta.0.insert(
+        "outrider/session_id".into(),
+        Value::String(meta_secret.clone()),
+    );
+    meta_req.meta = Some(meta);
+    replay.call_tool_once(meta_req).await?;
+    replay.cancel().await?;
+    let persisted = rt.snapshot()?.to_string();
+    assert!(persisted.contains(&subject));
+    assert!(persisted.contains(&proxyfor::mcp_gateway::handler::public_session_id(&meta_secret)));
+    assert!(persisted.contains("[redacted]"));
+    assert!(
+        !persisted.contains(&session) && !persisted.contains(&meta_secret),
+        "a client session secret was persisted"
+    );
     // Another valid HMAC quote is expired in persistent state; no redemption follows.
     let locked = uuid::Uuid::new_v4().to_string();
+    let locked_subject = proxyfor::mcp_gateway::handler::public_session_id(&locked);
     let mut other_cfg = cfg.clone();
     other_cfg
         .custom_headers
@@ -247,7 +323,7 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     )?;
     let other_receipt = rt
         .receipts
-        .issue(&locked, "research", 1, now() + 600, "admin:test")?;
+        .issue(&locked_subject, "research", 1, now() + 600, "admin:test")?;
     assert!(
         other
             .call_tool_once(retry(&old, Some(&other_receipt.encode()?)))
@@ -257,7 +333,7 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     // Exhaust a one-call receipt, then prove it cannot execute again.
     let once = rt
         .receipts
-        .issue(&locked, "research", 1, now() + 600, "admin:test")?;
+        .issue(&locked_subject, "research", 1, now() + 600, "admin:test")?;
     let mut once_req = CallToolRequestParams::new("up__outrider_catalog");
     let mut meta = RequestMetaObject::new();
     meta.0
