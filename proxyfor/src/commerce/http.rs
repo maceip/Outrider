@@ -20,7 +20,7 @@ pub fn json_response(status: u16, value: Value) -> HttpResponse {
         .header("cache-control", "no-store")
         .body(
             Full::new(Bytes::from(value.to_string()))
-                .map_err(|e| anyhow::anyhow!(e))
+                .map_err(|never| match never {})
                 .boxed(),
         )
         .expect("valid HTTP response")

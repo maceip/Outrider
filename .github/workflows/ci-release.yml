@@ -97,10 +97,10 @@ jobs:
     needs: [bump-version, build-dashboard]
     runs-on: ${{ matrix.os }}
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         include:
-          - os: macos-14
+          - os: macos-latest
             target: aarch64-apple-darwin
             native_subdir: native/macos
             label: macos-arm64
@@ -151,10 +151,34 @@ jobs:
         run: python scripts/install_native.py --target ${{ matrix.target }}
 
       - name: Run unit & onboarding integration tests
+        shell: python
         env:
           LITERT_LM_LIB_DIR: ${{ github.workspace }}/${{ matrix.native_subdir }}
           OUTRIDER_CLEF_NO_FETCH: "1"
-        run: cargo test --locked --target ${{ matrix.target }} -p proxyfor --test cert --test desktop_onboarding
+        run: |
+          import os, pathlib, subprocess
+          native_dir = str((pathlib.Path(os.environ["LITERT_LM_LIB_DIR"])).resolve())
+          env = dict(os.environ)
+          env["LD_LIBRARY_PATH"] = native_dir + os.pathsep + env.get("LD_LIBRARY_PATH", "")
+          env["DYLD_LIBRARY_PATH"] = native_dir + os.pathsep + env.get("DYLD_LIBRARY_PATH", "")
+          env["PATH"] = native_dir + os.pathsep + env.get("PATH", "")
+          subprocess.run(
+              [
+                  "cargo",
+                  "test",
+                  "--locked",
+                  "--target",
+                  "${{ matrix.target }}",
+                  "-p",
+                  "proxyfor",
+                  "--test",
+                  "cert",
+                  "--test",
+                  "desktop_onboarding",
+              ],
+              env=env,
+              check=True,
+          )
 
       - name: Build optimized release binary
         env:

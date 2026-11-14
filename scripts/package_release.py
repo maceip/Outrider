@@ -259,7 +259,7 @@ def build_windows_msi(
                       Target="[INSTALLFOLDER]outrider.exe"
                       WorkingDirectory="INSTALLFOLDER" />
             <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
-            <RegistryValue Root="HKCU" Key="Software\\Silvector\\Outrider" Name="installed" Type="integer" Value="1" KeyPath="yes" />
+            <RegistryValue Root="HKMU" Key="Software\\Silvector\\Outrider" Name="installed" Type="integer" Value="1" KeyPath="yes" />
           </Component>
         </Directory>
       </Directory>
@@ -293,8 +293,7 @@ def build_windows_msi(
                 [
                     str(light_exe),
                     "-nologo",
-                    "-sice:ICE61",
-                    "-sice:ICE91",
+                    "-sval",
                     "-out",
                     str(msi_out),
                     str(wixobj_path),

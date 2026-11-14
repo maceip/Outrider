@@ -192,24 +192,28 @@ async fn agent_scanner_backup_injection_consent_restart_and_desktop_port_fallbac
     // Keep `free_probe` bound so `base_port` is occupied if we test port collision, or pass explicit free port:
     drop(free_probe);
 
-    let mut child = tokio::process::Command::new(env!("CARGO_BIN_EXE_outrider"))
-        .args([
-            "--desktop",
-            "--listen",
-            &format!("127.0.0.1:{base_port}"),
-            "--config-dir",
-            cfg_dir.to_str().unwrap(),
-            "--probe-policy",
-            "on-request",
-        ])
-        .env("OUTRIDER_CLEF_NO_FETCH", "1")
-        .env("OUTRIDER_AGENT_SCAN_ROOT", scan_root.path())
-        .env("OUTRIDER_AGENT_TEST_RUNNING", "claude-desktop")
-        .env("OUTRIDER_AGENT_RESTART_RECORDER", &restart_log)
-        .env("OUTRIDER_BROWSER_OPENER", &opener_script)
-        .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .spawn()?;
+    let mut cmd = tokio::process::Command::new(env!("CARGO_BIN_EXE_outrider"));
+    cmd.args([
+        "--desktop",
+        "--listen",
+        &format!("127.0.0.1:{base_port}"),
+        "--config-dir",
+        cfg_dir.to_str().unwrap(),
+        "--probe-policy",
+        "on-request",
+    ])
+    .env("OUTRIDER_CLEF_NO_FETCH", "1")
+    .env("OUTRIDER_AGENT_SCAN_ROOT", scan_root.path())
+    .env("OUTRIDER_AGENT_TEST_RUNNING", "claude-desktop")
+    .env("OUTRIDER_AGENT_RESTART_RECORDER", &restart_log)
+    .stdout(std::process::Stdio::null())
+    .stderr(std::process::Stdio::null());
+    #[cfg(unix)]
+    cmd.env("OUTRIDER_BROWSER_OPENER", &opener_script);
+    #[cfg(windows)]
+    cmd.arg("--no-open");
+
+    let mut child = cmd.spawn()?;
 
     let client = common::build_client()?;
     let base = format!("http://127.0.0.1:{base_port}{WEB_PREFIX}/commerce");
@@ -226,107 +230,120 @@ async fn agent_scanner_backup_injection_consent_restart_and_desktop_port_fallbac
     })
     .await?;
 
-    #[cfg(unix)]
-    {
-        tokio::time::timeout(Duration::from_secs(5), async {
-            loop {
-                if opener_log.is_file() && !fs::read_to_string(&opener_log).unwrap_or_default().is_empty() {
-                    break;
+    let token: String = {
+        #[cfg(unix)]
+        {
+            tokio::time::timeout(Duration::from_secs(5), async {
+                loop {
+                    if opener_log.is_file()
+                        && !fs::read_to_string(&opener_log).unwrap_or_default().is_empty()
+                    {
+                        break;
+                    }
+                    tokio::time::sleep(Duration::from_millis(50)).await;
                 }
-                tokio::time::sleep(Duration::from_millis(50)).await;
-            }
-        })
+            })
+            .await?;
+            let launched = fs::read_to_string(&opener_log)?;
+            assert!(
+                launched.starts_with(&format!(
+                    "http://127.0.0.1:{base_port}/__proxyfor__/zim/#bootstrap="
+                )),
+                "Expected desktop first-run browser launch to /zim/#bootstrap=..., got {launched}"
+            );
+            let nonce = launched.split("#bootstrap=").nth(1).expect("nonce");
+            let exchanged: Value = client
+                .post(format!("{base}/bootstrap/exchange"))
+                .json(&json!({"nonce": nonce}))
+                .send()
+                .await?
+                .json()
+                .await?;
+            exchanged["token"]
+                .as_str()
+                .expect("exchanged bearer token")
+                .to_owned()
+        }
+        #[cfg(windows)]
+        {
+            fs::read_to_string(cfg_dir.join("outrider-admin-token"))?
+                .trim()
+                .to_owned()
+        }
+    };
+
+    // Scan agents
+    let scan: Value = client
+        .get(format!("{base}/onboarding/agents"))
+        .bearer_auth(&token)
+        .send()
+        .await?
+        .json()
         .await?;
-        let launched = fs::read_to_string(&opener_log)?;
-        assert!(
-            launched.starts_with(&format!(
-                "http://127.0.0.1:{base_port}/__proxyfor__/zim/#bootstrap="
-            )),
-            "Expected desktop first-run browser launch to /zim/#bootstrap=..., got {launched}"
-        );
-        let nonce = launched.split("#bootstrap=").nth(1).expect("nonce");
-        let exchanged: Value = client
-            .post(format!("{base}/bootstrap/exchange"))
-            .json(&json!({"nonce": nonce}))
-            .send()
-            .await?
-            .json()
-            .await?;
-        let token = exchanged["token"].as_str().expect("exchanged bearer token");
+    assert!(
+        scan["deep_links"]["cursor"]
+            .as_str()
+            .unwrap()
+            .starts_with("cursor://anysphere.cursor-deeplink/mcp/install?")
+    );
+    assert!(
+        scan["deep_links"]["vscode"]
+            .as_str()
+            .unwrap()
+            .starts_with("vscode:mcp/install?")
+    );
+    let agents = scan["agents"].as_array().unwrap();
+    let cd = agents.iter().find(|a| a["id"] == "claude-desktop").unwrap();
+    assert_eq!(cd["detected"], true);
+    assert_eq!(cd["already_configured"], false);
+    assert_eq!(cd["running"], true);
 
-        // Scan agents
-        let scan: Value = client
-            .get(format!("{base}/onboarding/agents"))
-            .bearer_auth(token)
-            .send()
-            .await?
-            .json()
-            .await?;
-        assert!(
-            scan["deep_links"]["cursor"]
-                .as_str()
-                .unwrap()
-                .starts_with("cursor://anysphere.cursor-deeplink/mcp/install?")
-        );
-        assert!(
-            scan["deep_links"]["vscode"]
-                .as_str()
-                .unwrap()
-                .starts_with("vscode:mcp/install?")
-        );
-        let agents = scan["agents"].as_array().unwrap();
-        let cd = agents.iter().find(|a| a["id"] == "claude-desktop").unwrap();
-        assert_eq!(cd["detected"], true);
-        assert_eq!(cd["already_configured"], false);
-        assert_eq!(cd["running"], true);
+    // Configure claude-desktop WITHOUT restart confirmation -> must NOT restart
+    let cfg1: Value = client
+        .post(format!("{base}/onboarding/configure-agent"))
+        .bearer_auth(&token)
+        .json(&json!({"agent_id": "claude-desktop", "restart_confirmed": false}))
+        .send()
+        .await?
+        .json()
+        .await?;
+    assert_eq!(cfg1["configured"], true);
+    assert_eq!(cfg1["restarted"], false);
+    assert!(cfg1["backup_path"].as_str().is_some_and(|p| Path::new(p).is_file()));
+    assert!(!restart_log.exists());
 
-        // Configure claude-desktop WITHOUT restart confirmation -> must NOT restart
-        let cfg1: Value = client
-            .post(format!("{base}/onboarding/configure-agent"))
-            .bearer_auth(token)
-            .json(&json!({"agent_id": "claude-desktop", "restart_confirmed": false}))
-            .send()
-            .await?
-            .json()
-            .await?;
-        assert_eq!(cfg1["configured"], true);
-        assert_eq!(cfg1["restarted"], false);
-        assert!(cfg1["backup_path"].as_str().is_some_and(|p| Path::new(p).is_file()));
-        assert!(!restart_log.exists());
+    let merged_claude: Value = serde_json::from_str(&fs::read_to_string(
+        claude_dir.join("claude_desktop_config.json"),
+    )?)?;
+    assert_eq!(merged_claude["mcpServers"]["existing"]["command"], "node");
+    assert!(merged_claude["mcpServers"]["outrider"]["command"].is_string());
 
-        let merged_claude: Value = serde_json::from_str(&fs::read_to_string(
-            claude_dir.join("claude_desktop_config.json"),
-        )?)?;
-        assert_eq!(merged_claude["mcpServers"]["existing"]["command"], "node");
-        assert!(merged_claude["mcpServers"]["outrider"]["command"].is_string());
+    // Configure claude-desktop WITH restart_confirmed == true -> records restart
+    let cfg2: Value = client
+        .post(format!("{base}/onboarding/configure-agent"))
+        .bearer_auth(&token)
+        .json(&json!({"agent_id": "claude-desktop", "restart_confirmed": true}))
+        .send()
+        .await?
+        .json()
+        .await?;
+    assert_eq!(cfg2["restarted"], true);
+    assert!(fs::read_to_string(&restart_log)?.contains("claude-desktop"));
 
-        // Configure claude-desktop WITH restart_confirmed == true -> records restart
-        let cfg2: Value = client
-            .post(format!("{base}/onboarding/configure-agent"))
-            .bearer_auth(token)
-            .json(&json!({"agent_id": "claude-desktop", "restart_confirmed": true}))
-            .send()
-            .await?
-            .json()
-            .await?;
-        assert_eq!(cfg2["restarted"], true);
-        assert!(fs::read_to_string(&restart_log)?.contains("claude-desktop"));
-
-        // Configure codex & claude-code
-        let cfg_codex: Value = client
-            .post(format!("{base}/onboarding/configure-agent"))
-            .bearer_auth(token)
-            .json(&json!({"agent_id": "codex", "restart_confirmed": false}))
-            .send()
-            .await?
-            .json()
-            .await?;
-        assert_eq!(cfg_codex["configured"], true);
-        let codex_toml = fs::read_to_string(codex_dir.join("config.toml"))?;
-        assert!(codex_toml.contains("[mcp_servers.other]"));
-        assert!(codex_toml.contains("[mcp_servers.outrider]"));
-        assert!(codex_toml.contains(&format!("http://127.0.0.1:{base_port}/mcp")));
-    }
+    // Configure codex
+    let cfg_codex: Value = client
+        .post(format!("{base}/onboarding/configure-agent"))
+        .bearer_auth(&token)
+        .json(&json!({"agent_id": "codex", "restart_confirmed": false}))
+        .send()
+        .await?
+        .json()
+        .await?;
+    assert_eq!(cfg_codex["configured"], true);
+    let codex_toml = fs::read_to_string(codex_dir.join("config.toml"))?;
+    assert!(codex_toml.contains("[mcp_servers.other]"));
+    assert!(codex_toml.contains("[mcp_servers.outrider]"));
+    assert!(codex_toml.contains(&format!("http://127.0.0.1:{base_port}/mcp")));
 
     let _ = child.kill().await;
     let _ = child.wait().await;

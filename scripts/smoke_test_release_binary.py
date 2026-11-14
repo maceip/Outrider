@@ -83,6 +83,9 @@ def run_six_live_checks(exe_path: pathlib.Path, work_dir: pathlib.Path, label: s
     env = dict(os.environ)
     env.pop("OUTRIDER_CLEF_MODEL", None)
     env.pop("OUTRIDER_DASHBOARD_DIR", None)
+    env.pop("LD_LIBRARY_PATH", None)
+    env.pop("DYLD_LIBRARY_PATH", None)
+    env.pop("DYLD_FALLBACK_LIBRARY_PATH", None)
     env["OUTRIDER_CLEF_NO_FETCH"] = "1"
     env["CI"] = "true"
 
@@ -290,6 +293,10 @@ def run_six_live_checks(exe_path: pathlib.Path, work_dir: pathlib.Path, label: s
         if proc.poll() is None:
             proc.kill()
             proc.wait(timeout=5)
+        if proc.stdout is not None:
+            proc.stdout.close()
+        if proc.stderr is not None:
+            proc.stderr.close()
 
 
 def smoke_test_artifact(artifact_path: pathlib.Path) -> None:
@@ -362,13 +369,13 @@ def smoke_test_artifact(artifact_path: pathlib.Path) -> None:
         if name.endswith(".msi"):
             if sys.platform != "win32":
                 sys.exit(f"Cannot administratively extract .msi artifact {name} on non-Windows host {sys.platform}")
-            msi_target = unpack_dir / "msi-admin"
+            msi_target = (unpack_dir / "msi-admin").resolve()
             msi_target.mkdir(parents=True, exist_ok=True)
             subprocess.run(
                 [
                     "msiexec.exe",
                     "/a",
-                    str(artifact_path),
+                    str(artifact_path.resolve()),
                     "/qn",
                     f"TARGETDIR={msi_target}",
                 ],

@@ -315,7 +315,7 @@ impl Server {
                         .await
                         .unwrap();
                     let (parts, body) = response.into_parts();
-                    Response::from_parts(parts, body.map_err(|e| anyhow!(e)).boxed())
+                    Response::from_parts(parts, body.map_err(|never| match never {}).boxed())
                 }
                 None => crate::commerce::http::json_response(
                     503,
