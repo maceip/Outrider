@@ -253,10 +253,14 @@ export function InspectorConnectionsPane({
                 </Button>
               </div>
               {headers.map((row) => (
-                <div key={row.id} className="grid grid-cols-[1fr_1fr_auto] items-center gap-1">
+                <div
+                  key={row.id}
+                  className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1"
+                >
                   <Input
+                    fullWidth
                     aria-label="Header name"
-                    className="font-mono text-xs"
+                    className="min-w-0 font-mono text-xs"
                     placeholder="Name"
                     value={row.name}
                     variant="secondary"
@@ -267,8 +271,9 @@ export function InspectorConnectionsPane({
                     }
                   />
                   <Input
+                    fullWidth
                     aria-label="Header value"
-                    className="font-mono text-xs"
+                    className="min-w-0 font-mono text-xs"
                     placeholder="Value"
                     type="password"
                     value={row.value}
@@ -282,6 +287,7 @@ export function InspectorConnectionsPane({
                   <Button
                     isIconOnly
                     aria-label="Remove header"
+                    className="shrink-0"
                     size="sm"
                     variant="tertiary"
                     onPress={() => setHeaders((prev) => prev.filter((r) => r.id !== row.id))}
@@ -310,10 +316,14 @@ export function InspectorConnectionsPane({
               </Button>
             </div>
             {envVars.map((row) => (
-              <div key={row.id} className="grid grid-cols-[1fr_1fr_auto] items-center gap-1">
+              <div
+                key={row.id}
+                className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-center gap-1"
+              >
                 <Input
+                  fullWidth
                   aria-label="Variable name"
-                  className="font-mono text-xs"
+                  className="min-w-0 font-mono text-xs"
                   placeholder="Name"
                   value={row.name}
                   variant="secondary"
@@ -324,8 +334,9 @@ export function InspectorConnectionsPane({
                   }
                 />
                 <Input
+                  fullWidth
                   aria-label="Variable value"
-                  className="font-mono text-xs"
+                  className="min-w-0 font-mono text-xs"
                   placeholder="Value"
                   type="password"
                   value={row.value}
@@ -339,6 +350,7 @@ export function InspectorConnectionsPane({
                 <Button
                   isIconOnly
                   aria-label="Remove variable"
+                  className="shrink-0"
                   size="sm"
                   variant="tertiary"
                   onPress={() => setEnvVars((prev) => prev.filter((r) => r.id !== row.id))}
