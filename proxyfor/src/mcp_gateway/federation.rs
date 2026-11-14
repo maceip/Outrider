@@ -48,6 +48,10 @@ impl Federation {
  }
  pub async fn client(&self,name:&str)->Result<Arc<Upstream>> {self.clients.read().await.get(name).cloned().with_context(||format!("Upstream {name} is not connected"))}
  pub async fn call(&self,commerce:&Commerce,session:&str,name:&str,tool:&str,args:serde_json::Map<String,Value>)->Result<CallToolResult> {
+  if name.is_empty() && tool=="outrider_session_evidence" {
+   let record=commerce.db.session_record(session)?;frame(&commerce.db,Some(session),None,"response",tool,&record)?;
+   return Ok(CallToolResult::success(vec![ContentBlock::text(record.to_string())]));
+  }
   frame(&commerce.db,Some(session),Some(name),"request","tools/call",&json!({"name":tool,"arguments":args}))?;
   let result=self.client(name).await?.call_tool(CallToolRequestParams::new(tool.to_owned()).with_arguments(args)).await;
   match result {Ok(r)=>{frame(&commerce.db,Some(session),Some(name),"response","tools/call",&serde_json::to_value(&r)?)?;Ok(r)},Err(e)=>{frame(&commerce.db,Some(session),Some(name),"error","tools/call",&json!({"error":e.to_string()}))?;commerce.changed("upstream.call_failed",Some(session));Err(e.into())}}

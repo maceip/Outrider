@@ -38,6 +38,8 @@ impl Commerce {
     pub fn snapshot(&self)->Result<serde_json::Value> {
         let mut result=serde_json::Map::new();
         result.insert("clef".into(),serde_json::to_value(self.clef.status())?);
+        result.insert("active_peers".into(),self.peers.lock().map_err(|_|anyhow::anyhow!("peer registry poisoned"))?.iter().map(|(session,peer)|serde_json::json!({"session_id":session,"connected":!peer.is_transport_closed(),"sampling":peer.peer_info().is_some_and(|p|p.capabilities.sampling.is_some())})).collect::<Vec<_>>().into());
+        result.insert("probe_policy".into(),serde_json::to_value(*self.probe_policy.read().unwrap())?);
         result.insert("public_key".into(),self.receipts.public_key().into());
         for table in ["agent_sessions","fingerprint_observations","probe_runs","clef_evaluations","upstream_servers","catalog_items","bundles","session_offers","mrtr_quotes","capability_receipts","receipt_redemptions","admin_audit_log","mcp_frames"] {
             result.insert(table.into(),self.db.rows(table)?);
@@ -53,5 +55,12 @@ impl Commerce {
          for skill in catalog.skills() {let descriptor=serde_json::to_value(&skill)?;tx.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor) VALUES (?1,'skill',?2,?3)",rusqlite::params![skill.uri,bundler::digest(&descriptor)?,descriptor.to_string()])?;}
          receipt::audit(&tx,actor,"skills.load",&path.display().to_string(),&serde_json::json!({"skills":catalog.skills().len()}))?;tx.commit()?;}
         *self.skills.write().unwrap()=Some(catalog);self.changed("skills.loaded",None);Ok(())
+    }
+}
+impl Commerce {
+    pub fn register_local_tools(&self)->Result<()> {
+        let tool=rmcp::model::Tool::new("outrider_session_evidence","Read the persisted evidence for the current session",Arc::new(serde_json::json!({"type":"object","properties":{}}).as_object().unwrap().clone()));
+        let descriptor=serde_json::json!({"tool":tool,"local":true,"remote_name":"outrider_session_evidence"});
+        self.db.0.lock().map_err(|_|anyhow::anyhow!("database lock poisoned"))?.execute("INSERT INTO catalog_items(item_id,kind,digest,descriptor) VALUES ('outrider_session_evidence','tool',?1,?2) ON CONFLICT(item_id) DO UPDATE SET digest=excluded.digest,descriptor=excluded.descriptor",rusqlite::params![bundler::digest(&descriptor)?,descriptor.to_string()])?;Ok(())
     }
 }

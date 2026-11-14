@@ -38,6 +38,7 @@ async fn main() -> Result<()> {
     eprintln!("CLEF: {}", serde_json::to_string(_clef.status())?);
     let _db = proxyfor::commerce::db::Database::open(cli.db.clone().unwrap_or_else(|| config_dir.join("outrider.db")))?;
     let (commerce,new_token)=proxyfor::commerce::Commerce::new(_db,_clef,&config_dir,cli.admin_allow_remote)?;
+    commerce.register_local_tools()?;
     *commerce.probe_policy.write().unwrap()=cli.probe_policy;
     if let Some(token)=new_token {eprintln!("Outrider admin token (shown once): {token}");}
     if let Some(Command::Receipt {command})=cli.command {

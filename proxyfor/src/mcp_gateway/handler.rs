@@ -43,9 +43,11 @@ impl CommerceGateway {
   }
   if let Some(connection)=connection {self.commerce.db.0.lock().map_err(|_|anyhow!("database lock poisoned"))?.execute("UPDATE fingerprint_observations SET session_id=?1 WHERE connection_id=?2 AND session_id IS NULL",params![session,connection.connection_id])?;}
   if let Some(signed)=signed {self.commerce.receipts.verify(&signed,&subject,&signed.receipt.bundle_id)?;self.commerce.db.0.lock().map_err(|_|anyhow!("database lock poisoned"))?.execute("INSERT OR IGNORE INTO presented_receipts(session_id,receipt_id) VALUES (?1,?2)",params![session,signed.receipt.receipt_id])?;}
-  self.commerce.peers.lock().map_err(|_|anyhow!("peer registry poisoned"))?.insert(session.clone(),context.peer.clone());
-  if is_new {
-   self.commerce.changed("session.connected",Some(&session));
+  {let mut peers=self.commerce.peers.lock().map_err(|_|anyhow!("peer registry poisoned"))?;
+   if peers.get(&session).is_none_or(|p|p.is_transport_closed()) {peers.insert(session.clone(),context.peer.clone());}}
+
+  if is_new {self.commerce.changed("session.connected",Some(&session));}
+  {
    if *self.commerce.probe_policy.read().unwrap()==crate::fingerprint::active::ProbePolicy::Auto && context.client_capabilities().is_some_and(|c|c.sampling.is_some()) {
     let start={self.commerce.auto_probed.lock().unwrap().insert(session.clone())};
     if start {crate::fingerprint::active::run(&self.commerce,&session,context.peer.clone(),true).await?;}
@@ -110,7 +112,8 @@ impl CommerceGateway {
      result=commerce.federation.call(&commerce,&owner,&upstream,&tool,args)=>outputs.push(result.map_err(|e|TaskExit::Error(error(e)))?)
     }}Ok(CallToolResult::success(vec![ContentBlock::text(serde_json::to_string(&outputs).map_err(|e|TaskExit::Error(error(e)))?)]))
    }));
-   self.commerce.task_owners.lock().unwrap().insert(task.task_id.clone(),session);
+   frame(&self.commerce.db,Some(&session),None,"response","tasks/create",&serde_json::to_value(&task)?)?;
+  self.commerce.task_owners.lock().unwrap().insert(task.task_id.clone(),session);
    return Ok(CallToolResponse::Task(CreateTaskResult::new(task)))
   }
   let mut outputs=Vec::new();for (upstream,tool,args) in jobs {outputs.push(self.commerce.federation.call(&self.commerce,&session,&upstream,&tool,args).await?);}
@@ -137,8 +140,8 @@ impl ServerHandler for CommerceGateway {
  async fn read_resource_directory(&self,r:ReadResourceDirectoryRequestParams,c:RequestContext<RoleServer>)->Result<ReadResourceDirectoryResult,ErrorData>{let(s,u)=self.session(&c,None).await.map_err(error)?;let allowed=self.allowed_skill_files(&self.entitled(&s,&u).map_err(error)?);let skills=self.commerce.skills.read().unwrap();let cat=skills.as_ref().ok_or_else(||error("No skill catalog configured"))?;let mut result=cat.read_resource_directory(&r.uri)?;result.resources.retain(|entry|allowed.contains(&entry.uri));Ok(result)}
  async fn list_prompts(&self,_:Option<PaginatedRequestParams>,c:RequestContext<RoleServer>)->Result<ListPromptsResult,ErrorData>{let(s,u)=self.session(&c,None).await.map_err(error)?;let allowed=self.entitled(&s,&u).map_err(error)?;let mut prompts=Vec::new();for i in self.catalog().map_err(error)? {if i["kind"]=="prompt" && allowed.contains(i["item_id"].as_str().unwrap_or("")){let mut p:Prompt=serde_json::from_value(i["descriptor"]["prompt"].clone()).map_err(error)?;p.name=i["item_id"].as_str().unwrap().into();prompts.push(p)}}Ok(ListPromptsResult::with_all_items(prompts).with_ttl_ms(0).with_cache_scope(CacheScope::Private))}
  async fn get_prompt(&self,r:GetPromptRequestParams,c:RequestContext<RoleServer>)->Result<GetPromptResponse,ErrorData>{let(s,u)=self.session(&c,None).await.map_err(error)?;ensure_mcp(self.entitled(&s,&u).map_err(error)?.contains(&r.name),"Prompt requires a valid bundle receipt")?;let item=self.catalog().map_err(error)?.into_iter().find(|i|i["item_id"]==r.name).ok_or_else(||error("Unknown prompt"))?;let client=self.commerce.federation.client(item["upstream_name"].as_str().unwrap()).await.map_err(error)?;let mut req=r;req.name=item["descriptor"]["prompt"]["name"].as_str().unwrap().into();client.get_prompt(req).await.map(Into::into).map_err(error)}
- async fn get_task(&self,r:GetTaskParams,c:RequestContext<RoleServer>)->Result<GetTaskResult,ErrorData>{let(s,_)=self.session(&c,None).await.map_err(error)?;ensure_mcp(self.commerce.task_owners.lock().unwrap().get(&r.task_id)==Some(&s),"Task belongs to another session")?;Ok(GetTaskResult::new(self.commerce.tasks.get_task(&r.task_id)?))}
- async fn update_task(&self,r:UpdateTaskParams,c:RequestContext<RoleServer>)->Result<(),ErrorData>{let(s,_)=self.session(&c,None).await.map_err(error)?;ensure_mcp(self.commerce.task_owners.lock().unwrap().get(&r.task_id)==Some(&s),"Task belongs to another session")?;self.commerce.tasks.update_task(&r.task_id,r.input_responses)}
- async fn cancel_task(&self,r:CancelTaskParams,c:RequestContext<RoleServer>)->Result<(),ErrorData>{let(s,_)=self.session(&c,None).await.map_err(error)?;ensure_mcp(self.commerce.task_owners.lock().unwrap().get(&r.task_id)==Some(&s),"Task belongs to another session")?;self.commerce.tasks.cancel_task(&r.task_id)}
+ async fn get_task(&self,r:GetTaskParams,c:RequestContext<RoleServer>)->Result<GetTaskResult,ErrorData>{let(s,_)=self.session(&c,None).await.map_err(error)?;ensure_mcp(self.commerce.task_owners.lock().unwrap().get(&r.task_id)==Some(&s),"Task belongs to another session")?;{let task=self.commerce.tasks.get_task(&r.task_id)?;frame(&self.commerce.db,Some(&s),None,"response","tasks/get",&serde_json::to_value(&task).map_err(error)?).map_err(error)?;Ok(GetTaskResult::new(task))}}
+ async fn update_task(&self,r:UpdateTaskParams,c:RequestContext<RoleServer>)->Result<(),ErrorData>{let(s,_)=self.session(&c,None).await.map_err(error)?;ensure_mcp(self.commerce.task_owners.lock().unwrap().get(&r.task_id)==Some(&s),"Task belongs to another session")?;self.record(&c,&s,"tasks/update",&serde_json::to_value(&r).map_err(error)?).map_err(error)?;self.commerce.tasks.update_task(&r.task_id,r.input_responses)}
+ async fn cancel_task(&self,r:CancelTaskParams,c:RequestContext<RoleServer>)->Result<(),ErrorData>{let(s,_)=self.session(&c,None).await.map_err(error)?;ensure_mcp(self.commerce.task_owners.lock().unwrap().get(&r.task_id)==Some(&s),"Task belongs to another session")?;self.record(&c,&s,"tasks/cancel",&serde_json::to_value(&r).map_err(error)?).map_err(error)?;self.commerce.tasks.cancel_task(&r.task_id)}
 }
 fn ensure_mcp(condition:bool,message:&str)->Result<(),ErrorData>{if condition {Ok(())}else{Err(error(message))}}

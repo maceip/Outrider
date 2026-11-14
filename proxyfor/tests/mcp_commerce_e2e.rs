@@ -1,10 +1,8 @@
 mod common;
 use anyhow::{Result,Context};
-use proxyfor::{commerce::{Commerce,db::{Database,now},bundler::{self,Bundle},receipt::SignedReceipt},clef::engine::{ClefConfig,ClefEngine}};
+use proxyfor::{commerce::{Commerce,db::{Database,now},bundler::{self,Bundle}},clef::engine::{ClefConfig,ClefEngine}};
 use rmcp::{ClientServiceExt,ClientLifecycleMode,model::*,transport::{StreamableHttpClientTransport,streamable_http_client::StreamableHttpClientTransportConfig}};
 use serde_json::{json,Value};
-use std::sync::Arc;
-fn args(v:Value)->serde_json::Map<String,Value>{v.as_object().unwrap().clone()}
 fn retry(state:&str,token:Option<&str>)->CallToolRequestParams {
  let mut r=CallToolRequestParams::new("up__outrider_catalog");r.request_state=Some(state.into());
  if let Some(token)=token {r.input_responses=Some([("capability_receipt".into(),serde_json::to_value(ElicitResult::new(ElicitationAction::Accept).with_content(json!({"receipt":token}))).unwrap())].into());}r
