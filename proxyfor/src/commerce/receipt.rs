@@ -133,6 +133,19 @@ impl ReceiptAuthority {
         tool: &str,
         quote: Option<&str>,
     ) -> Result<i64> {
+        Ok(self
+            .redeem_tracked(signed, subject, bundle, session, tool, quote)?
+            .1)
+    }
+    pub fn redeem_tracked(
+        &self,
+        signed: &SignedReceipt,
+        subject: &str,
+        bundle: &str,
+        session: &str,
+        tool: &str,
+        quote: Option<&str>,
+    ) -> Result<(String, i64)> {
         self.verify_signature(signed)?;
         let mut conn = self
             .db
@@ -150,13 +163,54 @@ impl ReceiptAuthority {
         }
         let changed=tx.execute("UPDATE capability_receipts SET remaining_calls=remaining_calls-1 WHERE receipt_id=?1 AND remaining_calls>0 AND revoked=0 AND expires_at_unix>?2",params![signed.receipt.receipt_id,now()])?;
         ensure!(changed == 1, "Receipt is exhausted, revoked, or expired");
-        tx.execute("INSERT INTO receipt_redemptions(redemption_id,receipt_id,session_id,tool_name,quote_id,created_at) VALUES (?1,?2,?3,?4,?5,?6)",params![id(),signed.receipt.receipt_id,session,tool,quote,now()])?;
+        let redemption_id = id();
+        tx.execute("INSERT INTO receipt_redemptions(redemption_id,receipt_id,session_id,tool_name,quote_id,created_at) VALUES (?1,?2,?3,?4,?5,?6)",params![redemption_id,signed.receipt.receipt_id,session,tool,quote,now()])?;
         tx.execute(
             "INSERT OR IGNORE INTO presented_receipts(session_id,receipt_id) VALUES (?1,?2)",
             params![session, signed.receipt.receipt_id],
         )?;
         tx.commit()?;
-        Ok(remaining - 1)
+        Ok((redemption_id, remaining - 1))
+    }
+    pub fn refund_failed_execution(
+        &self,
+        redemption_id: &str,
+        session: &str,
+        reason: &str,
+    ) -> Result<()> {
+        let mut conn = self
+            .db
+            .0
+            .lock()
+            .map_err(|_| anyhow!("database lock poisoned"))?;
+        let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let row: Option<(String, String)> = tx
+            .query_row(
+                "SELECT receipt_id,tool_name FROM receipt_redemptions WHERE redemption_id=?1",
+                [redemption_id],
+                |r| Ok((r.get(0)?, r.get(1)?)),
+            )
+            .optional()?;
+        let Some((receipt_id, tool_name)) = row else {
+            return Ok(());
+        };
+        tx.execute(
+            "DELETE FROM receipt_redemptions WHERE redemption_id=?1",
+            [redemption_id],
+        )?;
+        tx.execute(
+            "UPDATE capability_receipts SET remaining_calls=MIN(max_calls,remaining_calls+1) WHERE receipt_id=?1",
+            [&receipt_id],
+        )?;
+        audit(
+            &tx,
+            "system:gateway",
+            "receipt.refund_failed_call",
+            &receipt_id,
+            &serde_json::json!({"redemption_id":redemption_id,"session_id":session,"tool_name":tool_name,"reason":reason}),
+        )?;
+        tx.commit()?;
+        Ok(())
     }
     pub fn revoke(&self, receipt_id: &str, actor: &str) -> Result<()> {
         let mut conn = self

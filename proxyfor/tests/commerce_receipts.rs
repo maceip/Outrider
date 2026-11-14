@@ -276,3 +276,80 @@ async fn evaluated_session_state_infers_no_verdict_from_the_pick() -> Result<()>
     assert_eq!(states, ["CLEF Evaluated", "CLEF Evaluated"]);
     Ok(())
 }
+
+#[tokio::test]
+async fn session_evidence_and_state_survive_over_1000_other_session_rows() -> Result<()> {
+    let dir = tempfile::tempdir()?;
+    let path = dir.path().join("scale.db");
+    let db = Database::open(&path)?;
+    seed(&db, &path)?;
+    let engine = ClefEngine::load(ClefConfig {
+        model: None,
+        backend: "cpu".into(),
+        threads: 1,
+        cache_dir: dir.path().into(),
+        workers: 1,
+    })
+    .await?;
+    let (rt, _) = Commerce::new(db, engine, dir.path(), false)?;
+    rt.db
+        .record_session("early-session", "early-subject", &json!({}), "http")?;
+    rt.db
+        .record_session("noise-session", "noise-subject", &json!({}), "http")?;
+    let early_receipt =
+        rt.receipts
+            .issue("early-subject", "bundle", 2, now() + 600, "admin:test")?;
+    let mut conn = rusqlite::Connection::open(&path)?;
+    conn.execute(
+        "INSERT INTO fingerprint_observations(observation_id,session_id,kind,evidence,created_at) VALUES ('early-obs','early-session','client_hello','{\"sni\":\"early.example\"}',?1)",
+        [now()],
+    )?;
+    conn.execute(
+        "INSERT INTO probe_runs(probe_id,session_id,purpose,status,created_at) VALUES ('early-probe','early-session','probe','Completed',?1)",
+        [now()],
+    )?;
+    let tx = conn.transaction()?;
+    for i in 0..1050 {
+        tx.execute(
+            "INSERT INTO fingerprint_observations(observation_id,session_id,kind,evidence,created_at) VALUES (?1,'noise-session','mcp_request','{}',?2)",
+            rusqlite::params![format!("noise-obs-{i}"), now()],
+        )?;
+        tx.execute(
+            "INSERT INTO probe_runs(probe_id,session_id,purpose,status,created_at) VALUES (?1,'noise-session','probe','Completed',?2)",
+            rusqlite::params![format!("noise-probe-{i}"), now()],
+        )?;
+        let noise_id = format!("noise-rcpt-{i}");
+        let noise_payload = json!({
+            "receipt_id": noise_id,
+            "subject": "noise-subject",
+            "bundle_id": "bundle",
+            "item_digests": [],
+            "max_calls": 1,
+            "expires_at_unix": now() + 600
+        })
+        .to_string();
+        tx.execute(
+            "INSERT INTO capability_receipts(receipt_id,subject,bundle_id,payload,signature,max_calls,remaining_calls,expires_at_unix,created_at) VALUES (?1,'noise-subject','bundle',?2,'sig',1,1,?3,?4)",
+            rusqlite::params![noise_id, noise_payload, now() + 600, now()],
+        )?;
+    }
+    tx.commit()?;
+    drop(conn);
+    let record = rt.db.session_record("early-session")?;
+    assert_eq!(record["observations"].as_array().unwrap().len(), 1);
+    assert_eq!(record["probes"].as_array().unwrap().len(), 1);
+    let receipts = rt
+        .db
+        .rows_where("capability_receipts", "subject", "early-subject")?;
+    assert_eq!(receipts.len(), 1);
+    assert_eq!(receipts[0]["receipt_id"], early_receipt.receipt.receipt_id);
+    let snapshot = rt.snapshot()?;
+    let early_state = snapshot["agent_sessions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|s| s["session_id"] == "early-session")
+        .and_then(|s| s["state"].as_str());
+    assert_eq!(early_state, Some("Probed"));
+    Ok(())
+}

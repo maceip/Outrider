@@ -9,6 +9,11 @@ use serde_json::{Value, json};
 use std::{path::PathBuf, sync::Arc, time::Instant};
 use tokio::sync::Semaphore;
 
+pub const MAX_CONTEXT_TOKENS: usize = 4096;
+pub const MAX_OUTPUT_TOKENS: usize = 256;
+const TOKEN_SAFETY_MARGIN: usize = 32;
+pub const MAX_INPUT_TOKENS: usize = MAX_CONTEXT_TOKENS - MAX_OUTPUT_TOKENS - TOKEN_SAFETY_MARGIN;
+
 #[derive(Clone, Debug)]
 pub struct ClefConfig {
     pub model: Option<PathBuf>,
@@ -75,7 +80,7 @@ impl ClefEngine {
                 .backend(backend)
                 .num_threads(config.threads as i32)
                 .cache_dir(config.cache_dir)
-                .max_num_tokens(4096)
+                .max_num_tokens(MAX_CONTEXT_TOKENS as i32)
                 .build()?)
         })
         .await?;
@@ -123,26 +128,164 @@ impl ClefEngine {
         tokio::task::spawn_blocking(move || {
             let _permit = permit;
             let started = Instant::now();
-            let prompt = format!("Evaluate only the evidence in this MCP session record. Question: {}. Return exactly JSON matching {}. Session evidence: {}", serde_json::to_string(&question)?,schema,record);
             let mut conversation = engine.create_conversation(ConversationConfig {
-                session:SessionConfig { max_output_tokens:Some(256), ..Default::default() },
-                system_message:Some(serde_json::to_value(Message::system("You evaluate recorded MCP session evidence. Follow the supplied JSON schema."))?),
-                enable_constrained_decoding:Some(true),use_ll_guidance:Some(true),
-                extra_context:Some(json!({"enable_thinking":false})),
-                thinking:Some(ThinkingConfig {enable_thinking:Some(false),thinking_token_budget:Some(0)}),
+                session: SessionConfig {
+                    max_output_tokens: Some(MAX_OUTPUT_TOKENS as i32),
+                    ..Default::default()
+                },
+                system_message: Some(serde_json::to_value(Message::system(
+                    "You evaluate recorded MCP session evidence. Follow the supplied JSON schema.",
+                ))?),
+                enable_constrained_decoding: Some(true),
+                use_ll_guidance: Some(true),
+                extra_context: Some(json!({"enable_thinking": false})),
+                thinking: Some(ThinkingConfig {
+                    enable_thinking: Some(false),
+                    thinking_token_budget: Some(0),
+                }),
                 ..Default::default()
             })?;
+            let question_json = serde_json::to_string(&question)?;
+            let preface = conversation.render_preface()?;
+            let measure = |candidate: &Value| -> Result<(String, String, usize)> {
+                let prompt = format!(
+                    "Evaluate only the evidence in this MCP session record. Question: {question_json}. Return exactly JSON matching {schema}. Session evidence: {candidate}"
+                );
+                let msg = Message::user(&prompt);
+                let rendered = format!("{preface}{}", conversation.render_message(&msg)?);
+                let tokens = engine.tokenize(&rendered)?.len();
+                Ok((prompt, rendered, tokens))
+            };
+            let (prompt, rendered_input, input_tokens) = {
+                let initial = measure(&record)?;
+                if initial.2 <= MAX_INPUT_TOKENS {
+                    initial
+                } else {
+                    fit_session_evidence(&record, &measure)?
+                }
+            };
             let message = Message::user(&prompt);
-            let rendered_input = format!("{}{}",conversation.render_preface()?,conversation.render_message(&message)?);
-            let input_tokens = engine.tokenize(&rendered_input)?.len();
-            let output = conversation.send_message_with(message, SendOptions { optional_args:Some(ConversationOptionalArgs {
-                constraint_type:Some(ConstraintType::JsonSchema),constraint_string:Some(schema.to_string()),max_output_tokens:Some(256),..Default::default()
-            }), ..Default::default() })?;
+            let output = conversation.send_message_with(
+                message,
+                SendOptions {
+                    optional_args: Some(ConversationOptionalArgs {
+                        constraint_type: Some(ConstraintType::JsonSchema),
+                        constraint_string: Some(schema.to_string()),
+                        max_output_tokens: Some(MAX_OUTPUT_TOKENS as i32),
+                        ..Default::default()
+                    }),
+                    ..Default::default()
+                },
+            )?;
             let raw_output = output.text().context("No model response text")?;
-            let value: Value = serde_json::from_str(&raw_output).context("Model returned invalid JSON")?;
+            let value: Value =
+                serde_json::from_str(&raw_output).context("Model returned invalid JSON")?;
             let pick = question.validate(&value)?;
             let output_tokens = engine.tokenize(&raw_output)?.len();
-            Ok(Evaluation {prompt,rendered_input,raw_output,pick,input_tokens,output_tokens,latency_ms:started.elapsed().as_millis()})
-        }).await?
+            Ok(Evaluation {
+                prompt,
+                rendered_input,
+                raw_output,
+                pick,
+                input_tokens,
+                output_tokens,
+                latency_ms: started.elapsed().as_millis(),
+            })
+        })
+        .await?
     }
+}
+
+fn fit_session_evidence<F>(record: &Value, measure: &F) -> Result<(String, String, usize)>
+where
+    F: Fn(&Value) -> Result<(String, String, usize)>,
+{
+    let Some(base) = record.as_object() else {
+        let (_, _, tokens) = measure(record)?;
+        anyhow::bail!(
+            "CLEF prompt exceeds {MAX_CONTEXT_TOKENS}-token context window ({tokens} input tokens > {MAX_INPUT_TOKENS} max input budget)"
+        );
+    };
+    let probes = base
+        .get("probes")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let observations = base
+        .get("observations")
+        .and_then(Value::as_array)
+        .cloned()
+        .unwrap_or_default();
+    let build = |keep_probes: usize, keep_obs: usize, drop_init: bool| -> Value {
+        let mut map = base.clone();
+        if drop_init {
+            map.insert(
+                "initialize".into(),
+                json!({"omitted_for_context_budget": true}),
+            );
+        }
+        map.insert(
+            "probes".into(),
+            Value::Array(probes.iter().take(keep_probes).cloned().collect()),
+        );
+        map.insert(
+            "observations".into(),
+            Value::Array(observations.iter().take(keep_obs).cloned().collect()),
+        );
+        if keep_probes < probes.len() {
+            map.insert(
+                "omitted_probes".into(),
+                Value::from(probes.len() - keep_probes),
+            );
+        }
+        if keep_obs < observations.len() {
+            map.insert(
+                "omitted_observations".into(),
+                Value::from(observations.len() - keep_obs),
+            );
+        }
+        Value::Object(map)
+    };
+    // First keep all probes if possible and binary-search how many newest observations fit.
+    let no_obs = measure(&build(probes.len(), 0, false))?;
+    if no_obs.2 <= MAX_INPUT_TOKENS {
+        let (mut lo, mut hi) = (0usize, observations.len());
+        let mut best = no_obs;
+        while lo < hi {
+            let mid = (lo + hi).div_ceil(2);
+            let m = measure(&build(probes.len(), mid, false))?;
+            if m.2 <= MAX_INPUT_TOKENS {
+                best = m;
+                lo = mid;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return Ok(best);
+    }
+    // Otherwise binary-search how many newest probes fit with 0 observations.
+    let empty_evidence = measure(&build(0, 0, false))?;
+    if empty_evidence.2 <= MAX_INPUT_TOKENS {
+        let (mut lo, mut hi) = (0usize, probes.len());
+        let mut best = empty_evidence;
+        while lo < hi {
+            let mid = (lo + hi).div_ceil(2);
+            let m = measure(&build(mid, 0, false))?;
+            if m.2 <= MAX_INPUT_TOKENS {
+                best = m;
+                lo = mid;
+            } else {
+                hi = mid - 1;
+            }
+        }
+        return Ok(best);
+    }
+    let minimal = measure(&build(0, 0, true))?;
+    if minimal.2 <= MAX_INPUT_TOKENS {
+        return Ok(minimal);
+    }
+    anyhow::bail!(
+        "CLEF prompt exceeds {MAX_CONTEXT_TOKENS}-token context window ({} input tokens > {MAX_INPUT_TOKENS} max input budget)",
+        minimal.2
+    )
 }

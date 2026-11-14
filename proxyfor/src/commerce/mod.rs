@@ -174,23 +174,36 @@ pub mod tui;
 
 impl Commerce {
     fn refresh_session_states(&self) -> Result<()> {
+        use rusqlite::OptionalExtension as _;
         let sessions = self.db.rows("agent_sessions")?;
-        let evaluations = self.db.rows("clef_evaluations")?;
-        let probes = self.db.rows("probe_runs")?;
         for session in sessions.as_array().unwrap() {
             let id = session["session_id"].as_str().unwrap();
             let subject = session["subject"].as_str().unwrap();
-            let receipts = {
+            let (receipts, latest_status, has_completed_probe) = {
                 let conn = self
                     .db
                     .0
                     .lock()
                     .map_err(|_| anyhow::anyhow!("database lock poisoned"))?;
-                let mut stmt=conn.prepare("SELECT r.payload,r.signature FROM capability_receipts r JOIN presented_receipts p ON p.receipt_id=r.receipt_id WHERE p.session_id=?1")?;
-                stmt.query_map([id], |r| {
-                    Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
-                })?
-                .collect::<rusqlite::Result<Vec<_>>>()?
+                let mut stmt = conn.prepare("SELECT r.payload,r.signature FROM capability_receipts r JOIN presented_receipts p ON p.receipt_id=r.receipt_id WHERE p.session_id=?1")?;
+                let receipts = stmt
+                    .query_map([id], |r| {
+                        Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?))
+                    })?
+                    .collect::<rusqlite::Result<Vec<_>>>()?;
+                let latest_status: Option<String> = conn
+                    .query_row(
+                        "SELECT status FROM clef_evaluations WHERE session_id=?1 ORDER BY rowid DESC LIMIT 1",
+                        [id],
+                        |r| r.get(0),
+                    )
+                    .optional()?;
+                let has_completed_probe: bool = conn.query_row(
+                    "SELECT EXISTS(SELECT 1 FROM probe_runs WHERE session_id=?1 AND status='Completed')",
+                    [id],
+                    |r| r.get(0),
+                )?;
+                (receipts, latest_status, has_completed_probe)
             };
             let entitled = receipts.into_iter().any(|(payload, signature)| {
                 serde_json::from_str::<receipt::CapabilityReceipt>(&payload)
@@ -206,22 +219,12 @@ impl Commerce {
                             .is_ok()
                     })
             });
-            let latest = evaluations
-                .as_array()
-                .unwrap()
-                .iter()
-                .find(|e| e["session_id"] == id);
             let state = if entitled {
                 "Entitled"
-            } else if latest.is_some_and(|e| e["status"] == "Verified") {
+            } else if latest_status.as_deref() == Some("Verified") {
                 // The pick answers the operator's own question; no verdict is inferred from it.
                 "CLEF Evaluated"
-            } else if probes
-                .as_array()
-                .unwrap()
-                .iter()
-                .any(|p| p["session_id"] == id && p["status"] == "Completed")
-            {
+            } else if has_completed_probe {
                 "Probed"
             } else {
                 "Unprobed"

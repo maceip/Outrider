@@ -436,9 +436,13 @@ impl CommerceGateway {
                 ));
             }
             "outrider_fingerprint_me" => {
-                let rows = self.commerce.db.rows("fingerprint_observations")?;
+                let observations = self.commerce.db.rows_where(
+                    "fingerprint_observations",
+                    "session_id",
+                    &session,
+                )?;
                 return Ok(complete(
-                    json!({"session_id":session,"observations":rows.as_array().unwrap().iter().filter(|r|r["session_id"]==session).collect::<Vec<_>>()}),
+                    json!({"session_id":session,"observations":observations}),
                 ));
             }
             "outrider_run_probe" => {
@@ -470,18 +474,23 @@ impl CommerceGateway {
                 ));
             }
             "outrider_receipt_status" => {
-                let rows = self.commerce.db.rows("capability_receipts")?;
+                let rows =
+                    self.commerce
+                        .db
+                        .rows_where("capability_receipts", "subject", &subject)?;
                 return Ok(complete(
-                    json!({"receipts":rows.as_array().unwrap().iter().filter(|r|r["subject"]==subject).map(|r|json!({"receipt_id":r["receipt_id"],"bundle_id":r["bundle_id"],"remaining_calls":r["remaining_calls"],"expires_at_unix":r["expires_at_unix"],"revoked":r["revoked"]})).collect::<Vec<_>>()}),
+                    json!({"receipts":rows.iter().map(|r|json!({"receipt_id":r["receipt_id"],"bundle_id":r["bundle_id"],"remaining_calls":r["remaining_calls"],"expires_at_unix":r["expires_at_unix"],"revoked":r["revoked"]})).collect::<Vec<_>>()}),
                 ));
             }
             _ => {}
         }
-        let bundle = if name == "outrider_checkout_bundle" {
-            args.get("bundle_id")
-                .and_then(Value::as_str)
-                .context("Missing bundle_id")?
-                .to_owned()
+        let candidate_bundles = if name == "outrider_checkout_bundle" {
+            vec![
+                args.get("bundle_id")
+                    .and_then(Value::as_str)
+                    .context("Missing bundle_id")?
+                    .to_owned(),
+            ]
         } else {
             ensure!(
                 self.catalog()?
@@ -489,31 +498,91 @@ impl CommerceGateway {
                     .any(|i| i["item_id"] == name && i["kind"] == "tool"),
                 "Unknown tool"
             );
-            bundler::bundles(&self.commerce.db)?
+            let matching: Vec<String> = bundler::bundles(&self.commerce.db)?
                 .into_iter()
-                .find(|b| b.items.iter().any(|i| i == name))
-                .context("Tool has no configured bundle")?
-                .bundle_id
+                .filter(|b| b.items.iter().any(|i| i == name))
+                .map(|b| b.bundle_id)
+                .collect();
+            ensure!(!matching.is_empty(), "Tool has no configured bundle");
+            matching
         };
-        let (signed, quote) = if request.request_state.is_some() {
+        let (bundle, signed, quote) = if request.request_state.is_some() {
             let (state, signed) =
                 mrtr_checkout::finish(&self.commerce, &session, &subject, &request)?;
-            ensure!(state.bundle_id == bundle, "Quote bundle mismatch");
-            (signed, Some(state.quote_id))
+            ensure!(
+                candidate_bundles.contains(&state.bundle_id),
+                "Quote bundle mismatch"
+            );
+            (state.bundle_id, signed, Some(state.quote_id))
         } else if let Some(token) = self.token(&context) {
             let signed = SignedReceipt::decode(&token)?;
-            self.commerce.receipts.verify(&signed, &subject, &bundle)?;
-            (signed, None)
+            let target = if candidate_bundles.contains(&signed.receipt.bundle_id) {
+                signed.receipt.bundle_id.clone()
+            } else {
+                candidate_bundles[0].clone()
+            };
+            self.commerce.receipts.verify(&signed, &subject, &target)?;
+            (target, signed, None)
         } else if let Some(signed) = self
             .receipts(&session, &subject)?
             .into_iter()
-            .find(|r| r.receipt.bundle_id == bundle)
+            .find(|r| candidate_bundles.contains(&r.receipt.bundle_id))
         {
-            (signed, None)
+            let target = signed.receipt.bundle_id.clone();
+            (target, signed, None)
         } else {
-            return mrtr_checkout::begin(&self.commerce, &session, &subject, &bundle, &request);
+            let offered = self
+                .commerce
+                .db
+                .rows_where("session_offers", "session_id", &session)?;
+            let chosen = offered
+                .iter()
+                .filter_map(|o| o["bundle_id"].as_str())
+                .find(|b| candidate_bundles.iter().any(|c| c == *b))
+                .map(str::to_owned)
+                .unwrap_or_else(|| candidate_bundles[0].clone());
+            return mrtr_checkout::begin(&self.commerce, &session, &subject, &chosen, &request);
         };
-        let remaining = self.commerce.receipts.redeem(
+        let execute_bundle =
+            name != "outrider_checkout_bundle" || args.get("execute") == Some(&Value::Bool(true));
+        let jobs = if execute_bundle {
+            let items = if name == "outrider_checkout_bundle" {
+                bundler::bundles(&self.commerce.db)?
+                    .into_iter()
+                    .find(|b| b.bundle_id == bundle)
+                    .context("Unknown bundle")?
+                    .items
+            } else {
+                vec![name.into()]
+            };
+            let jobs = self
+                .catalog()?
+                .into_iter()
+                .filter(|i| i["kind"] == "tool" && items.iter().any(|s| i["item_id"] == *s))
+                .map(|i| {
+                    let tool = i["descriptor"]["remote_name"]
+                        .as_str()
+                        .unwrap_or("")
+                        .to_owned();
+                    let upstream = i["upstream_name"].as_str().unwrap_or("").to_owned();
+                    let args = if name == "outrider_checkout_bundle" {
+                        args.get("tool_arguments")
+                            .and_then(|v| v.get(i["item_id"].as_str().unwrap()))
+                            .and_then(Value::as_object)
+                            .cloned()
+                            .unwrap_or_default()
+                    } else {
+                        args.clone()
+                    };
+                    (upstream, tool, args)
+                })
+                .collect::<Vec<_>>();
+            ensure!(!jobs.is_empty(), "Bundle contains no executable tools");
+            jobs
+        } else {
+            Vec::new()
+        };
+        let (redemption_id, remaining) = self.commerce.receipts.redeem_tracked(
             &signed,
             &subject,
             &bundle,
@@ -531,55 +600,44 @@ impl CommerceGateway {
                 [&session],
             )?;
         self.commerce.changed("receipt.redeemed", Some(&session));
-        if name == "outrider_checkout_bundle" && args.get("execute") != Some(&Value::Bool(true)) {
+        if !execute_bundle {
             return Ok(complete(
                 json!({"session_id":session,"bundle_id":bundle,"receipt_id":signed.receipt.receipt_id,"remaining_calls":remaining}),
             ));
         }
-        let items = if name == "outrider_checkout_bundle" {
-            bundler::bundles(&self.commerce.db)?
-                .into_iter()
-                .find(|b| b.bundle_id == bundle)
-                .unwrap()
-                .items
-        } else {
-            vec![name.into()]
-        };
-        let jobs = self
-            .catalog()?
-            .into_iter()
-            .filter(|i| i["kind"] == "tool" && items.iter().any(|s| i["item_id"] == *s))
-            .map(|i| {
-                let tool = i["descriptor"]["remote_name"]
-                    .as_str()
-                    .unwrap_or("")
-                    .to_owned();
-                let upstream = i["upstream_name"].as_str().unwrap_or("").to_owned();
-                let args = if name == "outrider_checkout_bundle" {
-                    args.get("tool_arguments")
-                        .and_then(|v| v.get(i["item_id"].as_str().unwrap()))
-                        .and_then(Value::as_object)
-                        .cloned()
-                        .unwrap_or_default()
-                } else {
-                    args.clone()
-                };
-                (upstream, tool, args)
-            })
-            .collect::<Vec<_>>();
-        ensure!(!jobs.is_empty(), "Bundle contains no executable tools");
         if context
             .client_capabilities()
             .is_some_and(|c| c.supports_tasks())
         {
             let commerce = self.commerce.clone();
             let owner = session.clone();
-            let task=self.commerce.tasks.spawn(TaskOptions::default(),move|ctx|Box::pin(async move {
-    let mut outputs=Vec::new();for (upstream,tool,args) in jobs {tokio::select! {
-     _=ctx.cancelled()=>return Err(TaskExit::Cancelled),
-     result=commerce.federation.call(&commerce,&owner,&upstream,&tool,args)=>outputs.push(result.map_err(|e|TaskExit::Error(error(e)))?)
-    }}Ok(CallToolResult::success(vec![ContentBlock::text(serde_json::to_string(&outputs).map_err(|e|TaskExit::Error(error(e)))?)]))
-   }));
+            let task = self.commerce.tasks.spawn(TaskOptions::default(), move |ctx| {
+                Box::pin(async move {
+                    let mut outputs = Vec::new();
+                    for (upstream, tool, args) in jobs {
+                        tokio::select! {
+                            _ = ctx.cancelled() => {
+                                let _ = commerce.receipts.refund_failed_execution(&redemption_id, &owner, "task cancelled");
+                                commerce.changed("receipt.refunded", Some(&owner));
+                                return Err(TaskExit::Cancelled);
+                            }
+                            result = commerce.federation.call(&commerce, &owner, &upstream, &tool, args) => {
+                                match result {
+                                    Ok(v) => outputs.push(v),
+                                    Err(e) => {
+                                        let _ = commerce.receipts.refund_failed_execution(&redemption_id, &owner, &format!("{e:#}"));
+                                        commerce.changed("receipt.refunded", Some(&owner));
+                                        return Err(TaskExit::Error(error(e)));
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Ok(CallToolResult::success(vec![ContentBlock::text(
+                        serde_json::to_string(&outputs).map_err(|e| TaskExit::Error(error(e)))?,
+                    )]))
+                })
+            });
             frame(
                 &self.commerce.db,
                 Some(&session),
@@ -597,12 +655,23 @@ impl CommerceGateway {
         }
         let mut outputs = Vec::new();
         for (upstream, tool, args) in jobs {
-            outputs.push(
-                self.commerce
-                    .federation
-                    .call(&self.commerce, &session, &upstream, &tool, args)
-                    .await?,
-            );
+            match self
+                .commerce
+                .federation
+                .call(&self.commerce, &session, &upstream, &tool, args)
+                .await
+            {
+                Ok(output) => outputs.push(output),
+                Err(e) => {
+                    let _ = self.commerce.receipts.refund_failed_execution(
+                        &redemption_id,
+                        &session,
+                        &format!("{e:#}"),
+                    );
+                    self.commerce.changed("receipt.refunded", Some(&session));
+                    return Err(e);
+                }
+            }
         }
         if outputs.len() == 1 {
             Ok(outputs.remove(0).into())

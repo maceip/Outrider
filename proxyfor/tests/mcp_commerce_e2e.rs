@@ -337,6 +337,17 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
             .is_err()
     );
     // Exhaust a one-call receipt, then prove it cannot execute again.
+    // Also configure an alphabetically earlier bundle sharing the same tool to prove multi-bundle lookup matches the caller's receipt bundle.
+    bundler::put_bundle(
+        &rt.db,
+        &Bundle {
+            bundle_id: "alpha-shared".into(),
+            title: "Alphabetically earlier bundle sharing tool".into(),
+            items: vec!["up__outrider_catalog".into()],
+            rules: json!({}),
+        },
+        "admin:test",
+    )?;
     let once = rt
         .receipts
         .issue(&locked_subject, "research", 1, now() + 600, "admin:test")?;
@@ -347,6 +358,64 @@ async fn real_child_upstream_http_mrtr_receipts_skills_subscriptions_and_tasks()
     once_req.meta = Some(meta);
     assert!(other.call_tool_once(once_req.clone()).await.is_ok());
     assert!(other.call_tool_once(once_req).await.is_err());
+    // Prove upstream execution failure refunds the reserved quota instead of burning remaining_calls.
+    {
+        let conn = rusqlite::Connection::open(&db_path)?;
+        conn.execute(
+            "INSERT INTO upstream_servers(name,endpoint,status,updated_at) VALUES ('dead','http://127.0.0.1:9/mcp','Disconnected',?1)",
+            [now()],
+        )?;
+        let dead_tool = Tool::new(
+            "dead__unreachable",
+            "Unreachable upstream tool",
+            std::sync::Arc::new(serde_json::Map::new()),
+        );
+        let dead_desc = json!({"tool": dead_tool, "remote_name": "unreachable"});
+        conn.execute(
+            "INSERT INTO catalog_items(item_id,kind,digest,descriptor,upstream_name) VALUES ('dead__unreachable','tool',?1,?2,'dead')",
+            rusqlite::params![bundler::digest(&dead_desc)?, dead_desc.to_string()],
+        )?;
+    }
+    bundler::put_bundle(
+        &rt.db,
+        &Bundle {
+            bundle_id: "dead-bundle".into(),
+            title: "Dead upstream bundle".into(),
+            items: vec!["dead__unreachable".into()],
+            rules: json!({}),
+        },
+        "admin:test",
+    )?;
+    let refundable =
+        rt.receipts
+            .issue(&locked_subject, "dead-bundle", 1, now() + 600, "admin:test")?;
+    let mut dead_req = CallToolRequestParams::new("dead__unreachable");
+    let mut dead_meta = RequestMetaObject::new();
+    dead_meta.0.insert(
+        "outrider/receipt".into(),
+        Value::String(refundable.encode()?),
+    );
+    dead_req.meta = Some(dead_meta);
+    let redemptions_before = rt.db.rows("receipt_redemptions")?.as_array().unwrap().len();
+    assert!(other.call_tool_once(dead_req).await.is_err());
+    assert_eq!(
+        rt.receipts
+            .verify(&refundable, &locked_subject, "dead-bundle")?,
+        1,
+        "failed upstream execution must refund remaining_calls"
+    );
+    assert_eq!(
+        rt.db.rows("receipt_redemptions")?.as_array().unwrap().len(),
+        redemptions_before
+    );
+    assert_eq!(
+        rusqlite::Connection::open(&db_path)?.query_row(
+            "SELECT COUNT(*) FROM admin_audit_log WHERE action='receipt.refund_failed_call' AND target=?1",
+            [&refundable.receipt.receipt_id],
+            |r| r.get::<_, i64>(0)
+        )?,
+        1
+    );
     // Tasks use the same persisted entitlement and execute the real child upstream.
     let tasks = ClientConfig::new(
         ClientCapabilities::builder().enable_tasks().build(),

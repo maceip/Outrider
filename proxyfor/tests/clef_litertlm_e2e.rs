@@ -93,6 +93,43 @@ async fn real_model_persists_all_question_types() -> Result<()> {
         assert!(row["latency_ms"].as_i64().unwrap() > 0);
     }
     assert_eq!(db.evaluations("live-session")?.len(), 3);
+    // Insert bulky observations that exceed the raw 4096-token window and prove bounded evaluation succeeds truthfully.
+    {
+        let mut conn = rusqlite::Connection::open(temp.path().join("test.db"))?;
+        let tx = conn.transaction()?;
+        let payload = json!({
+            "user_agent": "outrider-stress-client/1.0",
+            "headers": (0..40).map(|k| format!("x-custom-telemetry-header-{k}: observed-value-{k}-abcdef0123456789")).collect::<Vec<_>>()
+        })
+        .to_string();
+        for i in 0..25 {
+            tx.execute(
+                "INSERT INTO fingerprint_observations(observation_id,session_id,kind,evidence,created_at) VALUES (?1,'live-session','mcp_request',?2,1)",
+                rusqlite::params![format!("bulk-obs-{i}"), payload],
+            )?;
+        }
+        tx.commit()?;
+    }
+    let bounded = evaluate_session(
+        &db,
+        &engine,
+        "live-session",
+        Question::Noul {
+            question: "Does this record contain clientInfo?".into(),
+        },
+    )
+    .await?;
+    assert_eq!(bounded["status"], "Verified", "{bounded}");
+    assert!(
+        bounded["input_tokens"].as_u64().unwrap()
+            <= proxyfor::clef::engine::MAX_INPUT_TOKENS as u64
+    );
+    assert!(
+        bounded["rendered_input"]
+            .as_str()
+            .unwrap()
+            .contains("\"omitted_observations\":")
+    );
     client.cancel().await?;
     serving.await??;
     Ok(())

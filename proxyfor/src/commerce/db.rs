@@ -79,22 +79,8 @@ impl Database {
             )
             .context("Unknown session")?;
         drop(conn);
-        let probes = self
-            .rows("probe_runs")?
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter(|p| p["session_id"] == session)
-            .cloned()
-            .collect::<Vec<_>>();
-        let observations = self
-            .rows("fingerprint_observations")?
-            .as_array()
-            .unwrap()
-            .iter()
-            .filter(|p| p["session_id"] == session)
-            .cloned()
-            .collect::<Vec<_>>();
+        let probes = self.rows_where("probe_runs", "session_id", session)?;
+        let observations = self.rows_where("fingerprint_observations", "session_id", session)?;
         Ok(
             serde_json::json!({"session_id":session,"initialize":serde_json::from_str::<Value>(&client)?,"transport":transport,"probes":probes,"observations":observations}),
         )
@@ -113,6 +99,46 @@ impl Database {
     }
 }
 impl Database {
+    fn map_row(columns: &[String], r: &rusqlite::Row<'_>) -> rusqlite::Result<Value> {
+        let mut obj = serde_json::Map::new();
+        for (i, name) in columns.iter().enumerate() {
+            let value = match r.get_ref(i)? {
+                rusqlite::types::ValueRef::Null => Value::Null,
+                rusqlite::types::ValueRef::Integer(n) => Value::from(n),
+                rusqlite::types::ValueRef::Real(n) => Value::from(n),
+                rusqlite::types::ValueRef::Text(s) => {
+                    let s = String::from_utf8_lossy(s).to_string();
+                    if [
+                        "client_config",
+                        "evidence",
+                        "question",
+                        "pick",
+                        "descriptor",
+                        "items",
+                        "rules",
+                        "request",
+                        "item_digests",
+                        "payload",
+                        "details",
+                        "body",
+                        "response",
+                        "head",
+                        "detail",
+                        "message",
+                    ]
+                    .contains(&name.as_str())
+                    {
+                        serde_json::from_str(&s).unwrap_or(Value::String(s))
+                    } else {
+                        Value::String(s)
+                    }
+                }
+                rusqlite::types::ValueRef::Blob(_) => Value::Null,
+            };
+            obj.insert(name.clone(), value);
+        }
+        Ok(Value::Object(obj))
+    }
     pub fn rows(&self, table: &str) -> Result<Value> {
         anyhow::ensure!(
             [
@@ -143,47 +169,34 @@ impl Database {
             "SELECT * FROM {table} ORDER BY rowid DESC LIMIT 1000"
         ))?;
         let columns: Vec<String> = stmt.column_names().into_iter().map(str::to_owned).collect();
-        let rows = stmt.query_map([], |r| {
-            let mut obj = serde_json::Map::new();
-            for (i, name) in columns.iter().enumerate() {
-                let value = match r.get_ref(i)? {
-                    rusqlite::types::ValueRef::Null => Value::Null,
-                    rusqlite::types::ValueRef::Integer(n) => Value::from(n),
-                    rusqlite::types::ValueRef::Real(n) => Value::from(n),
-                    rusqlite::types::ValueRef::Text(s) => {
-                        let s = String::from_utf8_lossy(s).to_string();
-                        if [
-                            "client_config",
-                            "evidence",
-                            "question",
-                            "pick",
-                            "descriptor",
-                            "items",
-                            "rules",
-                            "request",
-                            "item_digests",
-                            "payload",
-                            "details",
-                            "body",
-                            "response",
-                            "head",
-                            "detail",
-                            "message",
-                        ]
-                        .contains(&name.as_str())
-                        {
-                            serde_json::from_str(&s).unwrap_or(Value::String(s))
-                        } else {
-                            Value::String(s)
-                        }
-                    }
-                    rusqlite::types::ValueRef::Blob(_) => Value::Null,
-                };
-                obj.insert(name.clone(), value);
-            }
-            Ok(Value::Object(obj))
-        })?;
+        let rows = stmt.query_map([], |r| Self::map_row(&columns, r))?;
         Ok(Value::Array(rows.collect::<rusqlite::Result<Vec<_>>>()?))
+    }
+    pub fn rows_where(&self, table: &str, column: &str, value: &str) -> Result<Vec<Value>> {
+        anyhow::ensure!(
+            matches!(
+                (table, column),
+                ("fingerprint_observations", "session_id")
+                    | ("probe_runs", "session_id")
+                    | ("clef_evaluations", "session_id")
+                    | ("session_offers", "session_id")
+                    | ("mcp_frames", "session_id")
+                    | ("capability_receipts", "subject")
+                    | ("receipt_redemptions", "session_id")
+                    | ("receipt_redemptions", "receipt_id")
+            ),
+            "Invalid scoped query"
+        );
+        let conn = self
+            .0
+            .lock()
+            .map_err(|_| anyhow::anyhow!("database lock poisoned"))?;
+        let mut stmt = conn.prepare(&format!(
+            "SELECT * FROM {table} WHERE {column}=?1 ORDER BY rowid DESC"
+        ))?;
+        let columns: Vec<String> = stmt.column_names().into_iter().map(str::to_owned).collect();
+        let rows = stmt.query_map([value], |r| Self::map_row(&columns, r))?;
+        Ok(rows.collect::<rusqlite::Result<Vec<_>>>()?)
     }
     pub fn admin_audit(
         &self,

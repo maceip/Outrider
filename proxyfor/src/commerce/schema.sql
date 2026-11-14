@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS mcp_frames (
  frame_id INTEGER PRIMARY KEY AUTOINCREMENT,session_id TEXT REFERENCES agent_sessions,
  upstream_name TEXT,direction TEXT NOT NULL,method TEXT NOT NULL,body TEXT NOT NULL CHECK(json_valid(body)),created_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS observation_session ON fingerprint_observations(session_id);
+CREATE INDEX IF NOT EXISTS probe_session ON probe_runs(session_id);
+CREATE INDEX IF NOT EXISTS evaluation_session ON clef_evaluations(session_id);
 CREATE INDEX IF NOT EXISTS receipt_subject ON capability_receipts(subject);
 CREATE INDEX IF NOT EXISTS redemption_receipt ON receipt_redemptions(receipt_id);
 CREATE TABLE IF NOT EXISTS proxy_traffic (
