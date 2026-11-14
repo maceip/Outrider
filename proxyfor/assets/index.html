@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>proxyfor</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/styles/stackoverflow-light.min.css">
+    <style>
+        body,
+        div,
+        span,
+        a,
+        button,
+        pre,
+        code,
+        table,
+        tbody,
+        thead,
+        th,
+        tr,
+        td {
+            margin: 0;
+            padding: 0;
+            border: 0;
+            font-size: 100%;
+            font: inherit;
+            vertical-align: baseline;
+        }
+
+        table {
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        html {
+            box-sizing: border-box;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "Liberation Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji";
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .root {
+            display: flex;
+            flex-direction: column;
+            background-color: #fff;
+            overflow-x: auto;
+        }
+
+        .header {
+            display: flex;
+            align-items: center;
+            background-color: #f2f2f2;
+            border-bottom: 2px solid white;
+        }
+
+        .main {
+            display: flex;
+            height: calc(100vh - 40px);
+            font-size: 14px;
+            color: #333;
+        }
+
+        .searchbar {
+            display: flex;
+            flex-wrap: nowrap;
+            width: 50%;
+            background-color: #fafafa;
+            transition: all .15s;
+            border: 1px #9a9a9a solid;
+        }
+
+        .searchbar #search {
+            box-sizing: border-box;
+            width: 100%;
+            font-size: 16px;
+            padding: 1px;
+            background-color: transparent;
+            border: none;
+            outline: none;
+        }
+
+        .searchbar .icon {
+            color: #9a9a9a;
+            padding: 3px 3px;
+            cursor: pointer;
+        }
+
+        .tabs {
+            display: flex;
+            border: 1px solid #ccc;
+            background-color: #f2f2f2;
+        }
+
+        .tab {
+            padding: 5px 10px;
+            cursor: pointer;
+            margin: 2px 2px -1px;
+        }
+
+        .tab.active {
+            border: 1px solid #ccc;
+            background-color: white;
+            border-bottom-color: white;
+        }
+
+        .toolbox {
+            margin-left: auto;
+            padding-right: 5px;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropbtn {
+            border: none;
+            cursor: pointer;
+            color: black;
+            text-decoration: none;
+            padding: 0 4px;
+            line-height: 2;
+        }
+
+        .toolbox .dropbtn:not(:last-child) {
+            border-right: 1px solid white;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            cursor: pointer;
+            background-color: white;
+            right: 0;
+            box-shadow: 0px 8px 16px 0px rgba(0, 0, 0, 0.2);
+            z-index: 1;
+        }
+
+        .dropdown-content a {
+            display: block;
+            text-decoration: none;
+            padding: 3px 10px;
+            clear: both;
+            font-weight: 400;
+            line-height: 1.42857143;
+            color: #333;
+            white-space: nowrap;
+        }
+
+        .dropdown-content a:hover {
+            color: #262626;
+            text-decoration: none;
+            background-color: #f5f5f5;
+        }
+
+        .left-panel,
+        .right-panel {
+            display: flex;
+            flex-direction: column;
+            border: 1px solid #ccc;
+            width: 50%;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .traffic-table {
+            width: 100%;
+            table-layout: fixed;
+            border-collapse: collapse;
+            border-spacing: 0;
+        }
+
+        .traffic-table th {
+            text-align: left;
+            background-color: #f2f2f2;
+            border-bottom: solid #bebebe 1px;
+            font-weight: 400;
+            line-height: 2.3;
+        }
+
+        .traffic-table tr {
+            line-height: 30px;
+        }
+
+        .traffic-table td {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .traffic-table tr.selected {
+            background-color: #e0ebf5;
+
+        }
+
+        .col-uri {
+            padding-left: 4px;
+        }
+
+        .col-method {
+            width: 70px;
+        }
+
+        .col-status {
+            width: 50px;
+        }
+
+        .col-type {
+            width: 60px;
+        }
+
+        tbody .col-type {
+            font-size: 8px;
+        }
+
+        .col-size {
+            width: 50px;
+            text-align: right;
+        }
+
+        .col-time {
+            width: 50px;
+            text-align: right;
+            padding-right: 4px;
+        }
+
+        .main-view {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-top: none;
+            padding: 10px;
+            overflow-wrap: break-word;
+            overflow-x: hidden;
+            overflow-y: auto;
+        }
+
+        .firstline {
+            font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+            background-color: #428bca;
+            color: #fff;
+            margin: 0 -8px 2px;
+            padding: 4px 8px;
+            border-radius: 5px;
+            word-break: break-all;
+            max-height: 100px;
+        }
+
+        .header-line {
+            margin-bottom: 0.3em;
+            max-height: 12.4ex;
+            overflow-y: auto;
+        }
+
+        .header-key {
+            font-weight: 700;
+        }
+
+        .header-value {
+            font-family: Menlo, Monaco, Consolas, "Courier New", monospace;
+        }
+
+        .code-view {
+            display: flex;
+            align-items: center;
+            position: relative;
+        }
+
+        .code-view pre {
+            display: block;
+            padding: 10px;
+            margin: 0 0 10px;
+            font-size: 13px;
+            line-height: 1.42857143;
+            color: #333;
+            word-break: break-all;
+            word-wrap: break-word;
+            background-color: #f5f5f5;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: auto;
+            width: 100%;
+        }
+
+        .code-view .copy-btn {
+            cursor: pointer;
+            position: absolute;
+            display: inline-flex;
+            top: 4px;
+            right: 4px;
+            padding: 4px;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .code-view .copy-btn:hover {
+            background-color: #e4e4e4;
+        }
+
+        .media-view {
+            display: block;
+            margin: 0 0 10px;
+        }
+
+        .error-view {
+            display: block;
+            padding: 10px;
+            margin: 0 0 10px;
+            border: 1px solid transparent;
+            border-radius: 4px;
+            color: #8a6d3b;
+            background-color: #fcf8e3;
+            border-color: #faebcc;
+        }
+
+        .ws-date {
+            float: right;
+            font-size: 85%;
+        }
+
+        .ws-recv {
+            color: #a94442;
+        }
+
+        .ws-send {
+            color: #337ab7;
+        }
+
+        @media (max-width: 1000px) {
+
+            .col-status,
+            .col-type,
+            .col-size,
+            .col-time {
+                display: none;
+            }
+        }
+    </style>
+    <script defer src="https://unpkg.com/@highlightjs/cdn-assets@11.9.0/highlight.min.js"></script>
+    <script defer src="https://unpkg.com/clipboard@2/dist/clipboard.min.js"></script>
+    <script defer src="https://unpkg.com/js-beautify@1.15.1/js/lib/beautify.js"></script>
+    <script defer src="https://unpkg.com/js-beautify@1.15.1/js/lib/beautify-css.js"></script>
+    <script defer src="https://unpkg.com/js-beautify@1.15.1/js/lib/beautify-html.js"></script>
+</head>
+
+<body>
+    <div class="root">
+        <div class="header">
+            <form class="searchbar">
+                <div class="icon">
+                    <svg width="16" height="16" viewBox="0 0 16 16">
+                        <path
+                            d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.1zM12 6.5a5.5 5.5 0 1 1-11 0 5.5 5.5 0 0 1 11 0z" />
+                    </svg>
+                </div>
+                <input id="search" title="Search traffics" placeholder="Search" type="text" autocomplete="off"
+                    tabindex="1">
+                <input type="submit" hidden />
+            </form>
+            <div class="toolbox">
+                <div class="dropdown copy-dropdown">
+                    <button class="dropbtn" title="Copy the current traffic">Copy▾</button>
+                    <div class="dropdown-content">
+                        <a data-kind="markdown">Copy as Markdown</a>
+                        <a data-kind="curl">Copy as cURL</a>
+                        <a data-kind="har">Copy as HAR</a>
+                        <a data-kind="req-body">Copy Request Body</a>
+                        <a data-kind="res-body">Copy Response Body</a>
+                    </div>
+                </div>
+                <div class="dropdown export-dropdown">
+                    <button class="dropbtn" title="Export all traffics">Export▾</button>
+                    <div class="dropdown-content">
+                        <a data-kind="markdown">Export all as Markdown</a>
+                        <a data-kind="curl">Export all as cURL</a>
+                        <a data-kind="har">Export all as HAR</a>
+                    </div>
+                </div>
+                <div class="dropdown dropdown-certificate">
+                    <a class="dropbtn" href="/__proxyfor__/certificate/" target="_blank"
+                        title="Install CA certificate for proxying HTTPS traffic">Install Certificate</a>
+                </div>
+            </div>
+        </div>
+        <div class="main">
+            <div class="left-panel">
+                <table class="traffic-table">
+                    <thead>
+                        <tr>
+                            <th class="col-uri">Path</th>
+                            <th class="col-method">Method</th>
+                            <th class="col-status">Status</th>
+                            <th class="col-type">Type</th>
+                            <th class="col-size">Size</th>
+                            <th class="col-time">Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                    </tbody>
+                </table>
+            </div>
+            <div class="right-panel">
+                <div class="tabs">
+                    <div data-tab="req" class="tab active">Request</div>
+                    <div data-tab="res" class="tab">Response</div>
+                    <div data-tab="ws" class="tab hidden">Websocket</div>
+                    <div data-tab="err" class="tab hidden">Error</div>
+                </div>
+                <div class="main-view"></div>
+            </div>
+        </div>
+    </div>
+    <script>
+
+        /**
+         * @typedef {Object} Traffic
+         * @property {string} uri
+         * @property {string} method
+         * @property {?HeadersData} req_headers
+         * @property {?string} req_body_file
+         * @property {?BodyData} req_body
+         * @property {?number} status
+         * @property {?string} http_version
+         * @property {?HeadersData} res_headers
+         * @property {?BodyData} res_body
+         * @property {?string} res_body_file
+         * @property {?number} websocket_id
+         * @property {?string} start_time
+         * @property {?string} end_time
+         * @property {?string} error
+         */
+
+        /**
+         * @typedef {Object} TrafficHead
+         * @property {number} id
+         * @property {string} method
+         * @property {string} uri
+         * @property {?number} status
+         * @property {?number} size
+         * @property {?number} time
+         * @property {string} mime
+         * @property {?number} websocket_id
+         */
+
+        /**
+         * @typedef {Object} HeadersData
+         * @property {Header[]} items
+         * @property {number} size
+         */
+
+        /**
+         * @typedef {Object} Header
+         * @property {string} name
+         * @property {string} value
+         */
+
+        /**
+         * @typedef {Object} BodyData
+         * @property {"utf8"|"base64"} encode 
+         * @property {string} value
+         */
+
+        /**
+         * @typedef {"markdown"|"curl"|"har"} ExportKind
+         */
+
+        /**
+         * @typedef {"markdown"|"curl"|"har"|"req-body"|"res-body"} CopyKind
+         */
+
+        /**
+         * @typedef {Object} WebsocketMessage
+         * @property {?string} error
+         * @property {?WebsocketData} data
+         */
+
+        /**
+         * @typedef {Object} WebsocketData
+         * @property {create} string
+         * @property {bool} server_to_client
+         * @property {BodyData} body
+         */
+
+        const STATUS_CODES = {
+            100: "Continue",
+            101: "Switching Protocols",
+            200: "OK",
+            201: "Created",
+            202: "Accepted",
+            204: "No Content",
+            301: "Moved Permanently",
+            302: "Found",
+            304: "Not Modified",
+            400: "Bad Request",
+            401: "Unauthorized",
+            403: "Forbidden",
+            404: "Not Found",
+            405: "Method Not Allowed",
+            500: "Internal Server Error",
+            502: "Bad Gateway",
+            503: "Service Unavailable",
+            504: "Gateway Timeout",
+        }
+
+        const IMAGE_MIMES = [
+            "image/jpeg",
+            "image/png",
+            "image/gif",
+            "image/svg+xml",
+            "image/webp",
+            "image/bmp",
+            "image/x-icon",
+        ];
+
+        const AUDIO_MIMES = [
+            "audio/mpeg",
+            "audio/ogg",
+            "audio/wav",
+            "audio/webm",
+            "audio/aac",
+            "audio/flac",
+            "audio/x-wav",
+            "audio/x-pn-wav",
+        ];
+
+        const VIDEO_MIMES = [
+            "video/mp4",
+            "video/webm",
+            "video/ogg",
+            "video/quicktime",
+            "video/x-msvideo",
+            "video/x-flv",
+            "video/x-matroska",
+        ];
+
+        const EXPORT_ALL_TRAFFICS = "proxyfor_all_traffics";
+
+        const BASE_URL = "/__proxyfor__";
+
+        const subscribeTrafficsEndpoint = `${BASE_URL}/subscribe/traffics`;
+        const subscribeWebsocketEndpoint = id => `${BASE_URL}/subscribe/websocket/${id}`;
+        const getTrafficEndpoint = id => `${BASE_URL}/traffic/${id}`;
+        const listTrafficsEndpoint = `${BASE_URL}/traffics`;
+
+        /**
+         * @type {HTMLTableElement}
+         */
+        const $trafficTableBody = document.querySelector(".traffic-table tbody");
+        /**
+         * @type {HTMLDivElement}
+         */
+        const $tabs = document.querySelector(".tabs");
+        /**
+         * @type {HTMLDivElement}
+         */
+        const $mainView = document.querySelector(".main-view");
+
+        /**
+         * @type {HTMLButtonElement}
+         */
+        const $exportDropbtn = document.querySelector(".export-dropdown .dropbtn");
+
+        /**
+         * @type {HTMLDivElement}
+         */
+        const $exportDropdownContent = document.querySelector(".export-dropdown .dropdown-content");
+
+        /**
+         * @type {HTMLButtonElement}
+         */
+        const $copyDropbtn = document.querySelector(".copy-dropdown .dropbtn");
+
+        /**
+         * @type {HTMLDivElement}
+         */
+        const $copyDropdownContent = document.querySelector(".copy-dropdown .dropdown-content");
+
+        /**
+         * @type {HTMLInputElement}
+         */
+        const $searchInput = document.getElementById("search");
+
+        /**
+         * @type {AbortController}
+         */
+        let websocketAbortController = new AbortController();
+
+        /**
+         * @type {number}
+         */
+        let selectedTrafficId = null;
+
+        /**
+         * @type {"req" | "res"}
+         */
+        let selectedTab = "req"
+
+        /**
+         * @type {Traffic}
+         */
+        let currentTraffic = null;
+
+        /**
+         * @type {string}
+         */
+        let currentFilter = "";
+
+
+        function handleDOMContentLoaded() {
+            fetch(subscribeTrafficsEndpoint)
+                .then((res) => {
+                    let buf = "";
+                    let decoder = new TextDecoder();
+                    let reader = res.body.getReader();
+                    reader.read().then(function handleNdjson({ value, done }) {
+                        if (done) {
+                            buf = buf.trim();
+                        } else {
+                            let data = decoder.decode(value, { stream: true });
+                            buf += data;
+                        }
+                        let lines = buf.split("\n");
+                        for (let i = 0; i < lines.length - 1; i++) {
+                            const traffic = JSON.parse(lines[i]);
+                            handleTraffic(traffic);
+                        }
+                        buf = lines[lines.length - 1];
+                        return reader.read().then(handleNdjson);
+                    });
+                })
+                .catch((err) => {
+                    console.error("Failed to subscribe traffics", err);
+                });
+
+            $trafficTableBody.addEventListener("click", (e) => {
+                const $tr = e.target.closest("tr");
+                if ($tr) {
+                    const id = parseInt($tr.getAttribute("data-traffic-id"));
+                    if (id) handleSelectTraffic(id);
+                }
+            });
+            $tabs.addEventListener("click", (e) => {
+                const $tab = e.target.closest(".tab");
+                if ($tab) {
+                    const tab = $tab.getAttribute("data-tab");
+                    if (tab) handleSelectedTab(tab, true);
+                }
+            });
+            $exportDropbtn.addEventListener("click", (e) => {
+                $exportDropdownContent.style.display = "block";
+                $copyDropdownContent.style.display = "none";
+            });
+            $exportDropdownContent.addEventListener("click", (e) => {
+                $exportDropdownContent.style.display = "none";
+                const $kind = e.target.closest("[data-kind]");
+                if ($kind) {
+                    const kind = $kind.getAttribute("data-kind");
+                    if (kind) handleExport(kind);
+                }
+            });
+            $copyDropbtn.addEventListener("click", (e) => {
+                $copyDropdownContent.style.display = "block";
+                $exportDropdownContent.style.display = "none";
+            });
+            $copyDropdownContent.addEventListener("click", (e) => {
+                $copyDropdownContent.style.display = "none";
+                const $kind = e.target.closest("[data-kind]");
+                if ($kind) {
+                    const kind = $kind.getAttribute("data-kind");
+                    if (kind) handleCopy(kind);
+                }
+            });
+
+            $searchInput.addEventListener("input", (e) => {
+                currentFilter = e.target.value;
+                handleFilterTraffics();
+            });
+
+            document.addEventListener("click", function (e) {
+                const $dropdown = e.target.closest(".dropdown");
+                if (!$dropdown) {
+                    $exportDropdownContent.style.display = "none";
+                    $copyDropdownContent.style.display = "none";
+                }
+                const $codeCopyBtn = e.target.closest(".code-view .copy-btn");
+                if ($codeCopyBtn) {
+                    ClipboardJS.copy($codeCopyBtn.parentElement.querySelector(".code").textContent);
+
+                    const oldBtnHtml = $codeCopyBtn.innerHTML;
+                    $codeCopyBtn.innerHTML = `
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                            <path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0"/>
+                        </svg>
+                    `;
+                    setTimeout(() => {
+                        $codeCopyBtn.innerHTML = oldBtnHtml;
+                    }, 2000);
+                }
+            });
+        }
+
+        function handleFilterTraffics() {
+            const $trs = $trafficTableBody.querySelectorAll("tr");
+            for (const $tr of Array.from($trs)) {
+                if (currentFilter) {
+                    const filterValue = $tr.getAttribute("data-filter");
+                    currentFilter.split(/\s+/).some(word => filterValue.indexOf(word) === -1)
+                        ? $tr.classList.add("hidden")
+                        : $tr.classList.remove("hidden");
+                } else {
+                    $tr.classList.remove("hidden");
+                }
+            }
+        }
+
+        function handleSelectTraffic(id) {
+            selectedTrafficId = id;
+            const $selected = $trafficTableBody.querySelector("tr.selected");
+            if ($selected) {
+                $selected.classList.remove("selected");
+            }
+            const $newSelected = $trafficTableBody.querySelector(`tr[data-traffic-id="${id}"]`);
+            if ($newSelected) {
+                $newSelected.classList.add("selected");
+                syncTraffic(id)
+            }
+        }
+
+        function handleSelectedTab(tab) {
+            selectedTab = tab;
+            const $active = $tabs.querySelector(".tab.active");
+            if ($active) {
+                $active.classList.remove("active");
+            }
+            const $newActive = $tabs.querySelector(`.tab[data-tab="${tab}"]`);
+            if ($newActive) {
+                $newActive.classList.add("active");
+            }
+            updateTabContent();
+        }
+
+        /**
+         * @param {TrafficHead} head
+         */
+        function handleTraffic(head) {
+            const $node = $trafficTableBody.querySelector(`[data-traffic-id="${head.id}"]`);
+            if ($node) {
+                $node.querySelector(".col-size").textContent = formatSize(head.size);
+                $node.querySelector(".col-time").textContent = formatTimeDelta(head.time);
+                if (selectedTrafficId === head.id) {
+                    syncTraffic(selectedTrafficId);
+                }
+            } else {
+                const resourceType = resolveResourceType(head);
+                const filterValue = `${head.uri} ${head.method} ${head.status} ${head.mime} ${resourceType}`;
+                let cls = "";
+                if (currentFilter) {
+                    if (filterValue.indexOf(currentFilter) === -1) {
+                        cls = "hidden";
+                    }
+                }
+                const row = `
+            <tr class="${cls}" data-traffic-id="${head.id}" data-filter="${filterValue}">
+                <td class="col-uri">${head.uri}</td>
+                <td class="col-method">${head.method}</td>
+                <td class="col-status">${head.status || ""}</td>
+                <td class="col-type">${resourceType}</td>
+                <td class="col-size">${formatSize(head.size)}</td>
+                <td class="col-time">${formatTimeDelta(head.time)}</td>
+            </tr>`;
+                $trafficTableBody.insertAdjacentHTML("beforeend", row);
+            }
+        }
+
+        /**
+         * @param {ExportKind} kind
+         */
+        function handleExport(kind) {
+            fetch(listTrafficsEndpoint + `?${kind}`)
+                .then(async res => {
+                    const contentType = res.headers.get('content-type');
+                    const text = await res.text();
+                    let ext = ".txt";
+                    switch (kind) {
+                        case "markdown":
+                            ext = ".md";
+                            break;
+                        case "curl":
+                            ext = ".sh";
+                            break;
+                        case "har":
+                            ext = ".har";
+                            break;
+                    };
+                    const filename = `${EXPORT_ALL_TRAFFICS}${ext}`;
+                    const file = new File([text], filename, { type: contentType });
+
+                    const url = URL.createObjectURL(file);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = filename;
+                    a.click();
+
+                    URL.revokeObjectURL(url);
+                })
+                .catch(err => {
+                    console.error(`Failed to list traffics`, err);
+                })
+        }
+
+        /**
+         * @param {CopyKind} kind
+         */
+        function handleCopy(kind) {
+            if (!currentTraffic) {
+                return;
+            }
+            fetch(getTrafficEndpoint(selectedTrafficId) + `?${kind}`)
+                .then(res => res.text())
+                .then(text => {
+                    ClipboardJS.copy(text);
+                })
+                .catch(err => {
+                    console.error(`Failed to copy traffic ${selectedTrafficId}`, err);
+                })
+        }
+
+        function updateTabContent() {
+            let innerHTML = "";
+
+            if (!websocketAbortController.signal.aborted) {
+                websocketAbortController.abort();
+            }
+            websocketAbortController = new AbortController();
+
+            if (currentTraffic) {
+                if (selectedTab === "req") {
+                    innerHTML = tmplTrafficReq(currentTraffic);
+                } else if (selectedTab == "res") {
+                    if (currentTraffic.error) {
+                        handleSelectedTab("err");
+                        return;
+                    } else {
+                        innerHTML = tmplTrafficRes(currentTraffic);
+                    }
+                } else if (selectedTab == "ws") {
+                    if (currentTraffic.websocket_id) {
+                        handleSubscribeWebsocket(currentTraffic.websocket_id);
+                    } else {
+                        handleSelectedTab("res");
+                        return;
+                    }
+                } else if (selectedTab == "err") {
+                    if (currentTraffic.error) {
+                        innerHTML = tmplError(currentTraffic.error);
+                    } else {
+                        handleSelectedTab("res");
+                        return;
+                    }
+                }
+            }
+            if (currentTraffic?.error) {
+                $tabs.querySelector(".tab[data-tab='res']").classList.add("hidden");
+                $tabs.querySelector(".tab[data-tab='ws']").classList.add("hidden");
+                $tabs.querySelector(".tab[data-tab='err']").classList.remove("hidden");
+            } else if (currentTraffic?.websocket_id) {
+                $tabs.querySelector(".tab[data-tab='res']").classList.remove("hidden");
+                $tabs.querySelector(".tab[data-tab='ws']").classList.remove("hidden");
+                $tabs.querySelector(".tab[data-tab='err']").classList.add("hidden");
+            } else {
+                $tabs.querySelector(".tab[data-tab='res']").classList.remove("hidden");
+                $tabs.querySelector(".tab[data-tab='ws']").classList.add("hidden");
+                $tabs.querySelector(".tab[data-tab='err']").classList.add("hidden");
+            }
+            $mainView.innerHTML = innerHTML;
+        }
+
+        function handleSubscribeWebsocket(id) {
+            fetch(subscribeWebsocketEndpoint(id), { signal: websocketAbortController.signal })
+                .then((res) => {
+                    let buf = "";
+                    let decoder = new TextDecoder();
+                    let reader = res.body.getReader();
+                    reader.read().then(function handleNdjson({ value, done }) {
+                        if (done) {
+                            buf = buf.trim();
+                        } else {
+                            let data = decoder.decode(value, { stream: true });
+                            buf += data;
+                        }
+                        let lines = buf.split("\n");
+                        for (let i = 0; i < lines.length - 1; i++) {
+                            try {
+                                const message = JSON.parse(lines[i]);
+                                handleNewWebsocketMessage(message);
+                            } catch { }
+                        }
+                        buf = lines[lines.length - 1];
+                        return reader.read().then(handleNdjson);
+                    });
+                })
+                .catch((err) => {
+                    if (err.name === "AbortError") {
+                        return;
+                    }
+                    console.error(`Failed to subscribe websocket ${id}`, err);
+                });
+        }
+
+        /**
+         * @param {WebsocketMessage} message
+         */
+        function handleNewWebsocketMessage(message) {
+            let tmpl = '';
+            if (message.error) {
+                tmpl = tmplError(message.error);
+            } else if (message.data) {
+                tmpl = tmplWebsocketData(message.data);
+            }
+            $mainView.insertAdjacentHTML("beforeend", tmpl);
+        }
+
+        function syncTraffic(id) {
+            fetch(getTrafficEndpoint(id))
+                .then(res => res.json())
+                .then(data => {
+                    currentTraffic = data;
+                })
+                .catch(err => {
+                    currentTraffic = null;
+                    console.error(`Failed to fetch traffic ${id}`, err);
+                })
+                .finally(updateTabContent);
+        }
+
+
+        /**
+         * @param {Traffic} traffic
+         */
+        function tmplTrafficReq(traffic) {
+            return [
+                `<div class="firstline">${traffic.method} ${traffic.uri} ${traffic.http_version || ""}</div>`,
+                tmplHeaders(traffic.req_headers),
+                tmplBody(traffic.req_body, traffic.req_headers),
+            ].join("");
+        }
+
+        /**
+         * @param {Traffic} traffic
+         */
+        function tmplTrafficRes(traffic) {
+            return [
+                `<div class="firstline">${[traffic.http_version || "", traffic.status, STATUS_CODES[traffic.status]].join(" ")}</div>`,
+                tmplHeaders(traffic.res_headers),
+                tmplBody(traffic.res_body, traffic.res_headers),
+            ].join("");
+        }
+
+        /**
+         * @param {?HeadersData} headers
+         */
+        function tmplHeaders(headers) {
+            return (headers?.items || []).map(({ name, value }) =>
+                `<div class="header-line"><span class="header-key">${name}</span>:&nbsp;<span class="header-value">${value}</span></div>`
+            ).join("");
+        }
+
+        /**
+         * @param {BodyData} body
+         * @param {?HeadersData} headers
+         */
+        function tmplBody(body, headers) {
+            if (!body) return "";
+            let { encode, value } = body;
+            if (!value) return "";
+            let contentType = getContentType(headers);
+            if (encode == "utf8") {
+                let language = highlightLanguage(contentType);
+                let beautifiedValue = beautify(value, language);
+                const highlightedCode = hljs.getLanguage(language)
+                    ? hljs.highlight(beautifiedValue, { language }).value
+                    : hljs.highlightAuto(beautifiedValue).value;
+                return `<div class="code-view">
+                    <pre><code class="code">${highlightedCode}</code></pre>
+                    <span class="copy-btn" title="Copy">
+                        <svg width="16" height="16" viewBox="0 0 16 16">
+                            <path fill-rule="evenodd" d="M4 2a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2zm2-1a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1zM2 5a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1v-1h1v1a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h1v1z"/>
+                        </svg>
+                    </span>
+                </div>`;
+            }
+            if (encode == "base64") {
+                if (
+                    IMAGE_MIMES.includes(contentType)
+                ) {
+                    return `<div class="media-view"><img src="data:${contentType};base64,${value}" alt="image" style="max-width: 100%;"></div>`;
+                } else if (AUDIO_MIMES.includes(contentType)) {
+                    return `<div class="media-view"><audio controls style="max-width: 100%;"><source src="data:${contentType};base64,${value}" type="${contentType}"></audio></div>`;
+                } else if (VIDEO_MIMES.includes(contentType)) {
+                    return `<div class="media-view"><video controls style="max-width: 100%;"><source src="data:${contentType};base64,${value}" type="${contentType}"></video></div>`;
+                } else {
+                    let filename = "download.bin";
+                    let disposition = getHeader(headers, "content-disposition")
+                    if (/filename="([^"]+?)"/.test(disposition)) {
+                        filename = disposition.match(/filename="(.*?)"/)[1] || filename;
+                    }
+                    let downloadUrl = URL.createObjectURL(base64ToBlob(value, contentType || "application/octet-stream"));
+                    return `<div class="media-view"><a href="${downloadUrl}" download="${filename}">Download the binary data</a></div>`;
+                }
+            }
+            return `<div class="code-view"><pre><code>${value}</code></pre></div>`;
+        }
+
+        function tmplError(error) {
+            if (!error) return "";
+            return `<div class="error-view">${error}</div>`;
+        }
+
+        /**
+         * @param {WebsocketData} data
+         */
+        function tmplWebsocketData(data) {
+            let arrow = '';
+            if (data.server_to_client) {
+                arrow = '<i class="ws-recv">🠘</i>';
+            } else {
+                arrow = '<i class="ws-send">🠚</i>';
+            }
+            let date = formatDate(new Date(data.create));
+            let value = data.body.value;
+            if (data.body.encode == "base64") {
+                value = base64ToText(data.body.value);
+            }
+            return `<div class="ws-msg">
+                <small>${arrow}<span class="ws-date">${date}</span></small>
+                <div class="code-view">
+                    <pre><code>${value}</code></pre>
+                </div>
+            </div>`;
+        }
+
+        /**
+         * @param {?HeadersData} headers
+         */
+        function getContentType(headers) {
+            return getHeader(headers, "content-type").split(';')[0].trim();
+        }
+
+        /**
+         * @param {?HeadersData} headers
+         */
+        function getHeader(headers, type) {
+            return (headers?.items || []).find(({ name }) => name.toLowerCase() === type)?.value || "";
+        }
+
+        /**
+         * @param {TrafficHead} trafficHead
+         */
+        function resolveResourceType(trafficHead) {
+            if (trafficHead.mime) {
+                if (trafficHead.mime.startsWith("image/")) {
+                    return "IMAGE";
+                }
+                if (trafficHead.mime.startsWith("audio/")) {
+                    return "AUDIO";
+                }
+                if (trafficHead.mime.startsWith("video/")) {
+                    return "VIDEO";
+                }
+                if (trafficHead.mime.indexOf("json") >= 0) {
+                    return "JSON"
+                }
+                if (trafficHead.mime.indexOf("xml") >= 0) {
+                    return "XML"
+                }
+                if (trafficHead.mime.indexOf("javascript") >= 0) {
+                    return "JS"
+                }
+                if (trafficHead.mime.indexOf("css") >= 0) {
+                    return "CSS"
+                }
+                if (trafficHead.mime.indexOf("html") >= 0) {
+                    return "HTML"
+                }
+                if (trafficHead.mime.indexOf("text/event-stream") >= 0) {
+                    return "SSE"
+                }
+            } else if (trafficHead.status) {
+                if (trafficHead.status == 101) {
+                    return "WEBSOCKET"
+                } else if (trafficHead.status == 304) {
+                    return "NOTMODIFY"
+                } else if (trafficHead.status >= 300 && trafficHead.status < 400) {
+                    return "REDIRECT"
+                }
+            }
+            return "";
+        }
+
+        /** 
+         * @param {string} contentType
+         */
+        function highlightLanguage(contentType) {
+            let value = contentType.startsWith('text/') || contentType.startsWith('application/')
+                ? contentType.substring(contentType.indexOf('/') + 1)
+                : '';
+
+            return value.startsWith('x-') ? value.substring(2) : value;
+        }
+
+        /**
+         * @param {string} value
+         * @param {string} language
+         */
+        function beautify(value, language) {
+            let beautified = value;
+            if (language === "javascript") {
+                beautified = js_beautify(value, { indent_size: 2 });
+            } else if (language === "css") {
+                beautified = css_beautify(value, { indent_size: 2 });
+            } else if (language === "html") {
+                beautified = html_beautify(value, { indent_size: 2 });
+            } else if (language === "json") {
+                beautified = JSON.stringify(JSON.parse(value), null, 2);
+            }
+            return beautified;
+        }
+
+
+        /**
+         * @param {string} base64String
+         * @param {string} contentType
+         */
+        function base64ToBlob(base64String, contentType) {
+            const byteArrays = base64ToUint8Array(base64String);
+            return new Blob([byteArrays], { type: contentType });
+        }
+
+        /**
+         * @param {string} base64String
+         */
+        function base64ToText(base64String) {
+            const byteArrays = base64ToUint8Array(base64String);
+            const decoder = new TextDecoder('utf-8');
+            return decoder.decode(byteArrays);
+        }
+
+        /**
+         * @param {string} base64String
+         */
+        function base64ToUint8Array(base64String) {
+            const binaryString = atob(base64String);
+
+            const length = binaryString.length;
+            const bytes = new Uint8Array(length);
+
+            for (let i = 0; i < length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+
+            return bytes;
+        }
+
+        function formatSize(len) {
+            if (len === 0) return "0";
+            if (!len) return "";
+            const prefix = ["b", "kb", "mb", "gb", "tb"];
+            let i = 0;
+            for (; i < prefix.length; i++) {
+                if (Math.pow(1024, i + 1) > len) {
+                    break;
+                }
+            }
+            let precision;
+            if (len % Math.pow(1024, i) === 0) precision = 0;
+            else precision = 1;
+            return (len / Math.pow(1024, i)).toFixed(precision) + prefix[i];
+        }
+
+        function formatTimeDelta(delta) {
+            if (delta === 0) return "0";
+            if (!delta) return "";
+            if (delta > 1000 && delta < 10000) {
+                return (delta / 1000.0).toFixed(2) + "s";
+            }
+            const prefix = ["ms", "s", "min", "h"];
+            const div = [1000, 60, 60];
+            let i = 0;
+            while (Math.abs(delta) >= div[i] && i < div.length) {
+                delta = delta / div[i];
+                i++;
+            }
+            return Math.round(delta) + prefix[i];
+        }
+
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = date.getMonth() + 1; // months are 0-indexed
+            const day = date.getDate();
+            const hours = date.getHours();
+            const minutes = date.getMinutes();
+            const seconds = date.getSeconds();
+            const milliseconds = date.getMilliseconds();
+
+            const formattedMonth = month < 10 ? `0${month}` : month;
+            const formattedDay = day < 10 ? `0${day}` : day;
+            const formattedHours = hours < 10 ? `0${hours}` : hours;
+            const formattedMinutes = minutes < 10 ? `0${minutes}` : minutes;
+            const formattedSeconds = seconds < 10 ? `0${seconds}` : seconds;
+
+            return `${year}-${formattedMonth}-${formattedDay} ${formattedHours}:${formattedMinutes}:${formattedSeconds}.${milliseconds}`;
+        }
+
+        document.addEventListener("DOMContentLoaded", handleDOMContentLoaded);
+    </script>
+</body>
+
+</html>

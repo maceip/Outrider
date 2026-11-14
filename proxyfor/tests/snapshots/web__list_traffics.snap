@@ -1,0 +1,332 @@
+---
+source: tests/web.rs
+expression: output
+---
+/traffics
+
+[
+  {
+    "id": 1,
+    "method": "GET",
+    "uri": "http://localhost:<PORT>/hello",
+    "status": 200,
+    "size": 13,
+    "time":<TIME>,
+    "mime": ""
+  },
+  {
+    "id": 2,
+    "method": "GET",
+    "uri": "http://localhost:<PORT>/hello/gzip",
+    "status": 200,
+    "size": 33,
+    "time":<TIME>,
+    "mime": ""
+  },
+  {
+    "id": 3,
+    "method": "POST",
+    "uri": "http://localhost:<PORT>/echo",
+    "status": 200,
+    "size": 13,
+    "time":<TIME>,
+    "mime": "text/plain"
+  }
+]
+
+/traffics?markdown
+
+
+# GET http://localhost:<PORT>/hello 200
+
+REQUEST HEADERS
+```
+accept: */*
+host: localhost:<PORT>
+```
+
+RESPONSE HEADERS
+```
+content-length: 13
+date: <DATETIME>
+```
+
+RESPONSE BODY
+```
+Hello, World!
+```
+
+
+# GET http://localhost:<PORT>/hello/gzip 200
+
+REQUEST HEADERS
+```
+accept: */*
+host: localhost:<PORT>
+```
+
+RESPONSE HEADERS
+```
+content-encoding: gzip
+transfer-encoding: chunked
+date: <DATETIME>
+```
+
+RESPONSE BODY
+```
+Hello, World!
+```
+
+
+# POST http://localhost:<PORT>/echo 200
+
+REQUEST HEADERS
+```
+content-type: text/plain
+accept: */*
+host: localhost:<PORT>
+content-length: 13
+```
+
+REQUEST BODY
+```plain
+Hello, World!
+```
+
+RESPONSE HEADERS
+```
+content-type: text/plain
+content-length: 13
+date: <DATETIME>
+```
+
+RESPONSE BODY
+```plain
+Hello, World!
+```
+
+/traffics?har
+
+{
+  "log": {
+    "version":"<VERSION>",
+    "creator": {
+      "name": "proxyfor",
+      "version":"<VERSION>",
+      "comment": ""
+    },
+    "pages": [],
+    "entries": [
+      {
+        "startedDateTime": "<DATETIME>",
+        "time":<TIME>,
+        "request": {
+          "method": "GET",
+          "url": "http://localhost:<PORT>/hello",
+          "httpVersion": "HTTP/1.1",
+          "cookies": [],
+          "headers": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            },
+            {
+              "name": "host",
+              "value": "localhost:<PORT>"
+            }
+          ],
+          "queryString": [],
+          "postData": {
+            "mimeType": "",
+            "text": ""
+          },
+          "headersSize": 59,
+          "bodySize": 0
+        },
+        "response": {
+          "status": 200,
+          "statusText": "",
+          "httpVersion": "HTTP/1.1",
+          "cookies": [],
+          "headers": [
+            {
+              "name": "content-length",
+              "value": "13"
+            },
+            {
+              "name": "date",
+              "value": "<DATETIME>"
+            }
+          ],
+          "content": {
+            "size": 13,
+            "mimeType": "",
+            "text": "Hello, World!",
+            "compression": 0
+          },
+          "redirectURL": "",
+          "headersSize": 80,
+          "bodySize": 13
+        },
+        "cache": {},
+        "timings": {
+          "connect": -1,
+          "ssl": -1,
+          "send": -1,
+          "receive": -1,
+          "wait": -1
+        }
+      },
+      {
+        "startedDateTime": "<DATETIME>",
+        "time":<TIME>,
+        "request": {
+          "method": "GET",
+          "url": "http://localhost:<PORT>/hello/gzip",
+          "httpVersion": "HTTP/1.1",
+          "cookies": [],
+          "headers": [
+            {
+              "name": "accept",
+              "value": "*/*"
+            },
+            {
+              "name": "host",
+              "value": "localhost:<PORT>"
+            }
+          ],
+          "queryString": [],
+          "postData": {
+            "mimeType": "",
+            "text": ""
+          },
+          "headersSize": 59,
+          "bodySize": 0
+        },
+        "response": {
+          "status": 200,
+          "statusText": "",
+          "httpVersion": "HTTP/1.1",
+          "cookies": [],
+          "headers": [
+            {
+              "name": "content-encoding",
+              "value": "gzip"
+            },
+            {
+              "name": "transfer-encoding",
+              "value": "chunked"
+            },
+            {
+              "name": "date",
+              "value": "<DATETIME>"
+            }
+          ],
+          "content": {
+            "size": 33,
+            "mimeType": "",
+            "text": "Hello, World!",
+            "compression": -20
+          },
+          "redirectURL": "",
+          "headersSize": 120,
+          "bodySize": 33
+        },
+        "cache": {},
+        "timings": {
+          "connect": -1,
+          "ssl": -1,
+          "send": -1,
+          "receive": -1,
+          "wait": -1
+        }
+      },
+      {
+        "startedDateTime": "<DATETIME>",
+        "time":<TIME>,
+        "request": {
+          "method": "POST",
+          "url": "http://localhost:<PORT>/echo",
+          "httpVersion": "HTTP/1.1",
+          "cookies": [],
+          "headers": [
+            {
+              "name": "content-type",
+              "value": "text/plain"
+            },
+            {
+              "name": "accept",
+              "value": "*/*"
+            },
+            {
+              "name": "host",
+              "value": "localhost:<PORT>"
+            },
+            {
+              "name": "content-length",
+              "value": "13"
+            }
+          ],
+          "queryString": [],
+          "postData": {
+            "mimeType": "text/plain",
+            "text": "Hello, World!"
+          },
+          "headersSize": 121,
+          "bodySize": 13
+        },
+        "response": {
+          "status": 200,
+          "statusText": "",
+          "httpVersion": "HTTP/1.1",
+          "cookies": [],
+          "headers": [
+            {
+              "name": "content-type",
+              "value": "text/plain"
+            },
+            {
+              "name": "content-length",
+              "value": "13"
+            },
+            {
+              "name": "date",
+              "value": "<DATETIME>"
+            }
+          ],
+          "content": {
+            "size": 13,
+            "mimeType": "text/plain",
+            "text": "Hello, World!",
+            "compression": 0
+          },
+          "redirectURL": "",
+          "headersSize": 114,
+          "bodySize": 13
+        },
+        "cache": {},
+        "timings": {
+          "connect": -1,
+          "ssl": -1,
+          "send": -1,
+          "receive": -1,
+          "wait": -1
+        }
+      }
+    ]
+  }
+}
+
+/traffics?curl
+
+curl http://localhost:<PORT>/hello \
+  -H 'accept: */*'
+
+curl http://localhost:<PORT>/hello/gzip \
+  -H 'accept: */*'
+
+curl http://localhost:<PORT>/echo \
+  -X POST \
+  -H 'content-type: text/plain' \
+  -H 'accept: */*' \
+  -d 'Hello, World!'

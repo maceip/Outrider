@@ -1,0 +1,15 @@
+---
+source: tests/filter.rs
+expression: output
+---
+[
+  {
+    "id": 1,
+    "method": "GET",
+    "uri": "http://localhost:<PORT>/hello",
+    "status": 200,
+    "size": 13,
+    "time":<TIME>,
+    "mime": ""
+  }
+]
