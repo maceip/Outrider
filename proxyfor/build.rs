@@ -40,6 +40,8 @@ fn main() {
         std::fs::canonicalize(dir.join("liblitert-lm.dylib")).unwrap(),
         "Native runtime loader alias must point to the pinned library"
     );
+    println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../../native/macos");
+    println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../../../native/macos");
     // Also covers a dependency build script cached before explicit installation.
     println!("cargo:rustc-link-search=native={}", dir.display());
 }

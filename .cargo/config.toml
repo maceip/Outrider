@@ -2,5 +2,3 @@
 LITERT_LM_LIB_DIR = { value = "native/macos", relative = true }
 LITERT_LM_LIB_NAME = "litert-lm"
 
-[target.aarch64-apple-darwin]
-rustflags = ["-C", "link-arg=-Wl,-rpath,@executable_path/../../native/macos", "-C", "link-arg=-Wl,-rpath,@executable_path/../../../native/macos"]
