@@ -75,6 +75,16 @@ fn receipt_rejects_tamper_wrong_subject_revocation_and_exhaustion() -> Result<()
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
+        for private in [
+            path.clone(),
+            std::path::PathBuf::from(format!("{}-wal", path.display())),
+            std::path::PathBuf::from(format!("{}-shm", path.display())),
+        ] {
+            assert_eq!(
+                std::fs::metadata(private)?.permissions().mode() & 0o777,
+                0o600
+            );
+        }
         assert_eq!(
             std::fs::metadata(path.with_extension("pem"))?
                 .permissions()

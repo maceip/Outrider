@@ -25,6 +25,17 @@ impl Database {
         if let Some(parent) = path.as_ref().parent().filter(|p| !p.as_os_str().is_empty()) {
             std::fs::create_dir_all(parent)?;
         }
+        #[cfg(unix)]
+        if path.as_ref() != Path::new(":memory:") {
+            use std::os::unix::fs::{OpenOptionsExt, PermissionsExt};
+            let file = std::fs::OpenOptions::new()
+                .write(true)
+                .create(true)
+                .truncate(false)
+                .mode(0o600)
+                .open(path.as_ref())?;
+            file.set_permissions(std::fs::Permissions::from_mode(0o600))?;
+        }
         let connection = Connection::open(path)?;
         connection.busy_timeout(std::time::Duration::from_secs(10))?;
         connection.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;
