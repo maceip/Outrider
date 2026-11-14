@@ -30,7 +30,11 @@ pub struct Workbench {
 }
 impl Workbench {
     pub fn new(commerce: Arc<Commerce>, authorized: bool) -> Result<Self> {
-        let mut ui=Self{commerce,snapshot:Value::Null,session:None,receipt:None,tab:0,status:"p probe · e CLEF · s synthesize · i issue · r revoke · u upstream · Tab view · ↑↓ session · [ ] receipt · j/k evidence · PgUp/PgDn inspector · q quit".into(),input:None,authorized};
+        let mut ui=Self {
+            commerce,snapshot:Value::Null,session:None,receipt:None,tab:0,
+            status:"p probe · e CLEF · s synthesize · i issue · r revoke · u upstream · Tab view · arrows session · [ ] receipt · j/k evidence · PgUp/PgDn inspector · q quit".into(),
+            input:None,authorized,inspector_scroll:0,evidence_index:0,
+        };
         ui.refresh()?;
         Ok(ui)
     }
