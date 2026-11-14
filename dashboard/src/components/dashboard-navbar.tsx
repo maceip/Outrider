@@ -95,8 +95,21 @@ export function DashboardNavbar({
             </form>
           ) : null}
 
-          {currentRoute !== "/inspector" ? (
+          {currentRoute !== "/inspector" && currentRoute !== "/zim" ? (
             <>
+              {currentRoute === "/" ? (
+                <span title={disabledReason}>
+                  <Button
+                    isDisabled={Boolean(disabledReason)}
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => openDialog("connect-local-agents")}
+                  >
+                    Connect Agents
+                  </Button>
+                </span>
+              ) : null}
+
               <span title={disabledReason}>
                 <Button
                   isDisabled={Boolean(disabledReason)}

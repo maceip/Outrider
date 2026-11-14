@@ -5,6 +5,7 @@ export default defineConfig({
     "webui_commerce.spec.ts",
     "inspector.spec.ts",
     "dashboard_routes.spec.ts",
+    "onboarding_zim.spec.ts",
   ],
   timeout: 120_000,
   workers: 1,

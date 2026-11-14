@@ -1,10 +1,17 @@
 "use client";
 
-import type {ClefQuestion, ClefQuestionKind, OperatorDialogKind} from "../lib/types";
+import type {
+  ClefQuestion,
+  ClefQuestionKind,
+  ConfigureAgentResponse,
+  DetectedLocalAgent,
+  OnboardingScanResponse,
+  OperatorDialogKind,
+} from "../lib/types";
 import type {FormEvent} from "react";
 
 import {Button, Input, Label, Modal, TextArea, TextField} from "@heroui/react";
-import {useState} from "react";
+import {useCallback, useEffect, useState} from "react";
 
 import {useOutrider} from "../lib/outrider-store";
 
@@ -24,7 +31,9 @@ export function OperatorDialogs() {
           ? "Issue Capability Receipt"
           : activeDialog === "evaluate-clef"
             ? "Run CLEF Evaluation"
-            : "";
+            : activeDialog === "connect-local-agents"
+              ? "Connect Local Agents"
+              : "";
 
   return (
     <Modal
@@ -34,13 +43,18 @@ export function OperatorDialogs() {
       }}
     >
       <Modal.Backdrop isDismissable>
-        <Modal.Container placement="center" size="md">
+        <Modal.Container
+          placement="center"
+          size={activeDialog === "connect-local-agents" ? "lg" : "md"}
+        >
           <Modal.Dialog id="action-dialog">
             <Modal.CloseTrigger aria-label="Close dialog" />
             <Modal.Header>
               <Modal.Heading>{dialogTitle}</Modal.Heading>
             </Modal.Header>
-            {activeDialog ? (
+            {activeDialog === "connect-local-agents" ? (
+              <ConnectLocalAgentsDialogBody key={`agents-${dialogOpenedAtUnix}`} />
+            ) : activeDialog ? (
               <OperatorDialogForm
                 key={`${activeDialog}-${dialogOpenedAtUnix}-${selectedSession?.session_id ?? ""}`}
                 dialogKind={activeDialog}
@@ -54,6 +68,272 @@ export function OperatorDialogs() {
         </Modal.Container>
       </Modal.Backdrop>
     </Modal>
+  );
+}
+
+function ConnectLocalAgentsDialogBody() {
+  const {busy, closeDialog, configureLocalAgent, fetchOnboardingAgents} = useOutrider();
+  const [scan, setScan] = useState<OnboardingScanResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [errorText, setErrorText] = useState<string | null>(null);
+  const [pendingRestartAgent, setPendingRestartAgent] = useState<DetectedLocalAgent | null>(null);
+  const [lastResult, setLastResult] = useState<ConfigureAgentResponse | null>(null);
+  const [copiedUrl, setCopiedUrl] = useState(false);
+
+  const reloadScan = useCallback(async () => {
+    setLoading(true);
+    setErrorText(null);
+    try {
+      const next = await fetchOnboardingAgents();
+
+      setScan(next);
+    } catch (error) {
+      setErrorText(error instanceof Error ? error.message : "Failed to scan local agent configs.");
+    } finally {
+      setLoading(false);
+    }
+  }, [fetchOnboardingAgents]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const next = await fetchOnboardingAgents();
+
+        if (!cancelled) {
+          setScan(next);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setErrorText(
+            error instanceof Error ? error.message : "Failed to scan local agent configs.",
+          );
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [fetchOnboardingAgents]);
+
+  const executeConfigure = async (agentId: string, restartConfirmed: boolean) => {
+    setErrorText(null);
+    try {
+      const res = await configureLocalAgent(agentId, restartConfirmed);
+
+      setLastResult(res);
+      setPendingRestartAgent(null);
+      await reloadScan();
+    } catch (error) {
+      setErrorText(error instanceof Error ? error.message : "Failed to configure agent.");
+    }
+  };
+
+  const handleAgentButton = (agent: DetectedLocalAgent) => {
+    if (agent.running) {
+      setPendingRestartAgent(agent);
+
+      return;
+    }
+    void executeConfigure(agent.id, false);
+  };
+
+  const handleCopyUrl = async () => {
+    if (!scan?.mcp_http_url || !navigator.clipboard) return;
+    try {
+      await navigator.clipboard.writeText(scan.mcp_http_url);
+      setCopiedUrl(true);
+      setTimeout(() => setCopiedUrl(false), 1800);
+    } catch {
+      // Ignore clipboard failures in headless contexts.
+    }
+  };
+
+  return (
+    <>
+      <Modal.Body className="flex flex-col gap-3">
+        <p className="text-muted text-xs">
+          Outrider backs up any existing agent configuration file (<code>.bak.&lt;unix_ts&gt;</code>)
+          before merging its MCP entry and never restarts a running agent without explicit consent.
+        </p>
+
+        {loading && !scan ? (
+          <div className="text-muted py-4 text-xs" role="status">
+            Scanning local Claude Desktop, Claude Code CLI, and OpenAI Codex installations...
+          </div>
+        ) : null}
+
+        {scan ? (
+          <>
+            <div className="border-border bg-background flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2.5">
+              <code className="text-foreground min-w-0 truncate font-mono text-xs">
+                {scan.mcp_http_url}
+              </code>
+              <div className="flex flex-wrap items-center gap-1.5">
+                <Button size="sm" variant="secondary" onPress={() => void handleCopyUrl()}>
+                  {copiedUrl ? "Copied" : "Copy MCP URL"}
+                </Button>
+                <a
+                  className="border-border bg-surface text-foreground hover:bg-background inline-flex h-8 items-center rounded-lg border px-2.5 text-xs font-medium"
+                  href={scan.deep_links.cursor}
+                >
+                  Install in Cursor
+                </a>
+                <a
+                  className="border-border bg-surface text-foreground hover:bg-background inline-flex h-8 items-center rounded-lg border px-2.5 text-xs font-medium"
+                  href={scan.deep_links.vscode}
+                >
+                  Install in VS Code
+                </a>
+              </div>
+            </div>
+
+            {pendingRestartAgent ? (
+              <div
+                aria-label="Agent restart confirmation"
+                className="border-warning/50 bg-warning/10 flex flex-col gap-2.5 rounded-lg border p-3"
+                id="restart-consent-banner"
+                role="region"
+              >
+                <div className="text-foreground text-xs font-semibold">
+                  Restart {pendingRestartAgent.name} after saving Outrider MCP?
+                </div>
+                <p className="text-muted text-xs">
+                  {pendingRestartAgent.name} is currently running (PID{" "}
+                  {pendingRestartAgent.running_pids.join(", ")}). Choose whether Outrider should
+                  restart it now so the new MCP server loads immediately, or write the config file
+                  without interrupting your active session.
+                </p>
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    isDisabled={busy}
+                    size="sm"
+                    onPress={() => void executeConfigure(pendingRestartAgent.id, true)}
+                  >
+                    Save &amp; Restart Agent
+                  </Button>
+                  <Button
+                    isDisabled={busy}
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => void executeConfigure(pendingRestartAgent.id, false)}
+                  >
+                    Save Without Restart
+                  </Button>
+                  <Button
+                    isDisabled={busy}
+                    size="sm"
+                    variant="tertiary"
+                    onPress={() => setPendingRestartAgent(null)}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : null}
+
+            <ul aria-label="Detected local agents" className="flex flex-col gap-2">
+              {scan.agents.map((agent) => {
+                const statusLabel = agent.already_configured
+                  ? "Configured"
+                  : agent.detected
+                    ? "Detected"
+                    : "Not Installed";
+                const statusClass = agent.already_configured
+                  ? "border-success/40 bg-success/15 text-success"
+                  : agent.detected
+                    ? "border-border bg-background text-foreground"
+                    : "border-border bg-background text-muted";
+
+                return (
+                  <li
+                    key={agent.id}
+                    className="border-border bg-surface flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                    data-agent-id={agent.id}
+                  >
+                    <div className="flex min-w-0 flex-1 flex-col gap-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-foreground text-sm font-medium">{agent.name}</span>
+                        <span
+                          className={`rounded-full border px-2 py-0.5 font-mono text-xs ${statusClass}`}
+                        >
+                          {statusLabel}
+                        </span>
+                        {agent.running ? (
+                          <span className="border-warning/40 bg-warning/15 text-warning rounded-full border px-2 py-0.5 font-mono text-xs">
+                            Running
+                          </span>
+                        ) : null}
+                      </div>
+                      <span className="text-muted truncate font-mono text-xs">
+                        {agent.config_path}
+                      </span>
+                    </div>
+
+                    <Button
+                      aria-label={`${agent.already_configured ? "Update" : "Add"} Outrider MCP for ${agent.name}`}
+                      isDisabled={busy}
+                      size="sm"
+                      variant={agent.already_configured ? "secondary" : "primary"}
+                      onPress={() => handleAgentButton(agent)}
+                    >
+                      {agent.already_configured ? "Update Outrider MCP" : "Add Outrider MCP"}
+                    </Button>
+                  </li>
+                );
+              })}
+            </ul>
+          </>
+        ) : null}
+
+        {lastResult ? (
+          <div
+            className="border-success/40 bg-success/10 text-foreground rounded-lg border p-2.5 text-xs"
+            id="agent-config-result"
+            role="status"
+          >
+            <div className="font-medium">
+              {lastResult.name}: {lastResult.note}
+            </div>
+            {lastResult.backup_path ? (
+              <div className="text-muted mt-1 font-mono text-xs break-all">
+                Backup: {lastResult.backup_path}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
+
+        {errorText ? (
+          <div
+            aria-live="assertive"
+            className="border-danger/40 bg-danger/10 text-danger rounded-lg border p-2.5 text-xs"
+            role="alert"
+          >
+            {errorText}
+          </div>
+        ) : null}
+      </Modal.Body>
+      <Modal.Footer className="flex items-center justify-between gap-2">
+        <Button
+          isDisabled={busy || loading}
+          size="sm"
+          type="button"
+          variant="secondary"
+          onPress={() => void reloadScan()}
+        >
+          Rescan
+        </Button>
+        <Button isDisabled={busy} size="sm" type="button" variant="tertiary" onPress={closeDialog}>
+          Close
+        </Button>
+      </Modal.Footer>
+    </>
   );
 }
 

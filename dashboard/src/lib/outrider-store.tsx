@@ -6,11 +6,14 @@ import type {
   ClefEngineStatus,
   CommerceSnapshot,
   CommerceStatus,
+  ConfigureAgentResponse,
   InspectorState,
   IssuedReceiptResponse,
+  OnboardingScanResponse,
   OperatorDialogKind,
   OverviewFilterTab,
   ProbePolicy,
+  RunSortieResponse,
   SelectedEvidence,
 } from "./types";
 import type {ReactNode} from "react";
@@ -60,6 +63,12 @@ export interface OutriderContextValue {
   refresh: () => Promise<boolean>;
   mutate: <T = unknown>(path: string, body: unknown) => Promise<T>;
   fetchInspectorState: (connectionId?: string | null, after?: number) => Promise<InspectorState>;
+  fetchOnboardingAgents: () => Promise<OnboardingScanResponse>;
+  configureLocalAgent: (
+    agentId: string,
+    restartConfirmed: boolean,
+  ) => Promise<ConfigureAgentResponse>;
+  runLoopbackSortie: (clientName?: string) => Promise<RunSortieResponse>;
   exportSnapshot: () => void;
 }
 
@@ -438,6 +447,51 @@ export function OutriderProvider({children}: {children: ReactNode}) {
     [],
   );
 
+  const fetchOnboardingAgents = useCallback(async (): Promise<OnboardingScanResponse> => {
+    if (!unlockedRef.current || !tokenRef.current) {
+      throw new Error("401: Admin bearer token required");
+    }
+    const response = await fetch(`${COMMERCE_API_BASE}/onboarding/agents`, {
+      cache: "no-store",
+      headers: {
+        Authorization: `Bearer ${tokenRef.current}`,
+      },
+    });
+
+    if (!response.ok) {
+      const msg = await parseErrorMessage(response);
+
+      setStatusMessage(msg);
+      setStatusError(true);
+      throw new Error(msg);
+    }
+
+    return (await response.json()) as OnboardingScanResponse;
+  }, []);
+
+  const configureLocalAgent = useCallback(
+    async (agentId: string, restartConfirmed: boolean): Promise<ConfigureAgentResponse> => {
+      return mutate<ConfigureAgentResponse>("/onboarding/configure-agent", {
+        agent_id: agentId,
+        restart_confirmed: restartConfirmed,
+      });
+    },
+    [mutate],
+  );
+
+  const runLoopbackSortie = useCallback(
+    async (clientName?: string): Promise<RunSortieResponse> => {
+      const result = await mutate<RunSortieResponse>("/onboarding/run-sortie", {
+        ...(clientName ? {client_name: clientName} : {}),
+      });
+
+      setSelectedSessionIdState(result.session_id);
+
+      return result;
+    },
+    [mutate],
+  );
+
   const exportSnapshot = useCallback(() => {
     if (!snapshot) return;
     const blob = new Blob([JSON.stringify(snapshot, null, 2)], {
@@ -500,6 +554,42 @@ export function OutriderProvider({children}: {children: ReactNode}) {
     const restoreSavedSession = async () => {
       await Promise.resolve();
       if (cancelled) return;
+
+      // Exchange single-use desktop launch `#bootstrap=<nonce>` if present in URL hash.
+      if (typeof window !== "undefined" && window.location.hash.includes("bootstrap=")) {
+        const rawHash = window.location.hash.replace(/^#/, "");
+        const params = new URLSearchParams(rawHash);
+        const nonce = params.get("bootstrap");
+
+        params.delete("bootstrap");
+        const remainingHash = params.toString();
+        const cleanUrl = `${window.location.pathname}${window.location.search}${remainingHash ? `#${remainingHash}` : ""}`;
+
+        window.history.replaceState(null, "", cleanUrl);
+
+        if (nonce && nonce.trim()) {
+          try {
+            const exResponse = await fetch(`${COMMERCE_API_BASE}/bootstrap/exchange`, {
+              body: JSON.stringify({nonce: nonce.trim()}),
+              headers: {"Content-Type": "application/json"},
+              method: "POST",
+            });
+
+            if (exResponse.ok) {
+              const data = (await exResponse.json()) as {token?: string};
+
+              if (data.token && !cancelled) {
+                const ok = await unlock(data.token);
+
+                if (ok) return;
+              }
+            }
+          } catch {
+            // Fall through to saved sessionStorage token if exchange fails.
+          }
+        }
+      }
+
       try {
         const saved = sessionStorage.getItem(TOKEN_STORAGE_KEY);
 
@@ -553,9 +643,11 @@ export function OutriderProvider({children}: {children: ReactNode}) {
       busy,
       clefStatus,
       closeDialog,
+      configureLocalAgent,
       dialogOpenedAtUnix,
       exportSnapshot,
       fetchInspectorState,
+      fetchOnboardingAgents,
       lastUpdatedAt,
       liveConnected,
       lock,
@@ -565,6 +657,7 @@ export function OutriderProvider({children}: {children: ReactNode}) {
       probePolicy,
       publicStatus,
       refresh,
+      runLoopbackSortie,
       selectedEvidence,
       selectedReceipt,
       selectedReceiptId,
@@ -587,9 +680,11 @@ export function OutriderProvider({children}: {children: ReactNode}) {
       busy,
       clefStatus,
       closeDialog,
+      configureLocalAgent,
       dialogOpenedAtUnix,
       exportSnapshot,
       fetchInspectorState,
+      fetchOnboardingAgents,
       lastUpdatedAt,
       liveConnected,
       lock,
@@ -599,6 +694,7 @@ export function OutriderProvider({children}: {children: ReactNode}) {
       probePolicy,
       publicStatus,
       refresh,
+      runLoopbackSortie,
       selectedEvidence,
       selectedReceipt,
       selectedReceiptId,

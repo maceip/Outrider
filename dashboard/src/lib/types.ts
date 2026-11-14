@@ -9,6 +9,8 @@ export interface CommerceStatus {
   clef: ClefEngineStatus;
   admin_allow_remote: boolean;
   probe_policy: ProbePolicy;
+  listen_addr?: string | null;
+  mcp_endpoint?: string | null;
 }
 
 export interface ActivePeer {
@@ -323,7 +325,55 @@ export type OperatorDialogKind =
   | "connect-upstream"
   | "put-bundle"
   | "issue-receipt"
-  | "evaluate-clef";
+  | "evaluate-clef"
+  | "connect-local-agents";
+
+export interface DetectedLocalAgent {
+  id: "claude-desktop" | "claude-code" | "codex" | (string & {});
+  name: string;
+  transport: "stdio" | "http" | (string & {});
+  detected: boolean;
+  config_path: string;
+  config_exists: boolean;
+  already_configured: boolean;
+  running: boolean;
+  running_pids: number[];
+}
+
+export interface OnboardingScanResponse {
+  mcp_http_url: string;
+  executable_path: string;
+  config_dir: string;
+  db_path: string;
+  deep_links: {
+    cursor: string;
+    vscode: string;
+  };
+  agents: DetectedLocalAgent[];
+}
+
+export interface ConfigureAgentResponse {
+  agent_id: string;
+  name: string;
+  config_path: string;
+  backup_path: string | null;
+  configured: boolean;
+  restart_confirmed: boolean;
+  restarted: boolean;
+  note: string;
+}
+
+export interface RunSortieResponse {
+  session_id: string;
+  subject: string;
+  bundle_id: string;
+  receipt_id: string;
+  tls_mcp_uri: string;
+  probe_ran: boolean;
+  proxy_traffic_recorded: boolean;
+  fingerprint_observations: unknown;
+  redeemed_output: unknown;
+}
 
 export interface SelectedEvidence {
   label: string;
