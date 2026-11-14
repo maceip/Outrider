@@ -1,0 +1,309 @@
+name: CI Build, Live Smoke Gate, Attested SBOM & Release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      skip_bump:
+        description: "Cut release for current Cargo.toml version without bumping patch"
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: write
+  id-token: write
+  attestations: write
+
+concurrency:
+  group: ci-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  bump-version:
+    name: Bump Patch Version & Tag Release
+    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      tag: ${{ steps.bump.outputs.tag }}
+      release_sha: ${{ steps.bump.outputs.release_sha }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Bump version across Cargo & Dashboard manifests and tag release
+        id: bump
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && "${{ inputs.skip_bump }}" == "true" ]]; then
+            CURRENT_VER="$(python3 -c 'import re, pathlib; m=re.search(r"(?ms)^\[package\]\s+.*?^version\s*=\s*\"(\d+\.\d+\.\d+)\"", pathlib.Path("proxyfor/Cargo.toml").read_text()); print(m.group(1))')"
+            echo "version=${CURRENT_VER}" >> "$GITHUB_OUTPUT"
+            echo "tag=v${CURRENT_VER}" >> "$GITHUB_OUTPUT"
+            git tag -f "v${CURRENT_VER}" HEAD
+            git push origin "refs/tags/v${CURRENT_VER}" --force
+            echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          else
+            python3 scripts/bump_version.py --github-output "$GITHUB_OUTPUT"
+            NEXT_VER="$(python3 -c 'import re, pathlib; m=re.search(r"(?ms)^\[package\]\s+.*?^version\s*=\s*\"(\d+\.\d+\.\d+)\"", pathlib.Path("proxyfor/Cargo.toml").read_text()); print(m.group(1))')"
+            git add proxyfor/Cargo.toml Cargo.lock dashboard/package.json dashboard/package-lock.json
+            git commit -m "chore(release): v${NEXT_VER} [skip ci]"
+            git tag -a "v${NEXT_VER}" -m "Outrider v${NEXT_VER}"
+            git push origin HEAD:main
+            git push origin "refs/tags/v${NEXT_VER}"
+            echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+  build-dashboard:
+    name: Build Embedded HeroUI Pro Dashboard & WebMCP Console
+    needs: [bump-version]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.release_sha }}
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+          cache-dependency-path: dashboard/package-lock.json
+
+      - name: Typecheck, lint, and build static export
+        working-directory: dashboard
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+          npm run build
+
+      - name: Upload static dashboard bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-static-out
+          path: dashboard/out
+          include-hidden-files: true
+          retention-days: 5
+
+  build-and-smoke:
+    name: Build, Package & Run Live Smoke Gate (${{ matrix.label }})
+    needs: [bump-version, build-dashboard]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: macos-14
+            target: aarch64-apple-darwin
+            native_subdir: native/macos
+            label: macos-arm64
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            native_subdir: native/windows
+            label: windows-x64
+          - os: ubuntu-latest
+            target: x86_64-unknown-linux-gnu
+            native_subdir: native/linux
+            label: linux-x64
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.release_sha }}
+
+      - name: Download built dashboard static export
+        uses: actions/download-artifact@v4
+        with:
+          name: dashboard-static-out
+          path: dashboard/out
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+
+      - name: Cache Cargo registry and target build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
+
+      - name: Ensure WiX Toolset is available (Windows MSI installer)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $wixV3 = Get-ChildItem "${env:ProgramFiles(x86)}\WiX Toolset*\bin\candle.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if ($null -ne $wixV3) {
+            Write-Host "Found preinstalled WiX v3 at $($wixV3.FullName)"
+            Add-Content -Path $env:GITHUB_PATH -Value $wixV3.DirectoryName
+          } elseif ($null -eq (Get-Command wix -ErrorAction SilentlyContinue)) {
+            Write-Host "Installing WiX Toolset CLI via dotnet tool..."
+            dotnet tool install --global wix --version 5.0.2
+            Add-Content -Path $env:GITHUB_PATH -Value "$env:USERPROFILE\.dotnet\tools"
+          }
+
+      - name: Install SHA-256-pinned LiteRT-LM native runtime
+        run: python scripts/install_native.py --target ${{ matrix.target }}
+
+      - name: Run unit & onboarding integration tests
+        env:
+          LITERT_LM_LIB_DIR: ${{ github.workspace }}/${{ matrix.native_subdir }}
+          OUTRIDER_CLEF_NO_FETCH: "1"
+        run: cargo test --locked --target ${{ matrix.target }} -p proxyfor --test cert --test desktop_onboarding
+
+      - name: Build optimized release binary
+        env:
+          LITERT_LM_LIB_DIR: ${{ github.workspace }}/${{ matrix.native_subdir }}
+        run: cargo build --release --locked --target ${{ matrix.target }} -p proxyfor --bin outrider
+
+      - name: Package runnable archives and desktop installers (.dmg / .msi)
+        run: >
+          python scripts/package_release.py
+          --target ${{ matrix.target }}
+          --version ${{ needs.bump-version.outputs.version }}
+          --out-dir dist
+
+      - name: Execute isolated out-of-tree live binary smoke gate (6 runtime checks per artifact)
+        shell: python
+        run: |
+          import pathlib, subprocess, sys
+          artifacts = sorted(pathlib.Path("dist").iterdir())
+          if not artifacts:
+              sys.exit("No packaged artifacts found in dist/")
+          cmd = [sys.executable, "scripts/smoke_test_release_binary.py"]
+          for art in artifacts:
+              if art.is_file():
+                  cmd.extend(["--artifact", str(art)])
+          subprocess.run(cmd, check=True)
+
+      - name: Upload smoke-verified platform artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: verified-dist-${{ matrix.label }}
+          path: dist/*
+          if-no-files-found: error
+          retention-days: 7
+
+  attest-and-sbom:
+    name: Generate Full Tagged SBOM & Cryptographically Attest Artifacts
+    needs: [bump-version, build-and-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release commit
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.bump-version.outputs.release_sha }}
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Rust toolchain (for `cargo metadata --locked`)
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Download all smoke-verified platform artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: verified-dist-*
+          path: release-assets
+          merge-multiple: true
+
+      - name: Generate and verify 100% PURL-tagged SPDX 2.3 & CycloneDX 1.5 SBOMs
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARGS=(--version "${{ needs.bump-version.outputs.version }}" --out-dir release-assets)
+          for f in release-assets/*.tar.gz release-assets/*.dmg release-assets/*.zip release-assets/*.msi; do
+            ARGS+=(--artifact "$f")
+          done
+          python3 scripts/generate_sbom.py "${ARGS[@]}"
+          (cd release-assets && sha256sum *.tar.gz *.dmg *.zip *.msi *.sbom.spdx.json *.sbom.cdx.json > SHA256SUMS.txt)
+          cat release-assets/SHA256SUMS.txt
+
+      - name: Attest build provenance (SLSA)
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            release-assets/*.tar.gz
+            release-assets/*.dmg
+            release-assets/*.zip
+            release-assets/*.msi
+
+      - name: Attest PURL-tagged SPDX 2.3 SBOM
+        uses: actions/attest-sbom@v2
+        with:
+          subject-path: |
+            release-assets/*.tar.gz
+            release-assets/*.dmg
+            release-assets/*.zip
+            release-assets/*.msi
+          sbom-path: release-assets/outrider-v${{ needs.bump-version.outputs.version }}.sbom.spdx.json
+
+      - name: Verify GitHub cryptographic attestations on every binary & installer
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          for asset in release-assets/*.tar.gz release-assets/*.dmg release-assets/*.zip release-assets/*.msi; do
+            echo "Verifying attestation for ${asset}..."
+            gh attestation verify "$asset" --repo "${{ github.repository }}"
+          done
+
+      - name: Upload attested release bundle
+        uses: actions/upload-artifact@v4
+        with:
+          name: final-attested-release-bundle
+          path: release-assets/*
+          if-no-files-found: error
+          retention-days: 7
+
+  publish-release:
+    name: Publish Verified & Attested GitHub Release
+    needs: [bump-version, build-and-smoke, attest-and-sbom]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download final attested release bundle
+        uses: actions/download-artifact@v4
+        with:
+          name: final-attested-release-bundle
+          path: release-assets
+
+      - name: Create GitHub Release and upload verified binaries, installers & SBOMs
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ needs.bump-version.outputs.tag }}
+          name: Outrider ${{ needs.bump-version.outputs.tag }}
+          generate_release_notes: true
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/*.tar.gz
+            release-assets/*.dmg
+            release-assets/*.zip
+            release-assets/*.msi
+            release-assets/*.sbom.spdx.json
+            release-assets/*.sbom.cdx.json
+            release-assets/SHA256SUMS.txt
