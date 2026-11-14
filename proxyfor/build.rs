@@ -33,6 +33,13 @@ fn main() {
             file.display()
         );
     }
+    let alias = dir.join("liblitert-lm.so");
+    println!("cargo:rerun-if-changed={}", alias.display());
+    assert_eq!(
+        std::fs::canonicalize(&alias).expect("native runtime loader alias"),
+        std::fs::canonicalize(dir.join("liblitert-lm.dylib")).unwrap(),
+        "Native runtime loader alias must point to the pinned library"
+    );
     // Also covers a dependency build script cached before explicit installation.
     println!("cargo:rustc-link-search=native={}", dir.display());
 }

@@ -91,14 +91,27 @@ async fn main() -> Result<()> {
     if let Some(path) = cli.skills_dir {
         commerce.load_skills(&path, "admin:cli")?;
     }
+    let mut configured_upstreams = std::collections::BTreeMap::new();
+    for row in commerce.db.rows("upstream_servers")?.as_array().unwrap() {
+        configured_upstreams.insert(
+            row["name"].as_str().unwrap().to_owned(),
+            row["endpoint"].as_str().unwrap().to_owned(),
+        );
+    }
     for upstream in &cli.upstream {
         let (name, endpoint) = upstream
             .split_once('=')
             .context("--upstream expects name=command_or_url")?;
-        commerce
+        configured_upstreams.insert(name.to_owned(), endpoint.to_owned());
+    }
+    for (name, endpoint) in configured_upstreams {
+        if let Err(error) = commerce
             .federation
-            .connect(&commerce, name, endpoint, "admin:cli")
-            .await?;
+            .connect(&commerce, &name, &endpoint, "admin:startup")
+            .await
+        {
+            eprintln!("Upstream {name} failed: {error:#}");
+        }
     }
     if cli.stdio {
         use rmcp::ServiceExt;

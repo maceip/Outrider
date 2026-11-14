@@ -44,6 +44,7 @@ impl Commerce {
         dir: &Path,
         allow_remote: bool,
     ) -> Result<(Arc<Self>, Option<String>)> {
+        db.0.lock().map_err(|_|anyhow::anyhow!("database lock poisoned"))?.execute("UPDATE upstream_servers SET status='Disconnected',error='Runtime restarted; no live connection',updated_at=?1",[db::now()])?;
         let (auth, token, key) = AdminAuth::load(dir, allow_remote)?;
         let receipts = ReceiptAuthority::load(db.clone(), &dir.join("outrider-ed25519.pem"))?;
         let (events, _) = tokio::sync::broadcast::channel(256);

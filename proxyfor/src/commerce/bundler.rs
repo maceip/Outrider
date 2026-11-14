@@ -107,11 +107,6 @@ pub fn synthesize(
     let catalog = bundles(db)?;
     let evaluations = db.evaluations(session)?;
     let latest = evaluations.iter().rev().find(|e| e["status"] == "Verified");
-    let source = if matches!(status, EngineStatus::Ready { .. }) && latest.is_some() {
-        "Configured rules using recorded CLEF picks"
-    } else {
-        "Static configured catalog — CLEF unavailable or unevaluated"
-    };
     let mut selected = Vec::new();
     for bundle in catalog {
         if let Some(required) = bundle.rules.get("required_pick") {
@@ -123,6 +118,16 @@ pub fn synthesize(
         }
         selected.push(bundle);
     }
+    let source = if selected
+        .iter()
+        .any(|b| b.rules.get("required_pick").is_some())
+    {
+        "Configured rules using recorded CLEF picks"
+    } else if matches!(status, EngineStatus::Ready { .. }) && latest.is_some() {
+        "Static configured catalog — no CLEF rule applied"
+    } else {
+        "Static configured catalog — CLEF unavailable or unevaluated"
+    };
     let mut conn = db.0.lock().map_err(|_| anyhow!("database lock poisoned"))?;
     let tx = conn.transaction_with_behavior(TransactionBehavior::Immediate)?;
     tx.execute("DELETE FROM session_offers WHERE session_id=?1", [session])?;

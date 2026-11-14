@@ -107,10 +107,9 @@
       .workspace {
         min-height: 0;
         display: grid;
-        grid-template-columns: minmax(180px, var(--left)) 5px minmax(
-            300px,
-            1fr
-          ) 5px minmax(260px, var(--right));
+        grid-template-columns:
+          minmax(180px, var(--left)) 5px minmax(300px, 1fr)
+          5px minmax(260px, var(--right));
       }
       .divider {
         cursor: col-resize;
@@ -878,14 +877,16 @@
         else
           lens.append(
             kv([
-              ["Model", state.model_path],
-              ["Backend", state.backend],
+              ["Loaded model", state.model_path],
+              ["Loaded backend", state.backend],
             ]),
           );
         if (evaluation) {
           lens.append(
             kv([
               ["Evaluation", evaluation.status],
+              ["Evaluation model", evaluation.model_path],
+              ["Evaluation backend", evaluation.backend],
               ["Pick", evaluation.pick],
               ["Input tokens", evaluation.input_tokens],
               ["Output tokens", evaluation.output_tokens],
