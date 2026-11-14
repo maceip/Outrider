@@ -8,7 +8,7 @@ import {
   Copy,
   CurlyBracketsLock,
 } from "@gravity-ui/icons";
-import {Accordion, Card, Link} from "@heroui/react";
+import {Accordion, Card} from "@heroui/react";
 import {useState} from "react";
 
 import {IconButton} from "../components/icon-button";
@@ -84,28 +84,32 @@ export function HelpPage() {
           </Card.Header>
           <Card.Footer className="flex flex-col items-start gap-2">
             <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
-              <Link
-                className="text-accent inline-flex items-center gap-1 font-mono text-xs"
+              <a
+                className="text-accent inline-flex items-center gap-1 font-mono text-xs hover:underline"
+                download="proxyfor-ca-cert.pem"
                 href="/__proxyfor__/certificate/proxyfor-ca-cert.pem"
               >
                 proxyfor-ca-cert.pem
                 <ArrowDownToLine aria-hidden="true" className="size-3.5" />
-              </Link>
-              <Link
-                className="text-accent inline-flex items-center gap-1 font-mono text-xs"
+              </a>
+              <a
+                className="text-accent inline-flex items-center gap-1 font-mono text-xs hover:underline"
+                download="proxyfor-ca-cert.cer"
                 href="/__proxyfor__/certificate/proxyfor-ca-cert.cer"
               >
                 proxyfor-ca-cert.cer
                 <ArrowDownToLine aria-hidden="true" className="size-3.5" />
-              </Link>
+              </a>
             </div>
-            <Link
-              className="text-muted hover:text-foreground inline-flex items-center gap-1 text-xs"
+            <a
+              className="text-muted hover:text-foreground inline-flex items-center gap-1 text-xs hover:underline"
               href="/__proxyfor__/certificate/"
+              rel="noreferrer"
+              target="_blank"
             >
               Certificate install guide (/__proxyfor__/certificate/)
               <ArrowRightFromSquare aria-hidden="true" className="size-3.5" />
-            </Link>
+            </a>
           </Card.Footer>
         </Card>
 
@@ -164,13 +168,15 @@ export function HelpPage() {
             <span className="text-muted font-mono text-xs">
               {observedClef} · policy={observedPolicy ?? "—"} · remote={observedRemote}
             </span>
-            <Link
-              className="text-accent inline-flex items-center gap-1 font-mono text-xs"
+            <a
+              className="text-accent inline-flex items-center gap-1 font-mono text-xs hover:underline"
               href="/__proxyfor__/commerce/status"
+              rel="noreferrer"
+              target="_blank"
             >
               /__proxyfor__/commerce/status
               <ArrowRightFromSquare aria-hidden="true" className="size-3.5" />
-            </Link>
+            </a>
           </Card.Footer>
         </Card>
       </div>
