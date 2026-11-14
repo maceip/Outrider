@@ -95,39 +95,43 @@ export function DashboardNavbar({
             </form>
           ) : null}
 
-          <span title={disabledReason}>
-            <Button
-              isDisabled={Boolean(disabledReason)}
-              size="sm"
-              variant="secondary"
-              onPress={() => openDialog("connect-upstream")}
-            >
-              Connect Upstream
-            </Button>
-          </span>
+          {currentRoute !== "/inspector" ? (
+            <>
+              <span title={disabledReason}>
+                <Button
+                  isDisabled={Boolean(disabledReason)}
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => openDialog("connect-upstream")}
+                >
+                  Connect Upstream
+                </Button>
+              </span>
 
-          <span title={disabledReason}>
-            <Button
-              isDisabled={Boolean(disabledReason)}
-              size="sm"
-              variant="secondary"
-              onPress={() => openDialog("put-bundle")}
-            >
-              Put Bundle
-            </Button>
-          </span>
+              <span title={disabledReason}>
+                <Button
+                  isDisabled={Boolean(disabledReason)}
+                  size="sm"
+                  variant="secondary"
+                  onPress={() => openDialog("put-bundle")}
+                >
+                  Put Bundle
+                </Button>
+              </span>
 
-          {currentRoute !== "/" ? (
-            <span title={issueDisabledReason}>
-              <Button
-                isDisabled={Boolean(issueDisabledReason)}
-                size="sm"
-                variant="secondary"
-                onPress={() => openDialog("issue-receipt")}
-              >
-                Issue Receipt
-              </Button>
-            </span>
+              {currentRoute !== "/" ? (
+                <span title={issueDisabledReason}>
+                  <Button
+                    isDisabled={Boolean(issueDisabledReason)}
+                    size="sm"
+                    variant="secondary"
+                    onPress={() => openDialog("issue-receipt")}
+                  >
+                    Issue Receipt
+                  </Button>
+                </span>
+              ) : null}
+            </>
           ) : null}
 
           <span title={disabledReason}>

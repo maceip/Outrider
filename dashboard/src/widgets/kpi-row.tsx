@@ -7,7 +7,8 @@ import {useOutrider} from "../lib/outrider-store";
 import {formatClefState} from "../lib/types";
 
 export function KpiRow() {
-  const {clefStatus, lastUpdatedAt, probePolicy, snapshot, unlocked} = useOutrider();
+  const {clefStatus, lastUpdatedAt, publicStatus, snapshot, unlocked} = useOutrider();
+  const observedPolicy = snapshot?.probe_policy ?? publicStatus?.probe_policy ?? null;
 
   const metrics = useMemo(() => {
     const sessions = snapshot?.agent_sessions.length ?? 0;
@@ -82,7 +83,9 @@ export function KpiRow() {
             style="decimal"
             value={metrics.completedProbes}
           />
-          <span className="text-muted text-xs tabular-nums">Policy: {probePolicy}</span>
+          <span className="text-muted text-xs tabular-nums">
+            Policy: {observedPolicy ?? "—"}
+          </span>
         </KPI.Content>
       </KPI>
 

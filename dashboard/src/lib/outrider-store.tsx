@@ -37,6 +37,7 @@ export interface OutriderContextValue {
   token: string;
   statusMessage: string;
   statusError: boolean;
+  setStatusMessage: (message: string, isError?: boolean) => void;
   lastUpdatedAt: number | null;
   clefStatus: ClefEngineStatus | null;
   probePolicy: ProbePolicy;
@@ -469,6 +470,11 @@ export function OutriderProvider({children}: {children: ReactNode}) {
     setActiveDialog(null);
   }, []);
 
+  const updateStatusMessage = useCallback((message: string, isError = false) => {
+    setStatusMessage(message);
+    setStatusError(Boolean(isError));
+  }, []);
+
   // Poll public `/__proxyfor__/commerce/status` on mount and restore saved session token if present.
   useEffect(() => {
     let cancelled = false;
@@ -539,7 +545,7 @@ export function OutriderProvider({children}: {children: ReactNode}) {
   }, [snapshot, selectedReceiptId]);
 
   const clefStatus = snapshot?.clef ?? publicStatus?.clef ?? null;
-  const probePolicy: ProbePolicy = snapshot?.probe_policy ?? publicStatus?.probe_policy ?? "on-request";
+  const probePolicy: ProbePolicy = snapshot?.probe_policy ?? publicStatus?.probe_policy ?? "auto";
 
   const value = useMemo<OutriderContextValue>(
     () => ({
@@ -568,6 +574,7 @@ export function OutriderProvider({children}: {children: ReactNode}) {
       setSelectedEvidence,
       setSelectedReceiptId,
       setSelectedSessionId,
+      setStatusMessage: updateStatusMessage,
       snapshot,
       statusError,
       statusMessage,
@@ -598,6 +605,7 @@ export function OutriderProvider({children}: {children: ReactNode}) {
       selectedSession,
       selectedSessionId,
       setSelectedSessionId,
+      updateStatusMessage,
       snapshot,
       statusError,
       statusMessage,
