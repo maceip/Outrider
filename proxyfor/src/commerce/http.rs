@@ -78,12 +78,20 @@ pub async fn route(commerce: Arc<Commerce>, request: Request<Incoming>) -> HttpR
         let query: std::collections::HashMap<String, String> = request
             .uri()
             .query()
-            .map(|q| url::form_urlencoded::parse(q.as_bytes()).into_owned().collect())
+            .map(|q| {
+                url::form_urlencoded::parse(q.as_bytes())
+                    .into_owned()
+                    .collect()
+            })
             .unwrap_or_default();
         let after = query.get("after").and_then(|a| a.parse().ok()).unwrap_or(0);
         return match commerce
             .inspector
-            .state(&commerce.db, query.get("connection_id").map(String::as_str), after)
+            .state(
+                &commerce.db,
+                query.get("connection_id").map(String::as_str),
+                after,
+            )
             .await
         {
             Ok(v) => json_response(200, v),

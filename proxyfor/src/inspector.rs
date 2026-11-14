@@ -35,14 +35,32 @@ const CONNECT_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_REQUEST_TIMEOUT_MS: u64 = 600_000;
 
 const STANDARD_REQUESTS: &[&str] = &[
-    "ping", "initialize", "server/discover", "completion/complete", "logging/setLevel",
-    "prompts/get", "prompts/list", "resources/list", "resources/templates/list",
-    "resources/read", "subscriptions/listen", "resources/subscribe", "resources/unsubscribe",
-    "tools/call", "tools/list", "tasks/get", "tasks/update", "tasks/cancel", "skills/list",
-    "skills/get", "resources/directory/read",
+    "ping",
+    "initialize",
+    "server/discover",
+    "completion/complete",
+    "logging/setLevel",
+    "prompts/get",
+    "prompts/list",
+    "resources/list",
+    "resources/templates/list",
+    "resources/read",
+    "subscriptions/listen",
+    "resources/subscribe",
+    "resources/unsubscribe",
+    "tools/call",
+    "tools/list",
+    "tasks/get",
+    "tasks/update",
+    "tasks/cancel",
+    "skills/list",
+    "skills/get",
+    "resources/directory/read",
 ];
 const STANDARD_NOTIFICATIONS: &[&str] = &[
-    "notifications/cancelled", "notifications/progress", "notifications/initialized",
+    "notifications/cancelled",
+    "notifications/progress",
+    "notifications/initialized",
     "notifications/roots/list_changed",
 ];
 type Answer = std::result::Result<Value, String>;
@@ -174,14 +192,12 @@ impl Service<RoleClient> for InspectorClient {
                 let roots = self.roots.lock().map(|r| r.clone()).unwrap_or_default();
                 Ok(ClientResult::ListRootsResult(ListRootsResult::new(roots)))
             }
-            ServerRequest::CreateMessageRequest(_) => {
-                match self.park(&method, params).await {
-                    Ok(v) => serde_json::from_value::<CreateMessageResult>(v)
-                        .map(|r| ClientResult::CreateMessageResult(Box::new(r)))
-                        .map_err(|e| McpError::invalid_params(e.to_string(), None)),
-                    Err(e) => Err(e),
-                }
-            }
+            ServerRequest::CreateMessageRequest(_) => match self.park(&method, params).await {
+                Ok(v) => serde_json::from_value::<CreateMessageResult>(v)
+                    .map(|r| ClientResult::CreateMessageResult(Box::new(r)))
+                    .map_err(|e| McpError::invalid_params(e.to_string(), None)),
+                Err(e) => Err(e),
+            },
             ServerRequest::ElicitRequest(_) => match self.park(&method, params).await {
                 Ok(v) => serde_json::from_value::<ElicitResult>(v)
                     .map(ClientResult::ElicitResult)
@@ -191,7 +207,11 @@ impl Service<RoleClient> for InspectorClient {
             ServerRequest::CustomRequest(r) => {
                 Err(McpError::new(ErrorCode::METHOD_NOT_FOUND, r.method, None))
             }
-            _ => Err(McpError::new(ErrorCode::METHOD_NOT_FOUND, method.clone(), None)),
+            _ => Err(McpError::new(
+                ErrorCode::METHOD_NOT_FOUND,
+                method.clone(),
+                None,
+            )),
         };
         let latency = started.elapsed().as_millis() as i64;
         let _ = match &result {
@@ -221,9 +241,14 @@ impl Service<RoleClient> for InspectorClient {
     ) -> std::result::Result<(), McpError> {
         let body = serde_json::to_value(&notification).unwrap_or(Value::Null);
         let method = body["method"].as_str().unwrap_or("unknown").to_owned();
-        let _ = self
-            .rec
-            .record("server_to_client", "notification", &method, &body, None, None);
+        let _ = self.rec.record(
+            "server_to_client",
+            "notification",
+            &method,
+            &body,
+            None,
+            None,
+        );
         Ok(())
     }
     fn get_info(&self) -> ClientConfig {
@@ -278,7 +303,12 @@ impl Inspector {
         Ok(())
     }
 
-    pub async fn connect(&self, commerce: &Arc<Commerce>, body: &Value, actor: &str) -> Result<Value> {
+    pub async fn connect(
+        &self,
+        commerce: &Arc<Commerce>,
+        body: &Value,
+        actor: &str,
+    ) -> Result<Value> {
         let transport = body["transport"].as_str().context("Missing transport")?;
         let target = body["target"].as_str().context("Missing target")?.trim();
         ensure!(!target.is_empty(), "Missing target");
@@ -342,7 +372,8 @@ impl Inspector {
                         target.starts_with("http://") || target.starts_with("https://"),
                         "HTTP target must be an http:// or https:// URL"
                     );
-                    let mut config = StreamableHttpClientTransportConfig::with_uri(target.to_owned());
+                    let mut config =
+                        StreamableHttpClientTransportConfig::with_uri(target.to_owned());
                     config.custom_headers = header_map(headers)?;
                     config.auth_header = bearer.map(str::to_owned);
                     Ok(client
@@ -369,7 +400,14 @@ impl Inspector {
                             use tokio::io::AsyncBufReadExt;
                             let mut lines = tokio::io::BufReader::new(stderr).lines();
                             while let Ok(Some(line)) = lines.next_line().await {
-                                let _ = rec.record("server_to_client", "stderr", "stderr", &json!({"line":line}), None, None);
+                                let _ = rec.record(
+                                    "server_to_client",
+                                    "stderr",
+                                    "stderr",
+                                    &json!({"line":line}),
+                                    None,
+                                    None,
+                                );
                             }
                         });
                     }
@@ -396,7 +434,14 @@ impl Inspector {
             "UPDATE inspector_connections SET status='Connected',server_info=?2,error=NULL,updated_at=?3 WHERE connection_id=?1",
             params![connection_id, info.to_string(), now()],
         )?;
-        rec.record("server_to_client", "handshake", "handshake", &info, None, Some(latency))?;
+        rec.record(
+            "server_to_client",
+            "handshake",
+            "handshake",
+            &info,
+            None,
+            Some(latency),
+        )?;
         rec.emit("inspector.connection");
         let connection = Arc::new(Connection {
             service: tokio::sync::Mutex::new(Some(service)),
@@ -409,7 +454,9 @@ impl Inspector {
             .write()
             .await
             .insert(connection_id.clone(), connection);
-        Ok(json!({"connection_id":connection_id,"status":"Connected","server_info":info,"handshake_ms":latency}))
+        Ok(
+            json!({"connection_id":connection_id,"status":"Connected","server_info":info,"handshake_ms":latency}),
+        )
     }
 
     async fn get(&self, connection_id: &str) -> Result<Arc<Connection>> {
@@ -443,7 +490,11 @@ impl Inspector {
     /// Sends one client request built from a JSON-RPC method name and params.
     pub async fn request(&self, body: &Value) -> Result<Value> {
         let connection = self
-            .get(body["connection_id"].as_str().context("Missing connection_id")?)
+            .get(
+                body["connection_id"]
+                    .as_str()
+                    .context("Missing connection_id")?,
+            )
             .await?;
         let method = body["method"].as_str().context("Missing method")?;
         let mut envelope = json!({"method":method});
@@ -454,7 +505,8 @@ impl Inspector {
             .with_context(|| format!("Params do not match the {method} request schema"))?;
         // The SDK's untagged union falls back to a custom request; for a standard
         // method that only happens when the params do not fit its schema.
-        if matches!(request, ClientRequest::CustomRequest(_)) && STANDARD_REQUESTS.contains(&method) {
+        if matches!(request, ClientRequest::CustomRequest(_)) && STANDARD_REQUESTS.contains(&method)
+        {
             bail!("Params do not match the {method} request schema");
         }
         let timeout_ms = body["timeout_ms"]
@@ -491,12 +543,18 @@ impl Inspector {
             Some(request_message),
             Some(latency),
         )?;
-        Ok(json!({"kind":kind,"result":value,"latency_ms":latency,"request_message_id":request_message,"message_id":message_id}))
+        Ok(
+            json!({"kind":kind,"result":value,"latency_ms":latency,"request_message_id":request_message,"message_id":message_id}),
+        )
     }
 
     pub async fn notify(&self, body: &Value) -> Result<Value> {
         let connection = self
-            .get(body["connection_id"].as_str().context("Missing connection_id")?)
+            .get(
+                body["connection_id"]
+                    .as_str()
+                    .context("Missing connection_id")?,
+            )
             .await?;
         let method = body["method"].as_str().context("Missing method")?;
         let mut envelope = json!({"method":method});
@@ -513,16 +571,25 @@ impl Inspector {
         }
         let sent = serde_json::to_value(&notification)?;
         connection.peer.send_notification(notification).await?;
-        let id = connection
-            .rec
-            .record("client_to_server", "notification", method, &sent, None, None)?;
+        let id = connection.rec.record(
+            "client_to_server",
+            "notification",
+            method,
+            &sent,
+            None,
+            None,
+        )?;
         Ok(json!({"message_id":id}))
     }
 
     /// Replaces the roots answered to `roots/list`, then tells the server.
     pub async fn set_roots(&self, body: &Value) -> Result<Value> {
         let connection = self
-            .get(body["connection_id"].as_str().context("Missing connection_id")?)
+            .get(
+                body["connection_id"]
+                    .as_str()
+                    .context("Missing connection_id")?,
+            )
             .await?;
         let roots: Vec<Root> = serde_json::from_value(body["roots"].clone())
             .context("Roots must be a list of {uri, name?}")?;
@@ -533,7 +600,11 @@ impl Inspector {
         let delivered = connection.peer.send_notification(notification).await;
         connection.rec.record(
             "client_to_server",
-            if delivered.is_ok() { "notification" } else { "error" },
+            if delivered.is_ok() {
+                "notification"
+            } else {
+                "error"
+            },
             "notifications/roots/list_changed",
             &match &delivered {
                 Ok(_) => sent,
@@ -549,7 +620,11 @@ impl Inspector {
     /// Opens a 2026-07-28 `subscriptions/listen` stream and records what it delivers.
     pub async fn listen(&self, body: &Value) -> Result<Value> {
         let connection = self
-            .get(body["connection_id"].as_str().context("Missing connection_id")?)
+            .get(
+                body["connection_id"]
+                    .as_str()
+                    .context("Missing connection_id")?,
+            )
             .await?;
         let mut builder = SubscriptionFilter::builder();
         let wants = |k: &str| body[k].as_bool().unwrap_or(false);
@@ -608,14 +683,35 @@ impl Inspector {
                     Ok(Some(n)) => {
                         let body = serde_json::to_value(&n).unwrap_or(Value::Null);
                         let method = body["method"].as_str().unwrap_or("unknown").to_owned();
-                        let _ = rec.record("server_to_client", "notification", &method, &body, Some(request_message), None);
+                        let _ = rec.record(
+                            "server_to_client",
+                            "notification",
+                            &method,
+                            &body,
+                            Some(request_message),
+                            None,
+                        );
                     }
                     Ok(None) => {
-                        let _ = rec.record("server_to_client", "notification", "subscriptions/end", &json!({"end":subscription.end().map(|e| format!("{e:?}"))}), Some(request_message), None);
+                        let _ = rec.record(
+                            "server_to_client",
+                            "notification",
+                            "subscriptions/end",
+                            &json!({"end":subscription.end().map(|e| format!("{e:?}"))}),
+                            Some(request_message),
+                            None,
+                        );
                         break;
                     }
                     Err(e) => {
-                        let _ = rec.record("server_to_client", "error", "subscriptions/listen", &json!({"message":e.to_string()}), Some(request_message), None);
+                        let _ = rec.record(
+                            "server_to_client",
+                            "error",
+                            "subscriptions/listen",
+                            &json!({"message":e.to_string()}),
+                            Some(request_message),
+                            None,
+                        );
                         break;
                     }
                 }
@@ -641,7 +737,12 @@ impl Inspector {
         Ok(json!({"request_id":request_id,"delivered":true}))
     }
 
-    pub async fn state(&self, db: &Database, connection: Option<&str>, after: i64) -> Result<Value> {
+    pub async fn state(
+        &self,
+        db: &Database,
+        connection: Option<&str>,
+        after: i64,
+    ) -> Result<Value> {
         let live: Vec<String> = self.connections.read().await.keys().cloned().collect();
         let conn = lock(&db.0, "database")?;
         let mut stmt = conn.prepare("SELECT connection_id,label,transport,target,lifecycle,header_names,env_names,status,server_info,error,created_at,updated_at FROM inspector_connections ORDER BY created_at DESC LIMIT 100")?;

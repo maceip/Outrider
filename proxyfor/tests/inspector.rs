@@ -105,7 +105,10 @@ async fn inspector_drives_stdio_and_http_servers_and_persists_every_message() ->
     let sid = stdio["connection_id"].as_str().unwrap().to_owned();
     assert!(stdio["server_info"].is_object());
     let (status, tools) = admin
-        .post("request", json!({"connection_id":sid,"method":"tools/list"}))
+        .post(
+            "request",
+            json!({"connection_id":sid,"method":"tools/list"}),
+        )
         .await?;
     assert_eq!(status, 200);
     assert_eq!(tools["kind"], "response");
@@ -177,7 +180,10 @@ async fn inspector_drives_stdio_and_http_servers_and_persists_every_message() ->
             json!({"connection_id":hid,"method":"tools/call","params":{"name":"outrider_checkout_bundle","arguments":{"bundle_id":"evidence"},"requestState":state,"inputResponses":{key:{"action":"decline"}}}}),
         )
         .await?;
-    assert_ne!(resumed["result"]["resultType"], "input_required", "{resumed}");
+    assert_ne!(
+        resumed["result"]["resultType"], "input_required",
+        "{resumed}"
+    );
 
     // Every exchange is persisted, paired, and timed.
     let recorded = admin.state(&sid).await?;
@@ -216,7 +222,9 @@ async fn inspector_drives_stdio_and_http_servers_and_persists_every_message() ->
     assert_eq!(status, 422);
 
     for id in [&sid, &hid] {
-        let (status, _) = admin.post("disconnect", json!({"connection_id":id})).await?;
+        let (status, _) = admin
+            .post("disconnect", json!({"connection_id":id}))
+            .await?;
         assert_eq!(status, 200);
     }
     let after = admin.state(&sid).await?;
