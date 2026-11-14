@@ -181,6 +181,11 @@ pub struct Server {
 impl Server {
     pub async fn run(self: Arc<Self>, listener: TcpListener) -> Result<oneshot::Sender<()>> {
         info!("Starting HTTP(S) proxy server");
+        if let Some(commerce) = &self.commerce
+            && let Ok(local_addr) = listener.local_addr()
+        {
+            commerce.set_listener_info(local_addr, self.ca.ca_cert_pem());
+        }
         std::fs::create_dir_all(&self.temp_dir)
             .with_context(|| format!("Failed to create temp dir '{}'", self.temp_dir.display()))?;
         let (stop_tx, stop_rx) = oneshot::channel();

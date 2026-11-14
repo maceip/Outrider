@@ -9,10 +9,22 @@ use admin_auth::AdminAuth;
 use anyhow::Result;
 use db::Database;
 use receipt::ReceiptAuthority;
-use std::{path::Path, sync::Arc};
+use std::{
+    net::SocketAddr,
+    path::{Path, PathBuf},
+    sync::Arc,
+};
+
+#[derive(Clone, Debug)]
+pub struct RuntimeListenerInfo {
+    pub listen_addr: SocketAddr,
+    pub ca_cert_pem: String,
+}
 
 pub struct Commerce {
     pub run_id: String,
+    pub config_dir: PathBuf,
+    pub listener_info: std::sync::RwLock<Option<RuntimeListenerInfo>>,
     pub errors: std::sync::Mutex<Vec<String>>,
     pub db: Database,
     pub clef: ClefEngine,
@@ -53,6 +65,8 @@ impl Commerce {
         Ok((
             Arc::new(Self {
                 run_id: db::id(),
+                config_dir: dir.to_path_buf(),
+                listener_info: Default::default(),
                 errors: Default::default(),
                 db,
                 clef,
@@ -73,6 +87,34 @@ impl Commerce {
             token,
         ))
     }
+    pub fn set_listener_info(&self, listen_addr: SocketAddr, ca_cert_pem: String) {
+        if let Ok(mut guard) = self.listener_info.write() {
+            *guard = Some(RuntimeListenerInfo {
+                listen_addr,
+                ca_cert_pem,
+            });
+        }
+    }
+
+    pub fn loopback_connect_addr(&self) -> Option<SocketAddr> {
+        let info = self.listener_info.read().ok()?.clone()?;
+        let ip = match info.listen_addr.ip() {
+            std::net::IpAddr::V4(v4) if v4.is_unspecified() => {
+                std::net::IpAddr::V4(std::net::Ipv4Addr::LOCALHOST)
+            }
+            std::net::IpAddr::V6(v6) if v6.is_unspecified() => {
+                std::net::IpAddr::V6(std::net::Ipv6Addr::LOCALHOST)
+            }
+            other => other,
+        };
+        Some(SocketAddr::new(ip, info.listen_addr.port()))
+    }
+
+    pub fn mcp_http_url(&self) -> Option<String> {
+        let addr = self.loopback_connect_addr()?;
+        Some(format!("http://{addr}/mcp"))
+    }
+
     pub fn changed(&self, kind: &str, session: Option<&str>) {
         let _ = self
             .events

@@ -34,12 +34,49 @@ pub async fn route(commerce: Arc<Commerce>, request: Request<Incoming>) -> HttpR
         .to_owned();
     let method = request.method().as_str().to_owned();
     if method == "GET" && path == "/status" {
+        let listen_addr = commerce.loopback_connect_addr().map(|a| a.to_string());
+        let mcp_endpoint = commerce.mcp_http_url();
         return json_response(
             200,
-            json!({"clef":commerce.clef.status(),"admin_allow_remote":commerce.auth.allow_remote,"probe_policy":*commerce.probe_policy.read().unwrap()}),
+            json!({
+                "clef": commerce.clef.status(),
+                "admin_allow_remote": commerce.auth.allow_remote,
+                "probe_policy": *commerce.probe_policy.read().unwrap(),
+                "listen_addr": listen_addr,
+                "mcp_endpoint": mcp_endpoint,
+            }),
         );
     }
     let peer = request.extensions().get::<PeerAddress>().map(|p| p.0.ip());
+    if method == "POST" && path == "/bootstrap/exchange" {
+        let bytes = match Limited::new(request.into_body(), 8 * 1024).collect().await {
+            Ok(b) => b.to_bytes(),
+            Err(e) => return json_response(413, json!({"error": e.to_string()})),
+        };
+        let body: Value = match serde_json::from_slice(&bytes) {
+            Ok(v) => v,
+            Err(e) => return json_response(400, json!({"error": e.to_string()})),
+        };
+        let Some(nonce) = body.get("nonce").and_then(Value::as_str) else {
+            return json_response(400, json!({"error": "Missing nonce"}));
+        };
+        return match commerce.auth.exchange_bootstrap_nonce(peer, nonce) {
+            Ok(token) => {
+                let _ = commerce.db.admin_audit(
+                    "desktop:bootstrap",
+                    "auth.bootstrap_exchange",
+                    "gateway",
+                    &json!({"loopback": true}),
+                );
+                json_response(200, json!({"token": token}))
+            }
+            Err(403) => json_response(
+                403,
+                json!({"error": "Bootstrap exchange requires a loopback peer"}),
+            ),
+            Err(_) => json_response(401, json!({"error": "Invalid or expired bootstrap nonce"})),
+        };
+    }
     let authorization = request
         .headers()
         .get("authorization")
@@ -96,6 +133,12 @@ pub async fn route(commerce: Arc<Commerce>, request: Request<Incoming>) -> HttpR
         {
             Ok(v) => json_response(200, v),
             Err(e) => json_response(500, json!({"error":format!("{e:#}")})),
+        };
+    }
+    if method == "GET" && path == "/onboarding/agents" {
+        return match crate::onboarding::scan_agents(&commerce) {
+            Ok(v) => json_response(200, v),
+            Err(e) => json_response(500, json!({"error": format!("{e:#}")})),
         };
     }
     if method != "POST" {
@@ -231,6 +274,10 @@ pub async fn mutate(
         "/inspector/roots" => commerce.inspector.set_roots(&body).await,
         "/inspector/listen" => commerce.inspector.listen(&body).await,
         "/inspector/answer" => commerce.inspector.answer(&body),
+        "/onboarding/configure-agent" => {
+            crate::onboarding::configure_agent(commerce, &body, actor)
+        }
+        "/onboarding/run-sortie" => crate::onboarding::run_sortie(commerce, &body, actor).await,
         _ => anyhow::bail!("Unknown admin action"),
     }
 }

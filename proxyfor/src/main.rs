@@ -14,7 +14,7 @@ use simplelog::{ConfigBuilder, LevelFilter, WriteLogger, format_description};
 use std::{
     fs,
     io::{self, IsTerminal},
-    net::{IpAddr, SocketAddr},
+    net::{IpAddr, Ipv4Addr, SocketAddr},
     path::{Path, PathBuf},
 };
 use tokio::net::TcpListener;
@@ -24,7 +24,15 @@ const PRIVATE_KEY_FILENAME: &str = "proxyfor-key.pem";
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let cli = Cli::parse();
+    let raw_args: Vec<std::ffi::OsString> = std::env::args_os().collect();
+    let explicit_listen = raw_args.iter().skip(1).any(|arg| {
+        let s = arg.to_string_lossy();
+        s == "-l" || s == "--listen" || s.starts_with("-l=") || s.starts_with("--listen=")
+    });
+    let cli = Cli::parse_from(&raw_args);
+    let desktop_mode = should_enter_desktop_mode(raw_args.len(), &cli);
+    let web_enabled = cli.web || desktop_mode;
+
     let config_dir = cli
         .config_dir
         .clone()
@@ -131,15 +139,24 @@ async fn main() -> Result<()> {
         return Ok(());
     }
     let ca = setup_ca(&config_dir)?;
-    let (ip, port) =
+    let (requested_ip, requested_port) =
         parse_addr(&cli.listen).ok_or_else(|| anyhow!("Invalid addr '{}'", cli.listen))?;
-    let addr = format!("{}:{}", ip, port);
+    let listener = bind_gateway_listener(
+        requested_ip,
+        requested_port,
+        desktop_mode && !explicit_listen,
+    )
+    .await?;
+    let bound_addr = listener.local_addr()?;
+    let ip = bound_addr.ip();
+    let port = bound_addr.port();
+    let addr = bound_addr.to_string();
+
     let reverse_proxy_url = cli.reverse_proxy_url.map(sanitize_reverse_proxy_url);
     let title_filters = parse_title_filters(&cli.filters)?;
     let mime_filters: Vec<String> = cli.mime_filters.iter().map(|v| v.to_lowercase()).collect();
-    let listener = TcpListener::bind(SocketAddr::new(ip, port)).await?;
-    let is_tui = io::stdout().is_terminal() && (cli.tui || (!cli.dump && !cli.web));
-    let is_dump = cli.dump || (!is_tui && !cli.web);
+    let is_tui = io::stdout().is_terminal() && (cli.tui || (!cli.dump && !web_enabled));
+    let is_dump = cli.dump || (!is_tui && !web_enabled);
     let print_mode = if is_tui {
         PrintMode::Nothing
     } else if is_dump {
@@ -147,12 +164,25 @@ async fn main() -> Result<()> {
     } else {
         PrintMode::Oneline
     };
+    let has_existing_sessions = commerce
+        .db
+        .rows("agent_sessions")
+        .ok()
+        .and_then(|v| v.as_array().map(|a| !a.is_empty()))
+        .unwrap_or(false);
+    let desktop_bootstrap_nonce =
+        if desktop_mode && !cli.no_open {
+            Some(commerce.auth.mint_bootstrap_nonce())
+        } else {
+            None
+        };
+
     let server = ServerBuilder::new(ca)
         .commerce(commerce)
         .reverse_proxy_url(reverse_proxy_url)
         .title_filters(title_filters)
         .mime_filters(mime_filters)
-        .web(cli.web)
+        .web(web_enabled)
         .print_mode(print_mode)
         .build();
     let state = server.state();
@@ -163,11 +193,30 @@ async fn main() -> Result<()> {
         tui::run(state, &addr).await.context("Failed to run TUI")?;
     } else {
         eprintln!("HTTP(S) proxy listening at {addr}");
-        if cli.web {
+        let browser_host = match ip {
+            IpAddr::V4(v4) if v4.is_unspecified() => IpAddr::V4(Ipv4Addr::LOCALHOST).to_string(),
+            IpAddr::V6(v6) if v6.is_unspecified() => "[::1]".to_owned(),
+            IpAddr::V6(v6) => format!("[{v6}]"),
+            other => other.to_string(),
+        };
+        if web_enabled {
             eprintln!(
-                "Web interface accessible at http://{}:{}{}/",
-                ip, port, WEB_PREFIX
+                "Web interface accessible at http://{browser_host}:{port}{WEB_PREFIX}/"
             );
+        }
+        if let Some(nonce) = desktop_bootstrap_nonce {
+            let entry_route = if has_existing_sessions {
+                format!("{WEB_PREFIX}/")
+            } else {
+                format!("{WEB_PREFIX}/zim/")
+            };
+            let launch_url =
+                format!("http://{browser_host}:{port}{entry_route}#bootstrap={nonce}");
+            if let Err(err) = open_browser_url(&launch_url) {
+                warn!("Failed to launch default browser ({launch_url}): {err:#}");
+            } else {
+                info!("Opened default desktop browser to {entry_route}");
+            }
         }
         shutdown_signal().await;
     }
@@ -221,6 +270,15 @@ struct Cli {
     /// Enable user-friendly web interface
     #[clap(short = 'W', long)]
     web: bool,
+    /// Force server/headless mode (never auto-open browser or auto-fallback ports)
+    #[clap(long, alias = "server")]
+    headless: bool,
+    /// Force desktop interactive mode (auto-enable web UI, port fallback, and browser launch)
+    #[clap(long)]
+    desktop: bool,
+    /// Suppress launching the default OS browser in desktop mode
+    #[clap(long)]
+    no_open: bool,
     /// Eenter TUI
     #[clap(short = 'T', long)]
     tui: bool,
@@ -230,6 +288,103 @@ struct Cli {
     /// Reverse proxy url
     #[clap(value_name = "URL")]
     reverse_proxy_url: Option<String>,
+}
+
+fn env_truthy(name: &str) -> bool {
+    std::env::var(name).is_ok_and(|val| {
+        let trimmed = val.trim();
+        !trimmed.is_empty() && trimmed != "0" && !trimmed.eq_ignore_ascii_case("false")
+    })
+}
+
+fn should_enter_desktop_mode(raw_args_len: usize, cli: &Cli) -> bool {
+    if cli.headless || cli.stdio || cli.dump || cli.tui || cli.command.is_some() {
+        return false;
+    }
+    if cli.desktop {
+        return true;
+    }
+    if raw_args_len > 1 {
+        return false;
+    }
+    if env_truthy("CI")
+        || env_truthy("OUTRIDER_HEADLESS")
+        || std::env::var_os("SSH_CONNECTION").is_some()
+        || std::env::var_os("SSH_TTY").is_some()
+    {
+        return false;
+    }
+    #[cfg(target_os = "linux")]
+    if std::env::var_os("DISPLAY").is_none() && std::env::var_os("WAYLAND_DISPLAY").is_none() {
+        return false;
+    }
+    #[cfg(target_os = "windows")]
+    if std::env::var("SESSIONNAME").is_ok_and(|s| s.eq_ignore_ascii_case("Services")) {
+        return false;
+    }
+    true
+}
+
+async fn bind_gateway_listener(
+    ip: IpAddr,
+    preferred_port: u16,
+    allow_fallback: bool,
+) -> Result<TcpListener> {
+    match TcpListener::bind(SocketAddr::new(ip, preferred_port)).await {
+        Ok(listener) => Ok(listener),
+        Err(primary_err) if allow_fallback && preferred_port != 0 => {
+            for candidate in (preferred_port.saturating_add(1))..=preferred_port.saturating_add(19)
+            {
+                if let Ok(listener) = TcpListener::bind(SocketAddr::new(ip, candidate)).await {
+                    eprintln!(
+                        "Port {preferred_port} in use ({primary_err}); bound desktop listener to {ip}:{candidate}"
+                    );
+                    return Ok(listener);
+                }
+            }
+            let listener = TcpListener::bind(SocketAddr::new(ip, 0)).await?;
+            let actual = listener.local_addr()?.port();
+            eprintln!(
+                "Port {preferred_port} in use ({primary_err}); bound desktop listener to {ip}:{actual}"
+            );
+            Ok(listener)
+        }
+        Err(err) => Err(err.into()),
+    }
+}
+
+fn open_browser_url(url: &str) -> Result<()> {
+    if let Some(custom_opener) = std::env::var_os("OUTRIDER_BROWSER_OPENER") {
+        std::process::Command::new(custom_opener)
+            .arg(url)
+            .spawn()
+            .context("Failed to execute OUTRIDER_BROWSER_OPENER")?;
+        return Ok(());
+    }
+    #[cfg(target_os = "macos")]
+    {
+        std::process::Command::new("open")
+            .arg(url)
+            .spawn()
+            .context("Failed to spawn macOS `open`")?;
+        Ok(())
+    }
+    #[cfg(target_os = "windows")]
+    {
+        std::process::Command::new("rundll32")
+            .args(["url.dll,FileProtocolHandler", url])
+            .spawn()
+            .context("Failed to launch default Windows browser via rundll32")?;
+        Ok(())
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
+    {
+        std::process::Command::new("xdg-open")
+            .arg(url)
+            .spawn()
+            .context("Failed to spawn `xdg-open`")?;
+        Ok(())
+    }
 }
 
 fn setup_ca(config_dir: &Path) -> Result<CertificateAuthority> {

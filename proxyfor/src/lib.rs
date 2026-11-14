@@ -8,6 +8,7 @@ pub mod filter;
 pub mod fingerprint;
 pub mod inspector;
 pub mod mcp_gateway;
+pub mod onboarding;
 pub mod server;
 pub mod state;
 pub mod traffic;

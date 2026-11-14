@@ -376,12 +376,30 @@ impl Inspector {
                         StreamableHttpClientTransportConfig::with_uri(target.to_owned());
                     config.custom_headers = header_map(headers)?;
                     config.auth_header = bearer.map(str::to_owned);
-                    Ok(client
-                        .serve_with_lifecycle(
-                            StreamableHttpClientTransport::from_config(config),
-                            lifecycle,
-                        )
-                        .await?)
+                    let mut http_builder = reqwest13::Client::builder();
+                    if let Ok(guard) = commerce.listener_info.read()
+                        && let Some(info) = guard.as_ref()
+                        && let Ok(cert) =
+                            reqwest13::Certificate::from_pem(info.ca_cert_pem.as_bytes())
+                    {
+                        http_builder = http_builder.add_root_certificate(cert);
+                        if let Some(connect_addr) = commerce.loopback_connect_addr()
+                            && target.starts_with(&format!(
+                                "https://localhost:{}",
+                                connect_addr.port()
+                            ))
+                        {
+                            http_builder = http_builder
+                                .http1_only()
+                                .no_proxy()
+                                .resolve("localhost", connect_addr);
+                        }
+                    }
+                    let transport = StreamableHttpClientTransport::with_client(
+                        http_builder.build()?,
+                        config,
+                    );
+                    Ok(client.serve_with_lifecycle(transport, lifecycle).await?)
                 }
                 "stdio" => {
                     let parts = shell_words::split(target)?;

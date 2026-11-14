@@ -148,6 +148,10 @@ impl CertificateAuthority {
         params
             .subject_alt_names
             .push(SanType::DnsName(Ia5String::try_from(authority.host())?));
+        params.key_usages.push(KeyUsagePurpose::DigitalSignature);
+        params
+            .extended_key_usages
+            .push(ExtendedKeyUsagePurpose::ServerAuth);
 
         let cert = params.signed_by(&self.private_key, &self.ca_cert, &self.private_key)?;
         let cert_der = cert.der().clone();
@@ -167,9 +171,6 @@ fn gen_ca_cert(key: &KeyPair) -> Result<Certificate> {
         .push(DnType::OrganizationName, "proxyfor");
     params.not_before = yesterday;
     params.not_after = tomorrow;
-    params
-        .extended_key_usages
-        .push(ExtendedKeyUsagePurpose::ServerAuth);
     params.key_usages.push(KeyUsagePurpose::KeyCertSign);
     params.key_usages.push(KeyUsagePurpose::CrlSign);
 
