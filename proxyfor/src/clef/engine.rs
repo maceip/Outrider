@@ -44,6 +44,7 @@ impl ClefEngine {
             let prompt = format!("Evaluate only the evidence in this MCP session record. Question: {}. Return exactly JSON matching {}. Session evidence: {}", serde_json::to_string(&question)?,schema,record);
             let mut conversation = engine.create_conversation(ConversationConfig {
                 session:SessionConfig { max_output_tokens:Some(256), ..Default::default() },
+                system_message:Some(serde_json::to_value(Message::system("You evaluate recorded MCP session evidence. Follow the supplied JSON schema."))?),
                 enable_constrained_decoding:Some(true),use_ll_guidance:Some(true),
                 extra_context:Some(json!({"enable_thinking":false})),
                 thinking:Some(ThinkingConfig {enable_thinking:Some(false),thinking_token_budget:Some(0)}),
