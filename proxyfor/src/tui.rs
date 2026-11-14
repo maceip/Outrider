@@ -914,7 +914,7 @@ fn build_details_title_spans(traffic: &Traffic, selected: usize) -> Vec<Span<'st
     spans
 }
 
-fn build_details_head_lines(traffic: &Traffic) -> Vec<Line> {
+fn build_details_head_lines(traffic: &Traffic) -> Vec<Line<'_>> {
     let mut lines = vec![];
     lines.push(Line::raw(format!("{} {}", traffic.method, traffic.uri)));
     let mut head_parts = vec![];
@@ -931,7 +931,7 @@ fn build_details_head_lines(traffic: &Traffic) -> Vec<Line> {
     lines
 }
 
-fn build_headers_lines(headers: Option<&Headers>, width: usize) -> Vec<Line> {
+fn build_headers_lines(headers: Option<&Headers>, width: usize) -> Vec<Line<'_>> {
     let Some(headers) = headers else {
         return vec![];
     };
@@ -959,13 +959,13 @@ fn build_body_lines<'a>(
     lines
 }
 
-fn build_error_lines(error: &str, width: usize) -> Vec<Line> {
+fn build_error_lines(error: &str, width: usize) -> Vec<Line<'_>> {
     let mut lines = vec!["".into(), build_horizontal_line("ERROR", width)];
     lines.push(Line::raw(error));
     lines
 }
 
-fn build_websocket_message_lines(message: &WebsocketMessage, width: usize) -> Vec<Line> {
+fn build_websocket_message_lines(message: &WebsocketMessage, width: usize) -> Vec<Line<'_>> {
     match message {
         WebsocketMessage::Error(error) => build_error_lines(error, width),
         WebsocketMessage::Data(data) => {
