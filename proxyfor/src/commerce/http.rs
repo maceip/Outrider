@@ -39,6 +39,7 @@ pub async fn mutate(commerce:&Arc<Commerce>,path:&str,body:Value,actor:&str)->Re
     match path {
         "/receipts/issue"=>{
             let signed=commerce.receipts.issue(string("subject")?,string("bundle_id")?,body["max_calls"].as_i64().context("Missing max_calls")?,body["expires_at_unix"].as_i64().context("Missing expires_at_unix")?,actor)?;
+            commerce.receipts.verify_signature(&signed)?;
             Ok(json!({"token":signed.encode()?,"signed_receipt":signed,"signature_verified":true}))
         },
         "/receipts/revoke"=>{commerce.receipts.revoke(string("receipt_id")?,actor)?;Ok(json!({"revoked":string("receipt_id")?}))},

@@ -1,6 +1,6 @@
 use anyhow::{Result,Context,ensure,anyhow};
 use base64::{Engine as _,engine::general_purpose::URL_SAFE_NO_PAD};
-use ed25519_dalek::{Signature,Signer,SigningKey,pkcs8::{DecodePrivateKey,EncodePrivateKey,LineEnding}};
+use ed25519_dalek::{Signature,Signer,SigningKey,pkcs8::{DecodePrivateKey,EncodePrivateKey}};
 use rand::{RngCore,rngs::OsRng};
 use rusqlite::{params,OptionalExtension,TransactionBehavior};
 use serde::{Serialize,Deserialize};
@@ -21,7 +21,7 @@ impl SignedReceipt {
 pub struct ReceiptAuthority {key:SigningKey,db:Database}
 impl ReceiptAuthority {
     pub fn load(db:Database,path:&Path)->Result<Self> {
-        let (bytes,_)=private_file(path,||{let mut seed=[0;32];OsRng.fill_bytes(&mut seed);Ok(SigningKey::from_bytes(&seed).to_pkcs8_pem(LineEnding::LF)?.as_bytes().to_vec())})?;
+        let (bytes,_)=private_file(path,||{let mut seed=[0;32];OsRng.fill_bytes(&mut seed);Ok(SigningKey::from_bytes(&seed).to_pkcs8_pem(Default::default())?.as_bytes().to_vec())})?;
         Ok(Self{key:SigningKey::from_pkcs8_pem(std::str::from_utf8(&bytes)?)?,db})
     }
     pub fn public_key(&self)->String {URL_SAFE_NO_PAD.encode(self.key.verifying_key().as_bytes())}
