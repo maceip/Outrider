@@ -1,4 +1,4 @@
-//! No network access: verify the explicitly installed, pinned macOS runtime.
+//! No network access: verify the explicitly installed, pinned native runtime and embed dashboard static export.
 use sha2::{Digest, Sha256};
 
 fn mime_for_path(path: &std::path::Path) -> &'static str {
@@ -96,6 +96,25 @@ fn generate_dashboard_assets(root: &std::path::Path) {
     std::fs::write(&dest, generated).expect("write dashboard_assets.rs");
 }
 
+fn verify_pinned_files(dir: &std::path::Path, map: &serde_json::Map<String, serde_json::Value>) {
+    for (name, digest) in map {
+        let file = dir.join(name);
+        println!("cargo:rerun-if-changed={}", file.display());
+        let bytes = std::fs::read(&file).unwrap_or_else(|_| {
+            panic!(
+                "Missing pinned native library {}. Run `python3 scripts/install_native.py` before building.",
+                file.display()
+            )
+        });
+        assert_eq!(
+            format!("{:x}", Sha256::digest(&bytes)),
+            digest.as_str().expect("SHA-256 hex string"),
+            "Native library checksum mismatch: {}. Reinstall with scripts/install_native.py",
+            file.display()
+        );
+    }
+}
+
 fn main() {
     println!("cargo:rerun-if-env-changed=LITERT_LM_LIB_DIR");
     let root = std::path::PathBuf::from(std::env::var_os("CARGO_MANIFEST_DIR").unwrap())
@@ -105,40 +124,66 @@ fn main() {
     generate_dashboard_assets(&root);
     let manifest = root.join("native/manifest.json");
     println!("cargo:rerun-if-changed={}", manifest.display());
-    if std::env::var("CARGO_CFG_TARGET_OS").as_deref() != Ok("macos")
-        || std::env::var("CARGO_CFG_TARGET_ARCH").as_deref() != Ok("aarch64")
-    {
-        return;
-    }
     let pinned: serde_json::Value =
         serde_json::from_slice(&std::fs::read(&manifest).expect("native manifest"))
             .expect("native manifest JSON");
-    let dir = std::env::var_os("LITERT_LM_LIB_DIR")
-        .map(std::path::PathBuf::from)
-        .unwrap_or_else(|| root.join("native/macos"));
-    for (name, digest) in pinned["files_macos_arm64"]
-        .as_object()
-        .expect("pinned native file hashes")
-    {
-        let file = dir.join(name);
-        println!("cargo:rerun-if-changed={}", file.display());
-        let bytes=std::fs::read(&file).unwrap_or_else(|_|panic!("Missing pinned native library {}. Run python3 scripts/install_native.py before building.",file.display()));
-        assert_eq!(
-            format!("{:x}", Sha256::digest(&bytes)),
-            digest.as_str().unwrap(),
-            "Native library checksum mismatch: {}. Reinstall with scripts/install_native.py",
-            file.display()
-        );
+
+    let target_os = std::env::var("CARGO_CFG_TARGET_OS").unwrap_or_default();
+    let target_arch = std::env::var("CARGO_CFG_TARGET_ARCH").unwrap_or_default();
+
+    match (target_os.as_str(), target_arch.as_str()) {
+        ("macos", "aarch64") => {
+            let dir = std::env::var_os("LITERT_LM_LIB_DIR")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|| root.join("native/macos"));
+            verify_pinned_files(
+                &dir,
+                pinned["files_macos_arm64"]
+                    .as_object()
+                    .expect("pinned macos arm64 native hashes"),
+            );
+            let alias = dir.join("liblitert-lm.so");
+            println!("cargo:rerun-if-changed={}", alias.display());
+            assert_eq!(
+                std::fs::canonicalize(&alias).expect("native runtime loader alias"),
+                std::fs::canonicalize(dir.join("liblitert-lm.dylib")).unwrap(),
+                "Native runtime loader alias must point to the pinned library"
+            );
+            println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path");
+            println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/lib");
+            println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../Frameworks");
+            println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../../native/macos");
+            println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../../../native/macos");
+            println!("cargo:rustc-link-search=native={}", dir.display());
+        }
+        ("windows", "x86_64") => {
+            let dir = std::env::var_os("LITERT_LM_LIB_DIR")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|| root.join("native/windows"));
+            verify_pinned_files(
+                &dir,
+                pinned["files_windows_x86_64"]
+                    .as_object()
+                    .expect("pinned windows x86_64 native hashes"),
+            );
+            println!("cargo:rustc-link-search=native={}", dir.display());
+        }
+        ("linux", "x86_64") => {
+            let dir = std::env::var_os("LITERT_LM_LIB_DIR")
+                .map(std::path::PathBuf::from)
+                .unwrap_or_else(|| root.join("native/linux"));
+            verify_pinned_files(
+                &dir,
+                pinned["files_linux_x86_64"]
+                    .as_object()
+                    .expect("pinned linux x86_64 native hashes"),
+            );
+            println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN");
+            println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/lib");
+            println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/../../native/linux");
+            println!("cargo:rustc-link-arg=-Wl,-rpath,$ORIGIN/../../../native/linux");
+            println!("cargo:rustc-link-search=native={}", dir.display());
+        }
+        _ => {}
     }
-    let alias = dir.join("liblitert-lm.so");
-    println!("cargo:rerun-if-changed={}", alias.display());
-    assert_eq!(
-        std::fs::canonicalize(&alias).expect("native runtime loader alias"),
-        std::fs::canonicalize(dir.join("liblitert-lm.dylib")).unwrap(),
-        "Native runtime loader alias must point to the pinned library"
-    );
-    println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../../native/macos");
-    println!("cargo:rustc-link-arg=-Wl,-rpath,@executable_path/../../../native/macos");
-    // Also covers a dependency build script cached before explicit installation.
-    println!("cargo:rustc-link-search=native={}", dir.display());
 }

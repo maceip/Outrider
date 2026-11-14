@@ -8,6 +8,11 @@
     "url": "https://files.pythonhosted.org/packages/cc/df/147e5fa60cf8964bdcbc022cbd38502f91ea415bf82bed2c9335fcf9be9d/litert_lm_api-0.18.0-py3-none-macosx_12_0_arm64.whl",
     "archive_sha256": "9fd0c55835e469a035c1b75cde4797b26292963c2c36d9fcdfceb965ffa08a37"
   },
+  "runtime_linux_x86_64": {
+    "version": "litert-lm-api 0.18.0 (official Linux x86_64 wheel C API)",
+    "url": "https://files.pythonhosted.org/packages/c9/8f/eb7a5203be1d48440c6b8d6e6382c3f744dd6d338fe400555718b4d695a1/litert_lm_api-0.18.0-py3-none-manylinux_2_27_x86_64.whl",
+    "archive_sha256": "b64e2cf6d7dcb90ff094b74af595cc5d53faa07e0889f967d15df8d3e696b53c"
+  },
   "files_macos_arm64": {
     "libGemmaModelConstraintProvider.dylib": "107922fe3b6357b7f8900817d7a1b4c78e08fdfc1e7ea895ba958b92ac47bd6b",
     "libLiteRt.dylib": "9be2b79fbf6526be384f12ddffa4f99a1af92158383d164731a564dbbd28e1e0",
@@ -17,5 +22,18 @@
     "libLiteRtWebGpuAccelerator.dylib": "2dce0d6121c4e5f8712b7970cfa81465cbd48ce60cb76ad255e27b9193980835",
     "liblitert-lm.dylib": "cbec999a8156f10d277484ad3c6b6d9ac012375c4a03019aa1b0eab68ccaa4e9",
     "libwebgpu_dawn.dylib": "f55d6bd0a53fedd31d38abb812b14814a491eb47c6177b22f469a86234367b1b"
+  },
+  "files_windows_x86_64": {
+    "libGemmaModelConstraintProvider.dll": "84b7c018631ad66f9d2ce7f3922d55aca5d38281a3790d095438b45313db9cd4",
+    "libLiteRt.dll": "cb5049dfbf164bf778b8dd565db055c9ee76c02155bf17af6957ea7b0c04ad4e",
+    "libLiteRtTopKWebGpuSampler.dll": "e2beaa4b57b98366f4266e9dc77325a6cebc51335005ff7ce1dc1910dda6e868",
+    "libLiteRtWebGpuAccelerator.dll": "c17cdb57e420a9c0b8cbad424dd8322c4e1f0e7be1773a4b6cb03bb96d3bde4c",
+    "libwebgpu_dawn.dll": "e045ab52c99e48ab689a81d4988b90d64993cb602109f20f8444cc23e52a678d",
+    "litert-lm.dll": "1b3331c75bb2a3febc8ab2916a79e5b7d20017b155f05fde74f6ec7eb03c7c22",
+    "litert-lm.if.lib": "6a8f4ac2c1607486d6bc01c5c84aab232fd08b2ac457c81a372d542072e96750",
+    "litert-lm.lib": "6a8f4ac2c1607486d6bc01c5c84aab232fd08b2ac457c81a372d542072e96750"
+  },
+  "files_linux_x86_64": {
+    "liblitert-lm.so": "193a2d8581ff525a242334863f36b439e4ba8bd08f31a33d87c503be4fb61cff"
   }
 }
