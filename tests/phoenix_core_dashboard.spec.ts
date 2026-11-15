@@ -1,0 +1,808 @@
+import { test, expect, type Page } from "@playwright/test";
+import { spawn, type ChildProcess } from "node:child_process";
+import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import http from "node:http";
+import net from "node:net";
+import { tmpdir } from "node:os";
+import path from "node:path";
+
+const ROOT = path.resolve(import.meta.dirname, "..");
+const RELEASE_BIN = path.join(ROOT, "target/release/outrider");
+const WEBMCP_ORIGIN_TRIAL_TOKEN =
+  "A/h8mpmc7Ym1LKQeIQMQ2NG8Tosq469/Pk04jVBhwrEMKVjNKhqeNZz1Js6I61E9vLmF8wRkQguqkCYtFatiJggAAABbeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTgwNjM2NDgwMCwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==";
+
+const FORBIDDEN_STRINGS = [
+  "ZIM",
+  "Observatory",
+  "Sortie",
+  "Ed25519",
+  "SQLite",
+  "RFC 8785",
+  "MRTR",
+  "Kate Moore",
+  "Alice Johnson",
+  "Failed to fetch",
+] as const;
+
+async function pickFreePort(): Promise<number> {
+  const srv = net.createServer();
+  await new Promise<void>((resolve) => srv.listen(0, "127.0.0.1", resolve));
+  const assigned = (srv.address() as net.AddressInfo).port;
+  await new Promise<void>((resolve) => srv.close(() => resolve()));
+  return assigned;
+}
+
+async function waitForGatewayReady(baseUrl: string): Promise<void> {
+  let lastError: unknown;
+  for (let i = 0; i < 200; i++) {
+    try {
+      const res = await fetch(`${baseUrl}/__proxyfor__/commerce/status`);
+      if (res.status === 200) {
+        return;
+      }
+    } catch (err) {
+      lastError = err;
+    }
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(
+    `Timed out waiting for gateway at ${baseUrl}: ${String(lastError)}`,
+  );
+}
+
+interface RunningGateway {
+  port: number;
+  baseUrl: string;
+  configDir: string;
+  adminToken: string;
+  proc: ChildProcess;
+  close: () => Promise<void>;
+}
+
+async function startReleaseGateway(
+  extraArgs: string[] = ["--web", "--no-open"],
+  extraEnv: Record<string, string> = {},
+): Promise<RunningGateway> {
+  const configDir = await mkdtemp(path.join(tmpdir(), "outrider-phoenix-e2e-"));
+  const port = await pickFreePort();
+  const baseUrl = `http://localhost:${port}`;
+
+  const env: NodeJS.ProcessEnv = { ...process.env, ...extraEnv };
+  delete env.OUTRIDER_CLEF_MODEL;
+  delete env.OUTRIDER_DASHBOARD_DIR;
+  delete env.CI;
+  delete env.OUTRIDER_HEADLESS;
+  env.OUTRIDER_CLEF_NO_FETCH = "1";
+  const nativeMacos = path.join(ROOT, "native/macos");
+  env.DYLD_LIBRARY_PATH = env.DYLD_LIBRARY_PATH
+    ? `${nativeMacos}:${env.DYLD_LIBRARY_PATH}`
+    : nativeMacos;
+
+  const proc = spawn(
+    RELEASE_BIN,
+    [...extraArgs, "-l", `127.0.0.1:${port}`, "--config-dir", configDir],
+    { cwd: ROOT, env, stdio: "pipe" },
+  );
+
+  await waitForGatewayReady(`http://127.0.0.1:${port}`);
+  const adminToken = (
+    await readFile(path.join(configDir, "outrider-admin-token"), "utf8")
+  ).trim();
+
+  return {
+    port,
+    baseUrl,
+    configDir,
+    adminToken,
+    proc,
+    async close() {
+      if (proc.exitCode === null) {
+        proc.kill("SIGINT");
+        await Promise.race([
+          new Promise((resolve) => proc.once("exit", resolve)),
+          new Promise((resolve) => setTimeout(resolve, 3000)),
+        ]);
+        if (proc.exitCode === null) {
+          proc.kill("SIGKILL");
+        }
+      }
+      await rm(configDir, { recursive: true, force: true });
+    },
+  };
+}
+
+function sendProxiedHttpGet(
+  proxyPort: number,
+  targetUrl: string,
+): Promise<{ statusCode: number; body: string }> {
+  const parsed = new URL(targetUrl);
+  return new Promise((resolve, reject) => {
+    const req = http.request(
+      {
+        host: "127.0.0.1",
+        port: proxyPort,
+        method: "GET",
+        path: targetUrl,
+        headers: {
+          Host: parsed.host,
+          Connection: "close",
+        },
+      },
+      (res) => {
+        let data = "";
+        res.setEncoding("utf8");
+        res.on("data", (chunk) => {
+          data += chunk;
+        });
+        res.on("end", () => {
+          resolve({ statusCode: res.statusCode ?? 0, body: data });
+        });
+      },
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function kpiCard(page: Page, title: string) {
+  return page
+    .getByRole("term")
+    .filter({ hasText: new RegExp(`^${escapeRegExp(title)}$`) })
+    .locator("../..");
+}
+
+async function clickSidebarLink(page: Page, label: string) {
+  const nav =
+    label === "Help"
+      ? page.getByRole("treegrid", { name: "Account" })
+      : page.getByRole("treegrid", { name: "Dashboard navigation" });
+  await nav.getByRole("row", { name: label, exact: true }).click();
+}
+
+async function assertCleanCopyAndZeroJargon(page: Page, routeName: string) {
+  const text = await page.locator("body").innerText();
+  for (const forbidden of FORBIDDEN_STRINGS) {
+    expect(
+      text.toLowerCase(),
+      `Route "${routeName}" must not contain forbidden string "${forbidden}"`,
+    ).not.toContain(forbidden.toLowerCase());
+  }
+  expect(text, `Route "${routeName}" must never render NaN`).not.toContain(
+    "NaN",
+  );
+}
+
+test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live stream, and interactive persistence", async ({
+  page,
+}) => {
+  const gateway = await startReleaseGateway();
+  let upstreamServer: http.Server | null = null;
+
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const badResponses: string[] = [];
+
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
+      consoleErrors.push(msg.text());
+    }
+  });
+  page.on("pageerror", (err) => {
+    pageErrors.push(err.message);
+  });
+  page.on("response", (res) => {
+    if (res.status() >= 400) {
+      badResponses.push(
+        `${res.status()} ${res.request().method()} ${res.url()}`,
+      );
+    }
+  });
+
+  try {
+    // =========================================================================
+    // (a) Clean Boot & WebMCP Origin Trial
+    // =========================================================================
+    await page.goto(`${gateway.baseUrl}/__proxyfor__/`);
+    await expect(page).toHaveTitle("Outrider");
+
+    const originTrialContent = await page
+      .locator('meta[http-equiv="origin-trial"]')
+      .getAttribute("content");
+    expect(originTrialContent).toBe(WEBMCP_ORIGIN_TRIAL_TOKEN);
+
+    // Wait for status + seamless local bootstrap auth to hydrate sidebar subtitle
+    await expect(
+      page.locator('[data-sidebar="label"]:visible').first(),
+    ).toContainText(`127.0.0.1:${gateway.port}`);
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    expect(badResponses).toEqual([]);
+
+    // =========================================================================
+    // (b) Zero Self-Pollution & Zero Fake Data / Jargon across all 5 routes
+    // =========================================================================
+    // 1. Dashboard (/)
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Dashboard" }),
+    ).toBeVisible();
+    for (const label of ["Requests", "MCP Calls", "Sessions", "Errors"]) {
+      await expect(kpiCard(page, label)).toContainText("0");
+    }
+    await expect(
+      page.getByText("No traffic recorded", { exact: true }),
+    ).toBeVisible();
+    await assertCleanCopyAndZeroJargon(page, "Dashboard");
+
+    // 2. Analytics (/analytics/)
+    await clickSidebarLink(page, "Analytics");
+    await expect(page).toHaveURL(/\/__proxyfor__\/analytics\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Analytics" }),
+    ).toBeVisible();
+    await expect(kpiCard(page, "Events")).toContainText("0");
+    await expect(kpiCard(page, "Unique Hosts")).toContainText("0");
+    await expect(kpiCard(page, "Error Rate")).toContainText("0%");
+    await expect(kpiCard(page, "Avg. Latency")).toContainText("0 ms");
+    await expect(
+      page.getByText("No live events", { exact: true }),
+    ).toBeVisible();
+    await assertCleanCopyAndZeroJargon(page, "Analytics");
+
+    // 3. Orders (/orders/)
+    await clickSidebarLink(page, "Orders");
+    await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Orders" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("No receipts found", { exact: true }),
+    ).toBeVisible();
+    await assertCleanCopyAndZeroJargon(page, "Orders");
+
+    // 4. Settings (/settings/)
+    await clickSidebarLink(page, "Settings");
+    await expect(page).toHaveURL(/\/__proxyfor__\/settings\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Settings" }),
+    ).toBeVisible();
+    await expect(page.locator('input[name="proxy-address"]')).toHaveValue(
+      `127.0.0.1:${gateway.port}`,
+    );
+    await expect(page.locator('input[name="mcp-endpoint"]')).toHaveValue(
+      `http://127.0.0.1:${gateway.port}/mcp`,
+    );
+    await assertCleanCopyAndZeroJargon(page, "Settings");
+
+    // 5. Help (/help/)
+    await clickSidebarLink(page, "Help");
+    await expect(page).toHaveURL(/\/__proxyfor__\/help\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Help" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("HTTPS Certificate (.pem)", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("HTTPS Certificate (.cer)", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Export Traffic (HAR)", { exact: true }),
+    ).toBeVisible();
+    await assertCleanCopyAndZeroJargon(page, "Help");
+
+    // Verify backend has ZERO self-pollution after browsing all 5 UI routes
+    const emptyTrafficsRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/traffics`,
+    );
+    expect(emptyTrafficsRes.status).toBe(200);
+    const emptyTraffics = (await emptyTrafficsRes.json()) as unknown[];
+    expect(emptyTraffics.length).toBe(0);
+
+    const emptySnapRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
+      {
+        headers: { Authorization: `Bearer ${gateway.adminToken}` },
+      },
+    );
+    expect(emptySnapRes.status).toBe(200);
+    const emptySnap = (await emptySnapRes.json()) as {
+      fingerprint_observations: unknown[];
+    };
+    expect(emptySnap.fingerprint_observations.length).toBe(0);
+
+    // =========================================================================
+    // (c) Unified Live Stream (HTTP Proxy + /mcp -> Live UI Update Without Reload)
+    // =========================================================================
+    await page.goto(`${gateway.baseUrl}/__proxyfor__/`);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Dashboard" }),
+    ).toBeVisible();
+    await expect(kpiCard(page, "Requests")).toContainText("0");
+
+    // Start ephemeral upstream HTTP test server
+    upstreamServer = http.createServer((_req, res) => {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ ok: true }));
+    });
+    await new Promise<void>((resolve) =>
+      upstreamServer!.listen(0, "127.0.0.1", resolve),
+    );
+    const upstreamPort = (upstreamServer.address() as net.AddressInfo).port;
+    const upstreamTargetUrl = `http://127.0.0.1:${upstreamPort}/e2e-upstream-ping`;
+
+    // 1. Send 1 proxied HTTP request through 127.0.0.1:<port>
+    const proxiedRes = await sendProxiedHttpGet(
+      gateway.port,
+      upstreamTargetUrl,
+    );
+    expect(proxiedRes.statusCode).toBe(200);
+    expect(JSON.parse(proxiedRes.body)).toEqual({ ok: true });
+
+    // 2. Send 1 direct POST http://localhost:<port>/mcp JSON-RPC initialize request
+    const mcpInitRes = await fetch(`${gateway.baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "phoenix-e2e-mcp-client", version: "1.0.0" },
+        },
+      }),
+    });
+    expect(mcpInitRes.status).toBe(200);
+    await mcpInitRes.text();
+
+    // Without reloading the browser page, assert Dashboard live-updates via /subscribe/traffics
+    await expect(kpiCard(page, "Requests")).toContainText("2");
+    await expect(kpiCard(page, "MCP Calls")).toContainText("1");
+
+    const recentGrid = page.getByRole("grid", { name: "Recent traffic" });
+    const recentDataRows = recentGrid
+      .getByRole("row")
+      .filter({ hasNot: page.getByRole("columnheader") });
+    await expect(recentDataRows).toHaveCount(2);
+    await expect(recentGrid).toContainText(upstreamTargetUrl);
+    await expect(recentGrid).toContainText(`${gateway.baseUrl}/mcp`);
+
+    // Switch Dashboard tabs: Traffic -> 1 row, MCP -> 1 row, Overview -> 2 rows
+    const dashboardTabs = page.getByRole("tablist", { name: "Dashboard tabs" });
+
+    await dashboardTabs
+      .getByRole("tab", { name: "Traffic", exact: true })
+      .click();
+    await expect(recentDataRows).toHaveCount(1);
+    await expect(recentGrid).toContainText(upstreamTargetUrl);
+    await expect(recentGrid).not.toContainText(`${gateway.baseUrl}/mcp`);
+    await expect(kpiCard(page, "Requests")).toContainText("1");
+
+    await dashboardTabs.getByRole("tab", { name: "MCP", exact: true }).click();
+    await expect(recentDataRows).toHaveCount(1);
+    await expect(recentGrid).toContainText(`${gateway.baseUrl}/mcp`);
+    await expect(recentGrid).not.toContainText(upstreamTargetUrl);
+    await expect(kpiCard(page, "Requests")).toContainText("1");
+    await expect(kpiCard(page, "MCP Calls")).toContainText("1");
+
+    await dashboardTabs
+      .getByRole("tab", { name: "Overview", exact: true })
+      .click();
+    await expect(recentDataRows).toHaveCount(2);
+    await expect(kpiCard(page, "Requests")).toContainText("2");
+
+    // Exercise Dashboard period selector, Recent Traffic search & status filter, Copy cURL, and Export HAR
+    await page.getByRole("button", { name: "Change period" }).click();
+    await page
+      .getByRole("menuitemradio", { name: "Daily", exact: true })
+      .click();
+    await expect(kpiCard(page, "Requests")).toContainText("2");
+
+    const trafficSearch = page.getByRole("searchbox", {
+      name: "Search traffic",
+    });
+    await trafficSearch.fill("e2e-upstream-ping");
+    await expect(recentDataRows).toHaveCount(1);
+    await trafficSearch.fill("");
+    await expect(recentDataRows).toHaveCount(2);
+
+    await recentGrid.getByRole("button", { name: "Copy cURL" }).first().click();
+    await expect(
+      page.getByText("Copied cURL command", { exact: true }),
+    ).toBeVisible();
+    const clipboardCurl = await page.evaluate(() =>
+      navigator.clipboard.readText(),
+    );
+    expect(clipboardCurl).toContain("curl");
+
+    const downloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export HAR" }).first().click();
+    const harDownload = await downloadPromise;
+    expect(harDownload.suggestedFilename()).toMatch(/^outrider-.*\.har$/);
+
+    // Navigate to Analytics (/analytics/) and assert KPIs, protocol breakdown, Live events, and Segment
+    await clickSidebarLink(page, "Analytics");
+    await expect(page).toHaveURL(/\/__proxyfor__\/analytics\/?$/);
+    await expect(kpiCard(page, "Events")).toContainText("2");
+
+    const protocolCard = page
+      .locator("div")
+      .filter({ has: page.getByText("Traffic by protocol", { exact: true }) })
+      .filter({
+        has: page.getByText("Observed requests by transport protocol.", {
+          exact: true,
+        }),
+      })
+      .first();
+    const httpRow = protocolCard
+      .locator("div")
+      .filter({ has: page.getByText("HTTP", { exact: true }) })
+      .first();
+    const mcpRow = protocolCard
+      .locator("div")
+      .filter({ has: page.getByText("MCP", { exact: true }) })
+      .first();
+    await expect(httpRow).toContainText("1");
+    await expect(mcpRow).toContainText("1");
+
+    const liveEventsGrid = page.getByRole("grid", { name: "Live events" });
+    const liveEventRows = liveEventsGrid
+      .getByRole("row")
+      .filter({ hasNot: page.getByRole("columnheader") });
+    await expect(liveEventRows).toHaveCount(2);
+    await expect(liveEventsGrid).toContainText(upstreamTargetUrl);
+    await expect(liveEventsGrid).toContainText(`${gateway.baseUrl}/mcp`);
+
+    const timeRangeSegment = page.locator('[aria-label="Time range"]');
+    for (const range of ["5M", "1H", "24H", "ALL"] as const) {
+      await timeRangeSegment.getByText(range, { exact: true }).click();
+      await expect(kpiCard(page, "Events")).toContainText("2");
+      await expect(liveEventRows).toHaveCount(2);
+    }
+
+    // =========================================================================
+    // (d) Interactive Persistence on Orders, Settings, and Help
+    // =========================================================================
+    // Authenticate via local desktop bootstrap endpoint to obtain session token
+    const localBootstrapRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/bootstrap/local`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-outrider-client": "dashboard",
+        },
+        body: "{}",
+      },
+    );
+    expect(localBootstrapRes.status).toBe(200);
+    const { token: sessionToken } = (await localBootstrapRes.json()) as {
+      token: string;
+    };
+    expect(sessionToken).toBe(gateway.adminToken);
+
+    const bundlePutRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/bundles/put`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          bundle_id: "gateway-core",
+          title: "Gateway Core Tools",
+          items: ["outrider_session_evidence"],
+          rules: {},
+        }),
+      },
+    );
+    expect(bundlePutRes.status).toBe(200);
+
+    const issueRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/receipts/issue`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${sessionToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          subject: "agent:phoenix-client",
+          bundle_id: "gateway-core",
+          max_calls: 5,
+          expires_at_unix: Math.floor(Date.now() / 1000) + 3600,
+        }),
+      },
+    );
+    expect(issueRes.status).toBe(200);
+    const issuedPayload = (await issueRes.json()) as {
+      signed_receipt: { receipt: { receipt_id: string } };
+    };
+    const receiptId = issuedPayload.signed_receipt.receipt.receipt_id;
+    expect(receiptId.length).toBeGreaterThan(8);
+
+    // Visit Orders (/orders/), verify receipt row, filter via SearchField, Status & Date range, then Revoke
+    await clickSidebarLink(page, "Orders");
+    await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
+
+    const receiptsGrid = page.getByRole("grid", { name: "Receipts" });
+    const receiptRows = receiptsGrid
+      .getByRole("row")
+      .filter({ hasNot: page.getByRole("columnheader") });
+    await expect(receiptRows).toHaveCount(1);
+    await expect(receiptsGrid).toContainText(receiptId);
+    await expect(receiptsGrid).toContainText("agent:phoenix-client");
+    await expect(receiptsGrid).toContainText("gateway-core");
+    await expect(receiptsGrid).toContainText("Active");
+    await expect(receiptsGrid).toContainText("5 / 5");
+
+    // Filter via SearchField
+    const searchInput = page.getByPlaceholder("Search receipts...");
+    await searchInput.fill("unmatched-receipt-search");
+    await expect(
+      page.getByText("No receipts match the active search or filters.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await searchInput.fill("phoenix-client");
+    await expect(receiptRows).toHaveCount(1);
+    await searchInput.fill("");
+    await expect(receiptRows).toHaveCount(1);
+
+    // Filter via Status dropdown
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page
+      .getByRole("menuitemradio", { name: "Revoked", exact: true })
+      .click();
+    await expect(
+      page.getByText("No receipts match the active search or filters.", {
+        exact: true,
+      }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Revoked", exact: true }).click();
+    await page
+      .getByRole("menuitemradio", { name: "Active", exact: true })
+      .click();
+    await expect(receiptRows).toHaveCount(1);
+
+    await page.getByRole("button", { name: "Active", exact: true }).click();
+    await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
+    await expect(receiptRows).toHaveCount(1);
+
+    // Filter via Date range dropdown
+    await page.getByRole("button", { name: "Date range", exact: true }).click();
+    await page
+      .getByRole("menuitemradio", { name: "Last 7 days", exact: true })
+      .click();
+    await expect(receiptRows).toHaveCount(1);
+    await page
+      .getByRole("button", { name: "Last 7 days", exact: true })
+      .click();
+    await page
+      .getByRole("menuitemradio", { name: "All time", exact: true })
+      .click();
+    await expect(receiptRows).toHaveCount(1);
+
+    // Copy ID action + Revoke action -> assert status flips to Revoked and HeroUI toast appears
+    const receiptActionBtn = page
+      .locator(`[data-receipt-id="${receiptId}"]`)
+      .getByRole("button", { name: "Receipt actions" });
+    await receiptActionBtn.click();
+    await page.getByRole("menuitem", { name: "Copy ID", exact: true }).click();
+    await expect(
+      page.getByText("Copied receipt ID", { exact: true }),
+    ).toBeVisible();
+
+    await receiptActionBtn.click();
+    await page.getByRole("menuitem", { name: "Revoke", exact: true }).click();
+
+    await expect(receiptsGrid).toContainText("Revoked");
+    await expect(
+      page.getByText("Receipt revoked", { exact: true }),
+    ).toBeVisible();
+
+    // Verify backend persisted revoked = 1
+    const snapAfterRevokeRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
+      {
+        headers: { Authorization: `Bearer ${sessionToken}` },
+      },
+    );
+    const snapAfterRevoke = (await snapAfterRevokeRes.json()) as {
+      capability_receipts: Array<{ receipt_id: string; revoked: number }>;
+    };
+    const persistedReceipt = snapAfterRevoke.capability_receipts.find(
+      (r) => r.receipt_id === receiptId,
+    );
+    expect(persistedReceipt?.revoked).toBe(1);
+
+    // Visit Settings (/settings/), test Copy + Reset + Capability Probe -> On request + Save changes + reload
+    await clickSidebarLink(page, "Settings");
+    await expect(page).toHaveURL(/\/__proxyfor__\/settings\/?$/);
+
+    await page.getByRole("button", { name: "Copy" }).first().click();
+    await expect(
+      page.getByText("Copied proxy address", { exact: true }),
+    ).toBeVisible();
+
+    await page
+      .getByRole("button", { name: /Capability Probe|Automatic/i })
+      .click();
+    await page.getByRole("option", { name: "Off", exact: true }).click();
+    await page.getByRole("button", { name: "Reset", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: /Capability Probe|Automatic/i }),
+    ).toContainText("Automatic");
+
+    await page
+      .getByRole("button", { name: /Capability Probe|Automatic/i })
+      .click();
+    await page.getByRole("option", { name: "On request", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Save changes", exact: true })
+      .click();
+
+    await expect(
+      page.getByText("Settings saved", { exact: true }),
+    ).toBeVisible();
+
+    await page.reload();
+    await expect(page.locator('input[name="proxy-address"]')).toHaveValue(
+      `127.0.0.1:${gateway.port}`,
+    );
+    await expect(
+      page.getByRole("button", { name: /Capability Probe|On request/i }),
+    ).toContainText("On request");
+
+    const statusAfterSaveRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/status`,
+    );
+    expect(statusAfterSaveRes.status).toBe(200);
+    const statusAfterSave = (await statusAfterSaveRes.json()) as {
+      probe_policy: string;
+    };
+    expect(statusAfterSave.probe_policy).toBe("on-request");
+
+    // Visit Help (/help/) and verify FAQ accordion + all 3 HelpLinkCard hrefs return 200 OK
+    await clickSidebarLink(page, "Help");
+    await expect(page).toHaveURL(/\/__proxyfor__\/help\/?$/);
+
+    await page
+      .getByRole("button", {
+        name: "How do I route HTTP and HTTPS traffic through Outrider?",
+      })
+      .click();
+    await expect(
+      page.getByText(/HTTP_PROXY and HTTPS_PROXY environment variables/),
+    ).toBeVisible();
+
+    const expectedHelpSuffixes = [
+      "/__proxyfor__/certificate/proxyfor-ca-cert.pem",
+      "/__proxyfor__/certificate/proxyfor-ca-cert.cer",
+      "/__proxyfor__/traffics?har",
+    ];
+    for (const expectedHref of expectedHelpSuffixes) {
+      const linkLocator = page.locator(`a[href="${expectedHref}"]`);
+      await expect(linkLocator).toBeVisible();
+      const res = await fetch(`${gateway.baseUrl}${expectedHref}`);
+      expect(res.status, `Expected 200 OK for ${expectedHref}`).toBe(200);
+      const body = await res.text();
+      expect(body.length).toBeGreaterThan(20);
+      if (expectedHref.endsWith(".pem") || expectedHref.endsWith(".cer")) {
+        expect(body).toContain("BEGIN CERTIFICATE");
+      } else {
+        const har = JSON.parse(body) as { log?: { entries?: unknown[] } };
+        expect(Array.isArray(har.log?.entries)).toBe(true);
+        expect(har.log!.entries!.length).toBe(2);
+      }
+    }
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    expect(badResponses).toEqual([]);
+  } finally {
+    if (upstreamServer) {
+      await new Promise<void>((resolve) =>
+        upstreamServer!.close(() => resolve()),
+      );
+    }
+    await gateway.close();
+  }
+});
+
+test("Desktop mode launches http://localhost:<port>/__proxyfor__/#bootstrap=<nonce> and scrubs single-use hash", async ({
+  page,
+}) => {
+  const openerDir = await mkdtemp(path.join(tmpdir(), "outrider-opener-"));
+  const launchedUrlFile = path.join(openerDir, "launched-url.txt");
+  const openerScript = path.join(openerDir, "capture-opener.sh");
+  await writeFile(
+    openerScript,
+    `#!/bin/sh\nprintf '%s' "$1" > "${launchedUrlFile}"\n`,
+    "utf8",
+  );
+  await chmod(openerScript, 0o755);
+
+  const gateway = await startReleaseGateway(["--desktop"], {
+    OUTRIDER_BROWSER_OPENER: openerScript,
+  });
+
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const badResponses: string[] = [];
+  page.on("console", (msg) => {
+    if (msg.type() === "error") consoleErrors.push(msg.text());
+  });
+  page.on("pageerror", (err) => pageErrors.push(err.message));
+  page.on("response", (res) => {
+    if (res.status() >= 400) {
+      badResponses.push(
+        `${res.status()} ${res.request().method()} ${res.url()}`,
+      );
+    }
+  });
+
+  try {
+    let launchedUrl = "";
+    for (let i = 0; i < 50; i++) {
+      try {
+        launchedUrl = (await readFile(launchedUrlFile, "utf8")).trim();
+        if (launchedUrl) break;
+      } catch {
+        // Wait for opener script write.
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
+    expect(launchedUrl).toMatch(
+      new RegExp(
+        `^http://localhost:${gateway.port}/__proxyfor__/#bootstrap=[0-9a-f]{64}$`,
+      ),
+    );
+
+    await page.goto(launchedUrl);
+    await expect(page).toHaveTitle("Outrider");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Dashboard" }),
+    ).toBeVisible();
+
+    // Nonce hash must be scrubbed from window.location.hash immediately upon exchange
+    await expect.poll(() => page.evaluate(() => window.location.hash)).toBe("");
+
+    // Verify bootstrap_exchange audit row persisted in SQLite
+    await expect
+      .poll(async () => {
+        const res = await fetch(
+          `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
+          {
+            headers: { Authorization: `Bearer ${gateway.adminToken}` },
+          },
+        );
+        const snap = (await res.json()) as {
+          admin_audit_log: Array<{ action: string }>;
+        };
+        return snap.admin_audit_log.some(
+          (row) => row.action === "auth.bootstrap_exchange",
+        );
+      })
+      .toBe(true);
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    expect(badResponses).toEqual([]);
+  } finally {
+    await gateway.close();
+    await rm(openerDir, { recursive: true, force: true });
+  }
+});

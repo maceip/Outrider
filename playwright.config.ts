@@ -1,14 +1,14 @@
 import { defineConfig } from "@playwright/test";
+
 export default defineConfig({
   testDir: "./tests",
-  testMatch: [
-    "webui_commerce.spec.ts",
-    "inspector.spec.ts",
-    "dashboard_routes.spec.ts",
-    "onboarding_zim.spec.ts",
-  ],
+  testMatch: ["phoenix_core_dashboard.spec.ts"],
   timeout: 120_000,
   workers: 1,
-  use: { viewport: { width: 1500, height: 960 }, headless: true },
+  use: {
+    viewport: { width: 1500, height: 960 },
+    headless: true,
+    permissions: ["clipboard-read", "clipboard-write"],
+  },
   reporter: "list",
 });

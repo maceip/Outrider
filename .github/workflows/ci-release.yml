@@ -78,12 +78,20 @@ jobs:
         with:
           ref: ${{ needs.bump-version.outputs.release_sha }}
 
-      - name: Verify prebuilt HeroUI Pro & /zim static export assets
+      - name: Verify prebuilt HeroUI Pro static export assets
         shell: python
         run: |
           import pathlib, sys
           out = pathlib.Path("dashboard/out")
-          required = [out / "index.html", out / "zim/index.html"]
+          if (out / "zim").exists():
+              sys.exit("Unexpected legacy /zim export directory")
+          required = [
+              out / "index.html",
+              out / "analytics/index.html",
+              out / "orders/index.html",
+              out / "settings/index.html",
+              out / "help/index.html",
+          ]
           for req in required:
               if not req.is_file() or req.stat().st_size < 200:
                   sys.exit(f"Missing or empty required static export file: {req}")
