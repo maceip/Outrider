@@ -30,13 +30,13 @@ export function TrafficSourceCard() {
   );
 
   return (
-    <Card className="rounded-2xl">
-      <Card.Header className="flex-row items-center justify-between">
-        <Card.Title className="text-base">Traffic by Type</Card.Title>
+    <Card className="h-full">
+      <Card.Header className="flex-row flex-wrap items-center justify-between gap-3">
+        <Card.Title className="min-w-0 truncate text-base">Traffic by Type</Card.Title>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3">
-            <LegendDot color="var(--chart-2)" label="HTTP / WS" />
-            <LegendDot color="var(--chart-4)" label="MCP" />
+            <LegendDot color="var(--chart-1)" label="HTTP / WS" />
+            <LegendDot color="var(--chart-3)" label="MCP" />
           </div>
           <IconButton
             label="Refresh"
@@ -49,29 +49,29 @@ export function TrafficSourceCard() {
         </div>
       </Card.Header>
       <Card.Content className="flex flex-col gap-4">
-        <div className="flex flex-col">
+        <div className="flex min-w-0 flex-col">
           <NumberValue
-            className="text-foreground text-lg font-semibold tabular-nums"
+            className="text-foreground font-mono text-lg font-semibold tabular-nums"
             maximumFractionDigits={0}
             style="decimal"
             value={filteredTraffics.length}
           />
           <span className="text-muted text-xs">Requests</span>
         </div>
-        <LineChart data={buckets} height={180}>
+        <LineChart className="font-mono tabular-nums" data={buckets} height={180}>
           <LineChart.Grid vertical={false} />
           <LineChart.XAxis dataKey="bucket" minTickGap={16} tickMargin={8} />
           <LineChart.YAxis
             allowDecimals={false}
             domain={[0, (dataMax: number) => Math.max(dataMax, 1)]}
             tickFormatter={formatYTick}
-            width={30}
+            width={32}
           />
           <LineChart.Line
             dataKey="http"
             dot={false}
             name="HTTP / WS"
-            stroke="var(--chart-2)"
+            stroke="var(--chart-1)"
             strokeWidth={2}
             type="linear"
           />
@@ -79,7 +79,7 @@ export function TrafficSourceCard() {
             dataKey="mcp"
             dot={false}
             name="MCP"
-            stroke="var(--chart-4)"
+            stroke="var(--chart-3)"
             strokeWidth={2}
             type="linear"
           />
@@ -93,7 +93,7 @@ export function TrafficSourceCard() {
 function LegendDot({color, label}: {color: string; label: string}) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="size-3 rounded-full" style={{backgroundColor: color}} />
+      <span className="size-2.5 shrink-0 rounded-xs" style={{backgroundColor: color}} />
       <span className="text-muted text-xs">{label}</span>
     </div>
   );

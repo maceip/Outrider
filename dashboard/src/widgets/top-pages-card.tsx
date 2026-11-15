@@ -3,6 +3,7 @@
 import type {TrafficHead} from "../lib/types";
 import type {DataGridColumn, DataGridSortDescriptor} from "@heroui-pro/react";
 
+import {Chip} from "@heroui/react";
 import {DataGrid, EmptyState} from "@heroui-pro/react";
 import {useMemo, useState} from "react";
 
@@ -58,7 +59,7 @@ export function TopPagesCard() {
       {
         accessorKey: "method",
         allowsSorting: true,
-        cell: (item) => <span className="font-medium">{item.method}</span>,
+        cell: (item) => <span className="font-mono text-xs font-semibold">{item.method}</span>,
         header: "Method",
         id: "method",
         minWidth: 100,
@@ -67,7 +68,10 @@ export function TopPagesCard() {
         accessorKey: "uri",
         allowsSorting: true,
         cell: (item) => (
-          <span className="block max-w-[420px] truncate text-xs font-medium" title={item.uri}>
+          <span
+            className="block max-w-[420px] truncate font-mono text-xs font-medium"
+            title={item.uri}
+          >
             {item.uri}
           </span>
         ),
@@ -86,9 +90,7 @@ export function TopPagesCard() {
       },
       {
         allowsSorting: true,
-        cell: (item) => (
-          <span className="text-muted text-xs">{getTrafficProtocol(item)}</span>
-        ),
+        cell: (item) => <span className="text-muted font-mono text-xs">{getTrafficProtocol(item)}</span>,
         header: "Type",
         id: "type",
         minWidth: 110,
@@ -97,7 +99,7 @@ export function TopPagesCard() {
         accessorKey: "time",
         allowsSorting: true,
         cell: (item) => (
-          <span className="text-muted tabular-nums">
+          <span className="text-muted font-mono text-xs tabular-nums">
             {item.time !== null ? `${item.time} ms` : "—"}
           </span>
         ),
@@ -109,7 +111,9 @@ export function TopPagesCard() {
         accessorKey: "size",
         allowsSorting: true,
         cell: (item) => (
-          <span className="text-muted tabular-nums">{formatBytes(item.size)}</span>
+          <span className="text-muted font-mono text-xs tabular-nums">
+            {formatBytes(item.size)}
+          </span>
         ),
         header: "Size",
         id: "size",
@@ -120,9 +124,14 @@ export function TopPagesCard() {
   );
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-4">
       <div className="flex flex-col gap-1">
-        <h2 className="text-foreground text-base font-semibold">Live events</h2>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h2 className="text-foreground text-base font-semibold">Live events</h2>
+          <Chip className="tabular-nums" size="sm" variant="soft">
+            {sortedRows.length}
+          </Chip>
+        </div>
         <p className="text-muted text-xs">Captured requests over the selected time range.</p>
       </div>
       <DataGrid

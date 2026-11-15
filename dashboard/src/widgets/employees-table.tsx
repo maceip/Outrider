@@ -27,28 +27,28 @@ const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
 export function renderStatusChip(status: number | null) {
   if (status === null) {
     return (
-      <Chip color="default" size="sm" variant="soft">
+      <Chip className="tabular-nums" color="default" size="sm" variant="soft">
         Pending
       </Chip>
     );
   }
   if (status >= 400) {
     return (
-      <Chip color="danger" size="sm" variant="soft">
+      <Chip className="tabular-nums" color="danger" size="sm" variant="soft">
         {status}
       </Chip>
     );
   }
   if (status >= 300) {
     return (
-      <Chip color="warning" size="sm" variant="soft">
+      <Chip className="tabular-nums" color="warning" size="sm" variant="soft">
         {status}
       </Chip>
     );
   }
 
   return (
-    <Chip color="success" size="sm" variant="soft">
+    <Chip className="tabular-nums" color="success" size="sm" variant="soft">
       {status}
     </Chip>
   );
@@ -129,8 +129,8 @@ export function EmployeesTable() {
         accessorKey: "id",
         allowsSorting: true,
         cell: (item) => (
-          <div className="flex items-center gap-2">
-            <span className="font-medium tabular-nums">#{item.id}</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono text-xs font-medium tabular-nums">#{item.id}</span>
             <IconButton
               label="Copy cURL"
               size="sm"
@@ -149,7 +149,7 @@ export function EmployeesTable() {
       {
         accessorKey: "method",
         allowsSorting: true,
-        cell: (item) => <span className="text-xs font-medium">{item.method}</span>,
+        cell: (item) => <span className="font-mono text-xs font-semibold">{item.method}</span>,
         header: "Method",
         id: "method",
         minWidth: 100,
@@ -158,7 +158,10 @@ export function EmployeesTable() {
         accessorKey: "uri",
         allowsSorting: true,
         cell: (item) => (
-          <span className="block max-w-[420px] truncate text-xs" title={item.uri}>
+          <span
+            className="block max-w-[420px] truncate font-mono text-xs font-medium"
+            title={item.uri}
+          >
             {item.uri}
           </span>
         ),
@@ -178,7 +181,7 @@ export function EmployeesTable() {
         accessorKey: "time",
         allowsSorting: true,
         cell: (item) => (
-          <span className="text-muted tabular-nums">
+          <span className="text-muted font-mono text-xs tabular-nums">
             {item.time !== null ? `${item.time} ms` : "—"}
           </span>
         ),
@@ -200,9 +203,9 @@ export function EmployeesTable() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-foreground text-base font-semibold">Recent Traffic</span>
-          <Chip size="sm" variant="soft">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h2 className="text-foreground text-base font-semibold">Recent Traffic</h2>
+          <Chip className="tabular-nums" size="sm" variant="soft">
             {sortedRows.length}
           </Chip>
         </div>
@@ -243,7 +246,7 @@ export function EmployeesTable() {
           </div>
           <SearchField
             aria-label="Search traffic"
-            className="w-full sm:w-[220px]"
+            className="w-full sm:w-64"
             name="traffic-search"
             value={search}
             onChange={setSearch}

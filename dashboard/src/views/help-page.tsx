@@ -66,30 +66,32 @@ const FAQS: readonly FaqItem[] = [
 
 export function HelpPage() {
   return (
-    <div className="mx-auto flex max-w-6xl flex-col gap-4 px-5 pb-10 pt-4">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-10 pt-8">
       <p className="text-muted text-sm">
         Download local gateway certificates, export captured traffic, or review common setup steps.
       </p>
 
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {HELP_LINKS.map((link) => (
           <HelpLinkCard key={link.title} link={link} />
         ))}
       </div>
 
       <section className="flex flex-col gap-3">
-        <h2 className="text-foreground text-base font-semibold">Frequently asked questions</h2>
-        <Accordion className="w-full">
+        <h2 className="text-foreground text-base font-semibold">Frequently Asked Questions</h2>
+        <Accordion className="border-border w-full border" variant="surface">
           {FAQS.map((faq, index) => (
             <Accordion.Item key={faq.question} id={`faq-${index}`}>
               <Accordion.Heading>
                 <Accordion.Trigger>
-                  {faq.question}
+                  <span className="min-w-0 pr-3">{faq.question}</span>
                   <Accordion.Indicator />
                 </Accordion.Trigger>
               </Accordion.Heading>
               <Accordion.Panel>
-                <Accordion.Body className="text-muted text-sm">{faq.answer}</Accordion.Body>
+                <Accordion.Body className="text-muted text-sm leading-relaxed">
+                  {faq.answer}
+                </Accordion.Body>
               </Accordion.Panel>
             </Accordion.Item>
           ))}
@@ -99,7 +101,7 @@ export function HelpPage() {
       <footer className="text-muted text-xs">
         Source and issue tracker on{" "}
         <Link
-          className="no-underline"
+          className="text-accent-soft-foreground no-underline hover:underline"
           href="https://github.com/maceip/Outrider"
           rel="noreferrer"
           target="_blank"
@@ -115,17 +117,17 @@ function HelpLinkCard({link}: {link: HelpLink}) {
   const Icon = link.icon;
 
   return (
-    <Card className="rounded-2xl">
-      <Card.Header>
-        <div className="bg-accent-soft text-accent flex size-10 items-center justify-center rounded-xl">
+    <Card className="h-full justify-between">
+      <Card.Header className="gap-2">
+        <div className="bg-accent-soft text-accent-soft-foreground flex size-10 shrink-0 items-center justify-center rounded-lg">
           <Icon className="size-5" />
         </div>
-        <Card.Title className="text-base">{link.title}</Card.Title>
-        <Card.Description>{link.description}</Card.Description>
+        <Card.Title className="min-w-0 text-base">{link.title}</Card.Title>
+        <Card.Description className="leading-relaxed">{link.description}</Card.Description>
       </Card.Header>
       <Card.Footer>
         <Link
-          className="text-accent inline-flex items-center gap-1 text-sm"
+          className="text-accent-soft-foreground inline-flex items-center gap-1.5 text-sm no-underline hover:underline"
           href={link.href}
           rel="noreferrer"
           target="_blank"

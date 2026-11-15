@@ -22,8 +22,8 @@ type ProtocolDatum = {
 const PROTOCOL_ORDER: readonly {color: string; name: TrafficProtocol}[] = [
   {color: "var(--chart-3)", name: "HTTP"},
   {color: "var(--chart-2)", name: "HTTPS"},
-  {color: "var(--chart-4)", name: "MCP"},
-  {color: "var(--chart-1)", name: "WebSocket"},
+  {color: "var(--chart-1)", name: "MCP"},
+  {color: "var(--chart-4)", name: "WebSocket"},
 ];
 
 function formatCount(value: number): string {
@@ -49,7 +49,9 @@ function ProtocolTooltip({active, payload}: ProtocolTooltipProps) {
       <ChartTooltip.Item>
         <ChartTooltip.Indicator color={entry.payload?.color ?? entry.payload?.fill} />
         <ChartTooltip.Label>{entry.name}</ChartTooltip.Label>
-        <ChartTooltip.Value>{formatCount(Number(entry.value ?? 0))}</ChartTooltip.Value>
+        <ChartTooltip.Value className="font-mono tabular-nums">
+          {formatCount(Number(entry.value ?? 0))}
+        </ChartTooltip.Value>
       </ChartTooltip.Item>
     </ChartTooltip>
   );
@@ -92,9 +94,9 @@ export function DeviceBreakdownCard() {
   const formattedTotal = formatCount(total);
 
   return (
-    <Card className="h-full rounded-2xl">
+    <Card className="h-full">
       <Card.Header>
-        <Card.Title className="text-base">Traffic by protocol</Card.Title>
+        <Card.Title className="min-w-0 truncate text-base">Traffic by protocol</Card.Title>
         <Card.Description>Observed requests by transport protocol.</Card.Description>
       </Card.Header>
       <Card.Content className="flex flex-1 flex-col items-center justify-center gap-6">
@@ -107,7 +109,7 @@ export function DeviceBreakdownCard() {
           ) : null}
           <PieChart height={240} width={240}>
             <PieChart.Pie
-              cornerRadius={activeSlices.length > 1 ? 8 : 0}
+              cornerRadius={activeSlices.length > 1 ? 4 : 0}
               cx="50%"
               cy="50%"
               data={activeSlices}
@@ -124,7 +126,7 @@ export function DeviceBreakdownCard() {
             {total > 0 ? <PieChart.Tooltip content={<ProtocolTooltip />} /> : null}
           </PieChart>
           <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-foreground text-2xl font-semibold tabular-nums">
+            <span className="text-foreground font-mono text-2xl font-semibold tabular-nums">
               {formattedTotal}
             </span>
             <span className="text-muted text-xs">Events</span>
@@ -149,16 +151,20 @@ function ProtocolLegend({
         const pct = total > 0 ? ((entry.value / total) * 100).toFixed(0) : "0";
 
         return (
-          <div key={entry.name} className="flex items-center gap-3">
+          <div key={entry.name} className="flex min-w-0 items-center gap-3">
             <span
-              className="size-3 shrink-0 rounded-full"
+              className="size-2.5 shrink-0 rounded-xs"
               style={{backgroundColor: entry.color}}
             />
-            <span className="text-foreground flex-1 text-sm">{entry.name}</span>
-            <span className="text-foreground text-sm font-semibold tabular-nums">
+            <span className="text-foreground min-w-0 flex-1 truncate font-mono text-xs font-medium">
+              {entry.name}
+            </span>
+            <span className="text-foreground font-mono text-xs font-semibold tabular-nums">
               {formatCount(entry.value)}
             </span>
-            <span className="text-muted w-10 text-right text-xs tabular-nums">{pct}%</span>
+            <span className="text-muted w-11 text-right font-mono text-xs tabular-nums">
+              {pct}%
+            </span>
           </div>
         );
       })}

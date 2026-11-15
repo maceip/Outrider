@@ -224,14 +224,19 @@ export function KpiRow() {
   }, [dashboardPeriod, dashboardTab, nowMs, snapshot, traffics]);
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (
         <KPI key={stat.label}>
           <KPI.Header>
-            <KPI.Title>{stat.label}</KPI.Title>
+            <KPI.Title className="min-w-0 truncate">{stat.label}</KPI.Title>
           </KPI.Header>
           <KPI.Content>
-            <KPI.Value maximumFractionDigits={0} style="decimal" value={stat.value} />
+            <KPI.Value
+              className="font-mono tabular-nums"
+              maximumFractionDigits={0}
+              style="decimal"
+              value={stat.value}
+            />
           </KPI.Content>
         </KPI>
       ))}

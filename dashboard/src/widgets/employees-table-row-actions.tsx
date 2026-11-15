@@ -3,7 +3,7 @@
 import type {TrafficHead} from "../lib/types";
 import type {Key} from "react";
 
-import {EllipsisVertical} from "@gravity-ui/icons";
+import {ArrowRightFromSquare, Copy, EllipsisVertical, Terminal} from "@gravity-ui/icons";
 import {Button, Dropdown, Label, toast} from "@heroui/react";
 
 import {PROXYFOR_BASE, useCoreStore} from "../lib/core-store";
@@ -53,18 +53,21 @@ export function RowActions({item}: RowActionsProps) {
         >
           <EllipsisVertical className="size-4" />
         </Button>
-        <Dropdown.Popover placement="bottom end">
+        <Dropdown.Popover className="min-w-44" placement="bottom end">
           <Dropdown.Menu
             aria-label={`Actions for request #${item.id}`}
             onAction={handleAction}
           >
             <Dropdown.Item id="copy-url" textValue="Copy URL">
+              <Copy className="text-muted size-4" />
               <Label>Copy URL</Label>
             </Dropdown.Item>
             <Dropdown.Item id="copy-curl" textValue="Copy cURL">
+              <Terminal className="text-muted size-4" />
               <Label>Copy cURL</Label>
             </Dropdown.Item>
             <Dropdown.Item id="open-json" textValue="Open JSON">
+              <ArrowRightFromSquare className="text-muted size-4" />
               <Label>Open JSON</Label>
             </Dropdown.Item>
           </Dropdown.Menu>

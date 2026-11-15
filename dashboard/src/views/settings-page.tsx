@@ -5,6 +5,7 @@ import type {ReactNode} from "react";
 
 import {
   Button,
+  Card,
   Input,
   Label,
   ListBox,
@@ -96,7 +97,7 @@ export function SettingsPage() {
 
   return (
     <form
-      className="mx-auto flex max-w-5xl flex-col gap-4 px-5 pb-10 pt-4"
+      className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-10 pt-8"
       onReset={(event) => {
         event.preventDefault();
         handleReset();
@@ -110,153 +111,173 @@ export function SettingsPage() {
         Configure local gateway endpoints, capability probing, skills, and upstream servers.
       </p>
 
-      <Separator />
-
-      <SettingsRow
-        description="Local HTTP proxy listener and MCP server URLs."
-        label="Gateway Endpoints"
-      >
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
-          <TextField fullWidth isReadOnly name="proxy-address" value={listenAddr}>
-            <Label className="text-xs">Proxy address</Label>
-            <Input fullWidth className="tabular-nums" />
-          </TextField>
-          <Button
-            isDisabled={!status?.listen_addr}
-            type="button"
-            variant="secondary"
-            onPress={() => {
-              void copyEndpointValue(status?.listen_addr, "proxy address");
-            }}
-          >
-            Copy
-          </Button>
-        </div>
-
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
-          <TextField fullWidth isReadOnly name="mcp-endpoint" value={mcpEndpoint}>
-            <Label className="text-xs">MCP endpoint</Label>
-            <Input fullWidth className="tabular-nums" />
-          </TextField>
-          <Button
-            isDisabled={!status?.mcp_endpoint}
-            type="button"
-            variant="secondary"
-            onPress={() => {
-              void copyEndpointValue(status?.mcp_endpoint, "MCP endpoint");
-            }}
-          >
-            Copy
-          </Button>
-        </div>
-      </SettingsRow>
-
-      <Separator />
-
-      <SettingsRow
-        description="Controls when connected MCP clients are probed for session capabilities."
-        label="Capability Probe"
-      >
-        <Select
-          isDisabled={busy}
-          name="probe-policy"
-          value={selectedPolicy}
-          onChange={(key) => {
-            if (key === "off" || key === "on-request" || key === "auto") {
-              setPolicyOverride(key);
-            }
-          }}
+      <Card className="gap-8 p-6">
+        <SettingsRow
+          description="Local HTTP proxy listener and MCP server URLs."
+          label="Gateway Endpoints"
         >
-          <Label className="sr-only">Capability Probe</Label>
-          <Select.Trigger>
-            <Select.Value />
-            <Select.Indicator />
-          </Select.Trigger>
-          <Select.Popover>
-            <ListBox>
-              {PROBE_POLICIES.map((policy) => (
-                <ListBox.Item key={policy.id} id={policy.id} textValue={policy.label}>
-                  {policy.label}
-                  <ListBox.ItemIndicator />
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </Select.Popover>
-        </Select>
-      </SettingsRow>
-
-      <Separator />
-
-      <SettingsRow
-        description="Load skill definitions from a local folder into the gateway catalog."
-        label="Skills Directory"
-      >
-        <TextField
-          fullWidth
-          isDisabled={busy}
-          name="skills-directory"
-          value={skillsPath}
-          onChange={setSkillsPath}
-        >
-          <Label className="sr-only">Skills Directory</Label>
-          <Input fullWidth placeholder="/path/to/skills" />
-        </TextField>
-      </SettingsRow>
-
-      <Separator />
-
-      <SettingsRow
-        description="Connect an external MCP server to expose its tools through the gateway."
-        label="Upstream MCP Server"
-      >
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-[180px_minmax(0,1fr)]">
-          <TextField
-            fullWidth
-            isDisabled={busy}
-            name="upstream-name"
-            value={upstreamName}
-            onChange={setUpstreamName}
-          >
-            <Label className="sr-only">Server name</Label>
-            <Input fullWidth placeholder="Server name" />
-          </TextField>
-          <TextField
-            fullWidth
-            isDisabled={busy}
-            name="upstream-endpoint"
-            value={upstreamEndpoint}
-            onChange={setUpstreamEndpoint}
-          >
-            <Label className="sr-only">Endpoint URL</Label>
-            <Input fullWidth placeholder="https://example.com/mcp" type="url" />
-          </TextField>
-        </div>
-
-        {upstreamServers.length > 0 ? (
-          <div className="flex flex-col gap-2">
-            {upstreamServers.map((server) => (
-              <div
-                key={server.name}
-                className="bg-surface-secondary flex items-center justify-between gap-3 rounded-xl px-3 py-2 text-xs"
-              >
-                <span className="text-foreground font-medium">{server.name}</span>
-                <span className="text-muted truncate tabular-nums">{server.endpoint}</span>
-              </div>
-            ))}
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+            <TextField
+              fullWidth
+              isReadOnly
+              name="proxy-address"
+              value={listenAddr}
+              variant="secondary"
+            >
+              <Label className="text-xs">Proxy address</Label>
+              <Input fullWidth className="font-mono tabular-nums" />
+            </TextField>
+            <Button
+              isDisabled={!status?.listen_addr}
+              type="button"
+              variant="secondary"
+              onPress={() => {
+                void copyEndpointValue(status?.listen_addr, "proxy address");
+              }}
+            >
+              Copy
+            </Button>
           </div>
-        ) : null}
-      </SettingsRow>
 
-      <Separator />
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
+            <TextField
+              fullWidth
+              isReadOnly
+              name="mcp-endpoint"
+              value={mcpEndpoint}
+              variant="secondary"
+            >
+              <Label className="text-xs">MCP endpoint</Label>
+              <Input fullWidth className="font-mono tabular-nums" />
+            </TextField>
+            <Button
+              isDisabled={!status?.mcp_endpoint}
+              type="button"
+              variant="secondary"
+              onPress={() => {
+                void copyEndpointValue(status?.mcp_endpoint, "MCP endpoint");
+              }}
+            >
+              Copy
+            </Button>
+          </div>
+        </SettingsRow>
 
-      <footer className="flex items-center justify-end gap-2 pt-2">
-        <Button isDisabled={busy} type="reset" variant="ghost">
-          Reset
-        </Button>
-        <Button isDisabled={busy} isPending={busy} type="submit">
-          Save changes
-        </Button>
-      </footer>
+        <SettingsRow
+          description="Controls when connected MCP clients are probed for session capabilities."
+          label="Capability Probe"
+        >
+          <Select
+            className="w-full sm:w-64"
+            isDisabled={busy}
+            name="probe-policy"
+            value={selectedPolicy}
+            variant="secondary"
+            onChange={(key) => {
+              if (key === "off" || key === "on-request" || key === "auto") {
+                setPolicyOverride(key);
+              }
+            }}
+          >
+            <Label className="sr-only">Capability Probe</Label>
+            <Select.Trigger>
+              <Select.Value />
+              <Select.Indicator />
+            </Select.Trigger>
+            <Select.Popover>
+              <ListBox>
+                {PROBE_POLICIES.map((policy) => (
+                  <ListBox.Item key={policy.id} id={policy.id} textValue={policy.label}>
+                    {policy.label}
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </Select.Popover>
+          </Select>
+        </SettingsRow>
+
+        <SettingsRow
+          description="Load skill definitions from a local folder into the gateway catalog."
+          label="Skills Directory"
+        >
+          <TextField
+            fullWidth
+            isDisabled={busy}
+            name="skills-directory"
+            value={skillsPath}
+            variant="secondary"
+            onChange={setSkillsPath}
+          >
+            <Label className="sr-only">Skills Directory</Label>
+            <Input fullWidth className="font-mono" placeholder="/path/to/skills" />
+          </TextField>
+        </SettingsRow>
+
+        <SettingsRow
+          description="Connect an external MCP server to expose its tools through the gateway."
+          label="Upstream MCP Server"
+        >
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(180px,220px)_minmax(0,1fr)]">
+            <TextField
+              fullWidth
+              isDisabled={busy}
+              name="upstream-name"
+              value={upstreamName}
+              variant="secondary"
+              onChange={setUpstreamName}
+            >
+              <Label className="sr-only">Server name</Label>
+              <Input fullWidth className="font-mono" placeholder="Server name" />
+            </TextField>
+            <TextField
+              fullWidth
+              isDisabled={busy}
+              name="upstream-endpoint"
+              value={upstreamEndpoint}
+              variant="secondary"
+              onChange={setUpstreamEndpoint}
+            >
+              <Label className="sr-only">Endpoint URL</Label>
+              <Input
+                fullWidth
+                className="font-mono"
+                placeholder="https://example.com/mcp"
+                type="url"
+              />
+            </TextField>
+          </div>
+
+          {upstreamServers.length > 0 ? (
+            <div className="flex flex-col gap-2">
+              {upstreamServers.map((server) => (
+                <div
+                  key={server.name}
+                  className="bg-surface-secondary flex min-w-0 items-center justify-between gap-3 rounded-lg p-3 text-xs"
+                >
+                  <span className="text-foreground shrink-0 font-mono font-medium">
+                    {server.name}
+                  </span>
+                  <span className="text-muted min-w-0 truncate font-mono tabular-nums">
+                    {server.endpoint}
+                  </span>
+                </div>
+              ))}
+            </div>
+          ) : null}
+        </SettingsRow>
+
+        <Separator />
+
+        <Card.Footer className="justify-end gap-2">
+          <Button isDisabled={busy} type="reset" variant="ghost">
+            Reset
+          </Button>
+          <Button isDisabled={busy} isPending={busy} type="submit">
+            Save changes
+          </Button>
+        </Card.Footer>
+      </Card>
     </form>
   );
 }
@@ -269,12 +290,12 @@ interface SettingsRowProps {
 
 function SettingsRow({children, description, label}: SettingsRowProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 py-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-10">
-      <div className="flex flex-col gap-1">
-        <span className="text-foreground text-sm font-medium">{label}</span>
-        <p className="text-muted text-xs leading-snug">{description}</p>
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-10">
+      <div className="flex min-w-0 flex-col gap-1">
+        <h2 className="text-foreground text-sm font-semibold">{label}</h2>
+        <p className="text-muted text-xs leading-relaxed">{description}</p>
       </div>
-      <div className="flex flex-col gap-3">{children}</div>
+      <div className="flex min-w-0 flex-col gap-3">{children}</div>
     </div>
   );
 }

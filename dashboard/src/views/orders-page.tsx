@@ -114,7 +114,14 @@ export function OrdersPage() {
       {
         accessorKey: "receipt_id",
         allowsSorting: true,
-        cell: (item) => <span className="font-medium tabular-nums">{item.receipt_id}</span>,
+        cell: (item) => (
+          <span
+            className="block max-w-[220px] truncate font-mono text-xs font-medium tabular-nums"
+            title={item.receipt_id}
+          >
+            {item.receipt_id}
+          </span>
+        ),
         header: "Receipt ID",
         id: "receipt_id",
         isRowHeader: true,
@@ -124,13 +131,17 @@ export function OrdersPage() {
         accessorKey: "subject",
         allowsSorting: true,
         cell: (item) => (
-          <div className="flex items-center gap-3">
-            <Avatar className="size-8">
-              <Avatar.Fallback>{getSubjectInitials(item.subject)}</Avatar.Fallback>
+          <div className="flex min-w-0 items-center gap-3">
+            <Avatar className="border-border bg-surface-secondary text-foreground size-8 shrink-0 rounded-lg border">
+              <Avatar.Fallback className="bg-surface-secondary text-foreground font-mono text-xs font-semibold">
+                {getSubjectInitials(item.subject)}
+              </Avatar.Fallback>
             </Avatar>
-            <div className="flex min-w-0 flex-col">
-              <span className="truncate text-xs font-medium">{item.subject}</span>
-              <span className="text-muted truncate text-xs">{item.bundle_id}</span>
+            <div className="flex min-w-0 flex-col gap-0.5">
+              <span className="text-foreground truncate font-mono text-xs font-medium">
+                {item.subject}
+              </span>
+              <span className="text-muted truncate font-mono text-xs">{item.bundle_id}</span>
             </div>
           </div>
         ),
@@ -157,7 +168,7 @@ export function OrdersPage() {
       {
         allowsSorting: true,
         cell: (item) => (
-          <span className="tabular-nums">
+          <span className="font-mono text-xs tabular-nums">
             {item.remaining_calls} / {item.max_calls}
           </span>
         ),
@@ -170,7 +181,9 @@ export function OrdersPage() {
         accessorKey: "created_at",
         allowsSorting: true,
         cell: (item) => (
-          <span className="text-muted tabular-nums">{formatIssuedDate(item.created_at)}</span>
+          <span className="text-muted font-mono text-xs tabular-nums">
+            {formatIssuedDate(item.created_at)}
+          </span>
         ),
         header: "Issued",
         id: "created_at",
@@ -191,123 +204,137 @@ export function OrdersPage() {
   );
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 pb-10 pt-4">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-10 pt-8">
       <p className="text-muted text-sm">Manage issued receipts and bundle access.</p>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <SearchField
-          aria-label="Search receipts"
-          className="w-full sm:w-[240px]"
-          name="orders-search"
-          value={search}
-          variant="secondary"
-          onChange={setSearch}
-        >
-          <SearchField.Group>
-            <SearchField.SearchIcon />
-            <SearchField.Input placeholder="Search receipts..." />
-            <SearchField.ClearButton />
-          </SearchField.Group>
-        </SearchField>
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h2 className="text-foreground text-base font-semibold">Issued Receipts</h2>
+            <Chip className="tabular-nums" size="sm" variant="soft">
+              {filteredReceipts.length}
+            </Chip>
+          </div>
 
-        <Dropdown>
-          <Button size="sm" variant="secondary">
-            <Funnel className="size-4" />
-            {statusFilter === "all" ? "Status" : STATUS_FILTER_LABELS[statusFilter]}
-          </Button>
-          <Dropdown.Popover>
-            <Dropdown.Menu
-              selectedKeys={new Set([statusFilter])}
-              selectionMode="single"
-              onSelectionChange={(keys) => {
-                const next = [...keys][0];
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              <Dropdown>
+                <Button size="sm" variant="tertiary">
+                  <Funnel className="size-4" />
+                  {statusFilter === "all" ? "Status" : STATUS_FILTER_LABELS[statusFilter]}
+                </Button>
+                <Dropdown.Popover placement="bottom start">
+                  <Dropdown.Menu
+                    selectedKeys={new Set([statusFilter])}
+                    selectionMode="single"
+                    onSelectionChange={(keys) => {
+                      const next = [...keys][0];
 
-                setStatusFilter(typeof next === "string" ? (next as StatusFilter) : "all");
-              }}
+                      setStatusFilter(typeof next === "string" ? (next as StatusFilter) : "all");
+                    }}
+                  >
+                    <Dropdown.Item id="all" textValue="All">
+                      <Label>All</Label>
+                      <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                    <Dropdown.Item id="active" textValue="Active">
+                      <Label>Active</Label>
+                      <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                    <Dropdown.Item id="revoked" textValue="Revoked">
+                      <Label>Revoked</Label>
+                      <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                    <Dropdown.Item id="exhausted" textValue="Exhausted">
+                      <Label>Exhausted</Label>
+                      <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown.Popover>
+              </Dropdown>
+
+              <Dropdown>
+                <Button size="sm" variant="tertiary">
+                  <Calendar className="size-4" />
+                  {dateRange.id === "all" ? "Date range" : DATE_FILTER_LABELS[dateRange.id]}
+                </Button>
+                <Dropdown.Popover placement="bottom start">
+                  <Dropdown.Menu
+                    selectedKeys={new Set([dateRange.id])}
+                    selectionMode="single"
+                    onSelectionChange={(keys) => {
+                      const next = [...keys][0];
+                      const nextId: DateFilter =
+                        next === "7d" || next === "30d" || next === "90d" ? next : "all";
+                      const nowSeconds = Math.floor(Date.now() / 1000);
+
+                      setDateRange({
+                        cutoffSeconds:
+                          nextId === "all" ? null : nowSeconds - DATE_FILTER_SECONDS[nextId],
+                        id: nextId,
+                      });
+                    }}
+                  >
+                    <Dropdown.Item id="all" textValue="All time">
+                      <Label>All time</Label>
+                      <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                    <Dropdown.Item id="7d" textValue="Last 7 days">
+                      <Label>Last 7 days</Label>
+                      <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                    <Dropdown.Item id="30d" textValue="Last 30 days">
+                      <Label>Last 30 days</Label>
+                      <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                    <Dropdown.Item id="90d" textValue="Last 90 days">
+                      <Label>Last 90 days</Label>
+                      <Dropdown.ItemIndicator />
+                    </Dropdown.Item>
+                  </Dropdown.Menu>
+                </Dropdown.Popover>
+              </Dropdown>
+            </div>
+
+            <SearchField
+              aria-label="Search receipts"
+              className="w-full sm:w-64"
+              name="orders-search"
+              value={search}
+              onChange={setSearch}
             >
-              <Dropdown.Item id="all" textValue="All">
-                <Label>All</Label>
-                <Dropdown.ItemIndicator />
-              </Dropdown.Item>
-              <Dropdown.Item id="active" textValue="Active">
-                <Label>Active</Label>
-                <Dropdown.ItemIndicator />
-              </Dropdown.Item>
-              <Dropdown.Item id="revoked" textValue="Revoked">
-                <Label>Revoked</Label>
-                <Dropdown.ItemIndicator />
-              </Dropdown.Item>
-              <Dropdown.Item id="exhausted" textValue="Exhausted">
-                <Label>Exhausted</Label>
-                <Dropdown.ItemIndicator />
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown.Popover>
-        </Dropdown>
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input placeholder="Search receipts..." />
+                <SearchField.ClearButton />
+              </SearchField.Group>
+            </SearchField>
+          </div>
+        </div>
 
-        <Dropdown>
-          <Button size="sm" variant="secondary">
-            <Calendar className="size-4" />
-            {dateRange.id === "all" ? "Date range" : DATE_FILTER_LABELS[dateRange.id]}
-          </Button>
-          <Dropdown.Popover>
-            <Dropdown.Menu
-              selectedKeys={new Set([dateRange.id])}
-              selectionMode="single"
-              onSelectionChange={(keys) => {
-                const next = [...keys][0];
-                const nextId: DateFilter =
-                  next === "7d" || next === "30d" || next === "90d" ? next : "all";
-                const nowSeconds = Math.floor(Date.now() / 1000);
-
-                setDateRange({
-                  cutoffSeconds:
-                    nextId === "all" ? null : nowSeconds - DATE_FILTER_SECONDS[nextId],
-                  id: nextId,
-                });
-              }}
-            >
-              <Dropdown.Item id="all" textValue="All time">
-                <Label>All time</Label>
-                <Dropdown.ItemIndicator />
-              </Dropdown.Item>
-              <Dropdown.Item id="7d" textValue="Last 7 days">
-                <Label>Last 7 days</Label>
-                <Dropdown.ItemIndicator />
-              </Dropdown.Item>
-              <Dropdown.Item id="30d" textValue="Last 30 days">
-                <Label>Last 30 days</Label>
-                <Dropdown.ItemIndicator />
-              </Dropdown.Item>
-              <Dropdown.Item id="90d" textValue="Last 90 days">
-                <Label>Last 90 days</Label>
-                <Dropdown.ItemIndicator />
-              </Dropdown.Item>
-            </Dropdown.Menu>
-          </Dropdown.Popover>
-        </Dropdown>
+        <DataGrid
+          aria-label="Receipts"
+          columns={columns}
+          contentClassName="min-w-[820px]"
+          data={filteredReceipts}
+          defaultSortDescriptor={{column: "created_at", direction: "descending"}}
+          getRowId={(item) => item.receipt_id}
+          renderEmptyState={() => (
+            <div className="py-6">
+              <EmptyState size="sm">
+                <EmptyState.Header>
+                  <EmptyState.Title>No receipts found</EmptyState.Title>
+                  <EmptyState.Description>
+                    {receipts.length === 0
+                      ? "Issued receipts will appear here."
+                      : "No receipts match the active search or filters."}
+                  </EmptyState.Description>
+                </EmptyState.Header>
+              </EmptyState>
+            </div>
+          )}
+        />
       </div>
-
-      <DataGrid
-        aria-label="Receipts"
-        columns={columns}
-        contentClassName="min-w-[820px]"
-        data={filteredReceipts}
-        defaultSortDescriptor={{column: "created_at", direction: "descending"}}
-        getRowId={(item) => item.receipt_id}
-        renderEmptyState={() => (
-          <EmptyState size="sm">
-            <EmptyState.Header>
-              <EmptyState.Title>No receipts found</EmptyState.Title>
-              <EmptyState.Description>
-                {receipts.length === 0
-                  ? "Issued receipts will appear here."
-                  : "No receipts match the active search or filters."}
-              </EmptyState.Description>
-            </EmptyState.Header>
-          </EmptyState>
-        )}
-      />
     </div>
   );
 }

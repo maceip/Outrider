@@ -31,12 +31,12 @@ export function SalesPerformanceCard() {
   );
 
   return (
-    <Card className="rounded-2xl">
-      <Card.Header className="flex-row items-center justify-between">
-        <Card.Title className="text-base">Request Volume</Card.Title>
+    <Card className="h-full">
+      <Card.Header className="flex-row items-center justify-between gap-3">
+        <Card.Title className="min-w-0 truncate text-base">Request Volume</Card.Title>
         <Select
           aria-label="Period"
-          className="w-[140px]"
+          className="w-40 shrink-0"
           value={dashboardPeriod}
           variant="secondary"
           onChange={(value) => {
@@ -73,18 +73,18 @@ export function SalesPerformanceCard() {
       </Card.Header>
       <Card.Content className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="flex flex-col">
+          <div className="flex min-w-0 flex-col">
             <NumberValue
-              className="text-foreground text-lg font-semibold tabular-nums"
+              className="text-foreground font-mono text-lg font-semibold tabular-nums"
               maximumFractionDigits={0}
               style="decimal"
               value={filteredTraffics.length}
             />
             <span className="text-muted text-xs">Requests</span>
           </div>
-          <div className="flex flex-col">
+          <div className="flex min-w-0 flex-col">
             <NumberValue
-              className="text-foreground text-lg font-semibold tabular-nums"
+              className="text-foreground font-mono text-lg font-semibold tabular-nums"
               maximumFractionDigits={0}
               style="decimal"
               value={payloadBytes}
@@ -92,20 +92,20 @@ export function SalesPerformanceCard() {
             <span className="text-muted text-xs">Payload Bytes</span>
           </div>
         </div>
-        <BarChart data={buckets} height={180}>
+        <BarChart className="font-mono tabular-nums" data={buckets} height={180}>
           <BarChart.Grid vertical={false} />
           <BarChart.XAxis dataKey="bucket" minTickGap={16} tickMargin={8} />
           <BarChart.YAxis
             allowDecimals={false}
             domain={[0, (dataMax: number) => Math.max(dataMax, 1)]}
-            width={30}
+            width={32}
           />
           <BarChart.Bar
             barSize={16}
             dataKey="requests"
             fill="var(--chart-3)"
             name="Requests"
-            radius={[24, 24, 24, 24]}
+            radius={[4, 4, 0, 0]}
           />
           <BarChart.Tooltip content={<BarChart.TooltipContent />} />
         </BarChart>

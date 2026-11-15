@@ -29,23 +29,23 @@ export function SessionsOverTimeCard() {
   );
 
   return (
-    <Card className="rounded-2xl">
-      <Card.Header className="flex-row items-start justify-between gap-4">
-        <div className="flex flex-col gap-1">
-          <Card.Title className="text-base">Events over time</Card.Title>
+    <Card>
+      <Card.Header className="flex-row flex-wrap items-start justify-between gap-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <Card.Title className="min-w-0 truncate text-base">Events Over Time</Card.Title>
           <NumberValue
-            className="text-foreground text-2xl font-semibold tabular-nums"
+            className="text-foreground font-mono text-2xl font-semibold tabular-nums"
             maximumFractionDigits={0}
             value={rangeTraffics.length}
           />
         </div>
         <div className="flex items-center gap-4">
-          <LegendDot color="var(--chart-2)" label="Requests" />
-          <LegendDot color="var(--chart-4)" label="Errors" />
+          <LegendDot color="var(--chart-3)" label="Requests" />
+          <LegendDot color="var(--chart-1)" label="Errors" />
         </div>
       </Card.Header>
       <Card.Content>
-        <LineChart data={buckets} height={240}>
+        <LineChart className="font-mono tabular-nums" data={buckets} height={240}>
           <LineChart.Grid vertical={false} />
           <LineChart.XAxis dataKey="bucket" minTickGap={24} tickMargin={8} />
           <LineChart.YAxis
@@ -58,7 +58,7 @@ export function SessionsOverTimeCard() {
             dataKey="requests"
             dot={false}
             name="Requests"
-            stroke="var(--chart-2)"
+            stroke="var(--chart-3)"
             strokeWidth={2}
             type="monotone"
           />
@@ -66,7 +66,7 @@ export function SessionsOverTimeCard() {
             dataKey="errors"
             dot={false}
             name="Errors"
-            stroke="var(--chart-4)"
+            stroke="var(--chart-1)"
             strokeWidth={2}
             type="monotone"
           />
@@ -80,7 +80,7 @@ export function SessionsOverTimeCard() {
 function LegendDot({color, label}: {color: string; label: string}) {
   return (
     <div className="flex items-center gap-1.5">
-      <span className="size-3 rounded-full" style={{backgroundColor: color}} />
+      <span className="size-2.5 shrink-0 rounded-xs" style={{backgroundColor: color}} />
       <span className="text-muted text-xs">{label}</span>
     </div>
   );

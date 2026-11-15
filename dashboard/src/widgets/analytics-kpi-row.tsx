@@ -178,66 +178,81 @@ export function AnalyticsKpiRow() {
   }, [buckets, rangeTraffics]);
 
   return (
-    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <KPI>
         <KPI.Header>
-          <KPI.Title>Events</KPI.Title>
+          <KPI.Title className="min-w-0 truncate">Events</KPI.Title>
         </KPI.Header>
         <KPI.Content>
-          <KPI.Value maximumFractionDigits={0} style="decimal" value={metrics.events} />
+          <KPI.Value
+            className="font-mono tabular-nums"
+            maximumFractionDigits={0}
+            style="decimal"
+            value={metrics.events}
+          />
         </KPI.Content>
         <KPI.Chart
-          color="var(--color-accent)"
+          color="var(--chart-3)"
           data={metrics.eventsSparkline}
           height={60}
-          strokeWidth={1.5}
+          strokeWidth={2}
         />
       </KPI>
 
       <KPI>
         <KPI.Header>
-          <KPI.Title>Unique Hosts</KPI.Title>
+          <KPI.Title className="min-w-0 truncate">Unique Hosts</KPI.Title>
         </KPI.Header>
         <KPI.Content>
-          <KPI.Value maximumFractionDigits={0} style="decimal" value={metrics.uniqueHosts} />
+          <KPI.Value
+            className="font-mono tabular-nums"
+            maximumFractionDigits={0}
+            style="decimal"
+            value={metrics.uniqueHosts}
+          />
         </KPI.Content>
         <KPI.Chart
-          color="var(--color-success)"
+          color="var(--chart-2)"
           data={metrics.hostsSparkline}
           height={60}
-          strokeWidth={1.5}
+          strokeWidth={2}
         />
       </KPI>
 
       <KPI>
         <KPI.Header>
-          <KPI.Title>Error Rate</KPI.Title>
+          <KPI.Title className="min-w-0 truncate">Error Rate</KPI.Title>
         </KPI.Header>
         <KPI.Content>
-          <KPI.Value maximumFractionDigits={1} style="percent" value={metrics.errorRateRatio} />
+          <KPI.Value
+            className="font-mono tabular-nums"
+            maximumFractionDigits={1}
+            style="percent"
+            value={metrics.errorRateRatio}
+          />
         </KPI.Content>
         <KPI.Chart
-          color="var(--color-muted)"
+          color="var(--chart-1)"
           data={metrics.errorSparkline}
           height={60}
-          strokeWidth={1.5}
+          strokeWidth={2}
         />
       </KPI>
 
       <KPI>
         <KPI.Header>
-          <KPI.Title>Avg. Latency</KPI.Title>
+          <KPI.Title className="min-w-0 truncate">Avg. Latency</KPI.Title>
         </KPI.Header>
         <KPI.Content>
-          <span className="text-foreground text-2xl font-semibold tabular-nums">
+          <span className="text-foreground font-mono text-2xl font-semibold tracking-tight tabular-nums">
             {metrics.avgLatencyMs} ms
           </span>
         </KPI.Content>
         <KPI.Chart
-          color="var(--color-warning)"
+          color="var(--chart-2)"
           data={metrics.latencySparkline}
           height={60}
-          strokeWidth={1.5}
+          strokeWidth={2}
         />
       </KPI>
     </div>

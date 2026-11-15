@@ -49,13 +49,13 @@ export function TopChannelsCard() {
   }, [rangeTraffics]);
 
   return (
-    <Card className="h-full rounded-2xl">
+    <Card className="h-full">
       <Card.Header>
-        <Card.Title className="text-base">Top hosts</Card.Title>
+        <Card.Title className="min-w-0 truncate text-base">Top Hosts</Card.Title>
         <Card.Description>Requests by destination host.</Card.Description>
       </Card.Header>
       <Card.Content className="relative">
-        <BarChart data={topHosts} height={360} layout="vertical">
+        <BarChart className="font-mono tabular-nums" data={topHosts} height={360} layout="vertical">
           <BarChart.Grid horizontal={false} />
           <BarChart.XAxis
             allowDecimals={false}
@@ -67,16 +67,16 @@ export function TopChannelsCard() {
           <BarChart.YAxis
             dataKey="host"
             tickFormatter={formatHostTick}
-            tickMargin={4}
+            tickMargin={6}
             type="category"
-            width={130}
+            width={140}
           />
           <BarChart.Bar
             barSize={16}
             dataKey="requests"
             fill="var(--chart-3)"
             name="Requests"
-            radius={[0, 24, 24, 0]}
+            radius={[0, 4, 4, 0]}
           />
           <BarChart.Tooltip content={<BarChart.TooltipContent />} />
         </BarChart>

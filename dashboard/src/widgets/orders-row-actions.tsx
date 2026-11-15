@@ -19,7 +19,7 @@ export function OrdersRowActions({isRevoked, receiptId}: OrdersRowActionsProps) 
         <Button isIconOnly aria-label="Receipt actions" size="sm" variant="ghost">
           <EllipsisVertical className="size-4" />
         </Button>
-        <Dropdown.Popover className="min-w-[160px]" placement="bottom end">
+        <Dropdown.Popover className="min-w-44" placement="bottom end">
           <Dropdown.Menu
             disabledKeys={isRevoked || busy ? ["revoke"] : []}
             onAction={(key) => {
@@ -45,7 +45,7 @@ export function OrdersRowActions({isRevoked, receiptId}: OrdersRowActionsProps) 
             }}
           >
             <Dropdown.Item id="copy" textValue="Copy ID">
-              <Copy className="size-4" />
+              <Copy className="text-muted size-4" />
               <Label>Copy ID</Label>
             </Dropdown.Item>
             <Dropdown.Item id="revoke" textValue="Revoke" variant="danger">

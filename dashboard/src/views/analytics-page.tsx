@@ -17,17 +17,20 @@ export function AnalyticsPage() {
   const {setTimeRange, timeRange} = useCoreStore();
 
   return (
-    <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 pb-10 pt-4">
+    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-10 pt-8">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-muted text-sm">Live gateway telemetry and protocol breakdown.</p>
+        <p className="text-muted min-w-0 text-sm">
+          Live gateway telemetry and protocol breakdown.
+        </p>
         <Segment
           aria-label="Time range"
+          className="shrink-0 font-mono tabular-nums"
           selectedKey={timeRange}
           size="sm"
           onSelectionChange={(key) => setTimeRange(String(key) as TimeRange)}
         >
           {TIME_RANGES.map((range) => (
-            <Segment.Item key={range} id={range}>
+            <Segment.Item key={range} className="font-mono tabular-nums" id={range}>
               {range}
             </Segment.Item>
           ))}
@@ -35,7 +38,7 @@ export function AnalyticsPage() {
       </div>
       <AnalyticsKpiRow />
       <SessionsOverTimeCard />
-      <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <DeviceBreakdownCard />
         <TopChannelsCard />
       </div>

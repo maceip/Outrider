@@ -106,7 +106,7 @@ export function DashboardToolbar() {
             </Dropdown.Popover>
           </Dropdown>
         </ButtonGroup>
-        <Button size="sm" onPress={exportHar}>
+        <Button size="sm" variant="secondary" onPress={exportHar}>
           Export HAR
         </Button>
       </div>
