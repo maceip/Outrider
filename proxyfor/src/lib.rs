@@ -6,6 +6,7 @@ pub mod clef;
 pub mod commerce;
 pub mod filter;
 pub mod fingerprint;
+pub mod first_run_demo;
 pub mod inspector;
 pub mod mcp_gateway;
 pub mod onboarding;

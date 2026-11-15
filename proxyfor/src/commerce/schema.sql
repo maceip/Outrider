@@ -67,3 +67,5 @@ CREATE TABLE IF NOT EXISTS inspector_server_requests (
  request_id TEXT PRIMARY KEY,connection_id TEXT NOT NULL REFERENCES inspector_connections,
  method TEXT NOT NULL,params TEXT NOT NULL CHECK(json_valid(params)),status TEXT NOT NULL,
  response TEXT CHECK(response IS NULL OR json_valid(response)),created_at INTEGER NOT NULL,answered_at INTEGER);
+CREATE TABLE IF NOT EXISTS commerce_meta (
+ key TEXT PRIMARY KEY,value TEXT NOT NULL,updated_at INTEGER NOT NULL);

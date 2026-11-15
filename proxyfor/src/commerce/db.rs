@@ -10,6 +10,8 @@ use std::{
 #[derive(Clone)]
 pub struct Database(pub(crate) Arc<Mutex<Connection>>);
 
+pub const FIRST_RUN_DEMO_COMPLETED_KEY: &str = "first_run_demo_completed";
+
 pub fn now() -> i64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
@@ -213,5 +215,34 @@ impl Database {
         super::receipt::audit(&tx, actor, action, target, details)?;
         tx.commit()?;
         Ok(())
+    }
+    pub fn meta_get(&self, key: &str) -> Result<Option<String>> {
+        use rusqlite::OptionalExtension as _;
+        let conn = self
+            .0
+            .lock()
+            .map_err(|_| anyhow::anyhow!("database lock poisoned"))?;
+        Ok(conn
+            .query_row("SELECT value FROM commerce_meta WHERE key=?1", [key], |r| {
+                r.get(0)
+            })
+            .optional()?)
+    }
+    pub fn meta_set(&self, key: &str, value: &str) -> Result<()> {
+        let conn = self
+            .0
+            .lock()
+            .map_err(|_| anyhow::anyhow!("database lock poisoned"))?;
+        conn.execute(
+            "INSERT INTO commerce_meta(key,value,updated_at) VALUES (?1,?2,?3) ON CONFLICT(key) DO UPDATE SET value=excluded.value,updated_at=excluded.updated_at",
+            params![key, value, now()],
+        )?;
+        Ok(())
+    }
+    pub fn is_first_run_demo_pending(&self) -> Result<bool> {
+        Ok(self.meta_get(FIRST_RUN_DEMO_COMPLETED_KEY)?.is_none())
+    }
+    pub fn mark_first_run_demo_completed(&self) -> Result<()> {
+        self.meta_set(FIRST_RUN_DEMO_COMPLETED_KEY, &now().to_string())
     }
 }

@@ -203,6 +203,7 @@ async fn outrider_dashboard_dir_serves_static_export_and_preserves_api_routes() 
     let cfg_dir = workspace.path().join("config");
     let mut child = tokio::process::Command::new(env!("CARGO_BIN_EXE_outrider"))
         .arg("--web")
+        .arg("--no-open")
         .arg("--listen")
         .arg(format!("127.0.0.1:{port}"))
         .arg("--config-dir")

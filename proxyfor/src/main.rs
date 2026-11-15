@@ -171,7 +171,7 @@ async fn main() -> Result<()> {
     };
 
     let server = ServerBuilder::new(ca)
-        .commerce(commerce)
+        .commerce(commerce.clone())
         .reverse_proxy_url(reverse_proxy_url)
         .title_filters(title_filters)
         .mime_filters(mime_filters)
@@ -180,6 +180,18 @@ async fn main() -> Result<()> {
         .build();
     let state = server.state();
     let stop_server = server.run(listener).await?;
+    if proxyfor::first_run_demo::should_run_first_run_demo(
+        cli.demo,
+        cli.no_demo,
+        cli.no_open,
+        cli.headless,
+        cli.stdio,
+        cli.tui || is_tui,
+        cli.dump || is_dump,
+        &commerce.db,
+    )? {
+        proxyfor::first_run_demo::spawn_first_run_demo(bound_addr, commerce.clone());
+    }
     info!("HTTP(S) proxy listening at {addr}");
     if is_tui {
         let addr = addr.clone();
@@ -266,6 +278,12 @@ struct Cli {
     /// Suppress launching the default OS browser in desktop mode
     #[clap(long)]
     no_open: bool,
+    /// Run a live loopback first-run demo sequence once the gateway listener binds
+    #[clap(long)]
+    demo: bool,
+    /// Disable automatic first-run loopback demo on initial launch
+    #[clap(long)]
+    no_demo: bool,
     /// Eenter TUI
     #[clap(short = 'T', long)]
     tui: bool,
