@@ -1,0 +1,2475 @@
+{
+  "harSha256": "ef7e7ca3c209407aa14dda59652b16ad61fbf2a5e33c232bcf4ae2709a4642cd",
+  "capturedAtIso": "2026-11-15T20:40:33Z",
+  "binaryVersion": "proxyfor 0.5.4",
+  "traffics": [
+    {
+      "id": 1,
+      "method": "GET",
+      "uri": "http://127.0.0.1:65205/v1/agent-manifest",
+      "status": 200,
+      "size": 154,
+      "time": 1,
+      "mime": "application/json",
+      "start_time_unix_ms": 1794775223403
+    },
+    {
+      "id": 2,
+      "method": "POST",
+      "uri": "http://127.0.0.1:65205/v1/quote-check",
+      "status": 200,
+      "size": 110,
+      "time": 0,
+      "mime": "application/json",
+      "start_time_unix_ms": 1794775223406
+    },
+    {
+      "id": 3,
+      "method": "POST",
+      "uri": "http://127.0.0.1:65206/mcp",
+      "status": 200,
+      "size": 756,
+      "time": 0,
+      "mime": "text/event-stream",
+      "start_time_unix_ms": 1794775223409
+    },
+    {
+      "id": 4,
+      "method": "POST",
+      "uri": "http://127.0.0.1:65206/mcp",
+      "status": 200,
+      "size": 1977,
+      "time": 0,
+      "mime": "text/event-stream",
+      "start_time_unix_ms": 1794775223411
+    },
+    {
+      "id": 5,
+      "method": "POST",
+      "uri": "http://127.0.0.1:65206/mcp",
+      "status": 200,
+      "size": 1374,
+      "time": 0,
+      "mime": "text/event-stream",
+      "start_time_unix_ms": 1794775223412
+    },
+    {
+      "id": 6,
+      "method": "POST",
+      "uri": "http://127.0.0.1:65206/mcp",
+      "status": 200,
+      "size": 756,
+      "time": 0,
+      "mime": "text/event-stream",
+      "start_time_unix_ms": 1794775224354
+    },
+    {
+      "id": 7,
+      "method": "POST",
+      "uri": "http://127.0.0.1:65206/mcp",
+      "status": 200,
+      "size": 1009,
+      "time": 0,
+      "mime": "text/event-stream",
+      "start_time_unix_ms": 1794775224355
+    },
+    {
+      "id": 8,
+      "method": "POST",
+      "uri": "http://127.0.0.1:65206/mcp",
+      "status": 200,
+      "size": 945,
+      "time": 3343,
+      "mime": "text/event-stream",
+      "start_time_unix_ms": 1794775226186
+    },
+    {
+      "id": 9,
+      "method": "POST",
+      "uri": "http://127.0.0.1:65206/mcp",
+      "status": 200,
+      "size": 183,
+      "time": 3619,
+      "mime": "text/event-stream",
+      "start_time_unix_ms": 1794775229530
+    }
+  ],
+  "trafficDetailsById": {
+    "1": {
+      "gid": 1,
+      "uri": "http://127.0.0.1:65205/v1/agent-manifest",
+      "method": "GET",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept-encoding",
+            "value": "identity"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65205"
+          },
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "user-agent",
+            "value": "outrider-agent-probe/1.0"
+          },
+          {
+            "name": "connection",
+            "value": "close"
+          }
+        ],
+        "size": 180
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00001-req",
+      "status": 200,
+      "http_version": "HTTP/1.0",
+      "res_headers": {
+        "items": [
+          {
+            "name": "server",
+            "value": "BaseHTTP/0.6 Python/3.14.6"
+          },
+          {
+            "name": "date",
+            "value": "Sun, 15 Nov 2026 20:40:23 GMT"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "154"
+          }
+        ],
+        "size": 165
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00001-res.json",
+      "res_body_size": 154,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:23.403557Z",
+      "end_time": "2026-11-15T20:40:23.404753Z",
+      "error": null,
+      "req_body": null,
+      "res_body": {
+        "encode": "utf8",
+        "value": "{\"service\": \"silvector-catalog-upstream\", \"mcp_protocol\": \"2026-07-28\", \"bundles\": [\"outrider_session_evidence\"], \"receipt_scheme\": \"ed25519-jcs-rfc8785\"}",
+        "size": 154
+      }
+    },
+    "2": {
+      "gid": 2,
+      "uri": "http://127.0.0.1:65205/v1/quote-check",
+      "method": "POST",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept-encoding",
+            "value": "identity"
+          },
+          {
+            "name": "content-length",
+            "value": "59"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65205"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "accept",
+            "value": "application/json"
+          },
+          {
+            "name": "user-agent",
+            "value": "outrider-agent-probe/1.0"
+          },
+          {
+            "name": "connection",
+            "value": "close"
+          }
+        ],
+        "size": 248
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00002-req.json",
+      "status": 200,
+      "http_version": "HTTP/1.0",
+      "res_headers": {
+        "items": [
+          {
+            "name": "server",
+            "value": "BaseHTTP/0.6 Python/3.14.6"
+          },
+          {
+            "name": "date",
+            "value": "Sun, 15 Nov 2026 20:40:23 GMT"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "content-length",
+            "value": "110"
+          }
+        ],
+        "size": 165
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00002-res.json",
+      "res_body_size": 110,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:23.406596Z",
+      "end_time": "2026-11-15T20:40:23.407418Z",
+      "error": null,
+      "req_body": {
+        "encode": "utf8",
+        "value": "{\"bundle_id\": \"outrider_session_evidence\", \"max_calls\": 10}",
+        "size": 59
+      },
+      "res_body": {
+        "encode": "utf8",
+        "value": "{\"quote_ready\": true, \"bundle_id\": \"outrider_session_evidence\", \"requested_calls\": 10, \"currency\": \"MRTR-CAP\"}",
+        "size": 110
+      }
+    },
+    "3": {
+      "gid": 3,
+      "uri": "http://127.0.0.1:65206/mcp",
+      "method": "POST",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept",
+            "value": "text/event-stream, application/json"
+          },
+          {
+            "name": "mcp-method",
+            "value": "server/discover"
+          },
+          {
+            "name": "mcp-protocol-version",
+            "value": "2026-07-28"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65206"
+          },
+          {
+            "name": "content-length",
+            "value": "323"
+          }
+        ],
+        "size": 239
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00003-req.json",
+      "status": 200,
+      "http_version": "HTTP/1.1",
+      "res_headers": {
+        "items": [
+          {
+            "name": "content-type",
+            "value": "text/event-stream"
+          },
+          {
+            "name": "cache-control",
+            "value": "no-cache"
+          },
+          {
+            "name": "x-accel-buffering",
+            "value": "no"
+          }
+        ],
+        "size": 112
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00003-res.txt",
+      "res_body_size": 756,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:23.409227Z",
+      "end_time": "2026-11-15T20:40:23.410132Z",
+      "error": null,
+      "req_body": {
+        "encode": "utf8",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}}}}}",
+        "size": 323
+      },
+      "res_body": {
+        "encode": "utf8",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
+        "size": 756
+      }
+    },
+    "4": {
+      "gid": 4,
+      "uri": "http://127.0.0.1:65206/mcp",
+      "method": "POST",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept",
+            "value": "text/event-stream, application/json"
+          },
+          {
+            "name": "mcp-method",
+            "value": "tools/list"
+          },
+          {
+            "name": "mcp-protocol-version",
+            "value": "2026-07-28"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65206"
+          },
+          {
+            "name": "content-length",
+            "value": "336"
+          }
+        ],
+        "size": 234
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00004-req.json",
+      "status": 200,
+      "http_version": "HTTP/1.1",
+      "res_headers": {
+        "items": [
+          {
+            "name": "content-type",
+            "value": "text/event-stream"
+          },
+          {
+            "name": "cache-control",
+            "value": "no-cache"
+          },
+          {
+            "name": "x-accel-buffering",
+            "value": "no"
+          }
+        ],
+        "size": 112
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00004-res.txt",
+      "res_body_size": 1977,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:23.411069Z",
+      "end_time": "2026-11-15T20:40:23.411815Z",
+      "error": null,
+      "req_body": {
+        "encode": "utf8",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":0}}}",
+        "size": 336
+      },
+      "res_body": {
+        "encode": "utf8",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"complete\",\"ttlMs\":0,\"cacheScope\":\"private\",\"tools\":[{\"name\":\"outrider_catalog\",\"description\":\"List configured catalog and receipt requirements\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_fingerprint_me\",\"description\":\"Read your own captured fingerprint evidence\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_run_probe\",\"description\":\"Run a disclosed capability probe\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_synthesized_offers\",\"description\":\"Read or synthesize session bundle offers\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_checkout_bundle\",\"description\":\"Present an operator-issued receipt to unlock or execute a bundle\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_verify_receipt\",\"description\":\"Verify a capability receipt for your own subject\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_receipt_status\",\"description\":\"Read remaining quota and expiry of your own receipts\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}}]}}\n\n",
+        "size": 1977
+      }
+    },
+    "5": {
+      "gid": 5,
+      "uri": "http://127.0.0.1:65206/mcp",
+      "method": "POST",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept",
+            "value": "text/event-stream, application/json"
+          },
+          {
+            "name": "mcp-method",
+            "value": "tools/call"
+          },
+          {
+            "name": "mcp-protocol-version",
+            "value": "2026-07-28"
+          },
+          {
+            "name": "mcp-name",
+            "value": "outrider_catalog"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65206"
+          },
+          {
+            "name": "content-length",
+            "value": "377"
+          }
+        ],
+        "size": 270
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00005-req.json",
+      "status": 200,
+      "http_version": "HTTP/1.1",
+      "res_headers": {
+        "items": [
+          {
+            "name": "content-type",
+            "value": "text/event-stream"
+          },
+          {
+            "name": "cache-control",
+            "value": "no-cache"
+          },
+          {
+            "name": "x-accel-buffering",
+            "value": "no"
+          }
+        ],
+        "size": 112
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00005-res.txt",
+      "res_body_size": 1374,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:23.412771Z",
+      "end_time": "2026-11-15T20:40:23.413692Z",
+      "error": null,
+      "req_body": {
+        "encode": "utf8",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":1},\"name\":\"outrider_catalog\",\"arguments\":{}}}",
+        "size": 377
+      },
+      "res_body": {
+        "encode": "utf8",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}},\"preferences\":{\"method\":\"elicitation/create\",\"params\":{\"mode\":\"form\",\"message\":\"This is an Outrider capability probe to record your SLA tier and bundle preference. No payment information is requested.\",\"requestedSchema\":{\"type\":\"object\",\"properties\":{\"sla_tier\":{\"type\":\"string\"},\"bundle_preference\":{\"type\":\"string\"}},\"required\":[\"sla_tier\",\"bundle_preference\"]}}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI4NGVmZDVkYi00NjAzLTQ3ZmEtYWUxMy03NjAwZGM5ZTdjMTciLCJzZXNzaW9uX2lkIjoiZTc3ODRlYTgtOTk4Yy00MDVhLTgxNTUtYzg0OWNmMGZkM2E4Iiwic3ViamVjdCI6ImU3Nzg0ZWE4LTk5OGMtNDA1YS04MTU1LWM4NDljZjBmZDNhOCIsInJlcXVlc3RfZGlnZXN0IjoiN2RjNDhhMTAyMzNjZTNhOTZkZWI3Y2ZmYmNlZGU3YWIwMWUyYjBjMzUzMzdkNGM2NTJiMjJkNTdmODU4MjdlMCIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyMzQxMywiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjUzLCJwcmVmZXJlbmNlcyI6dHJ1ZX0.qzC3d9guU9Fa5Y45b4RjwwHfayLx6dtTLNKuhsqkV5o\"}}\n\n",
+        "size": 1374
+      }
+    },
+    "6": {
+      "gid": 6,
+      "uri": "http://127.0.0.1:65206/mcp",
+      "method": "POST",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept",
+            "value": "text/event-stream, application/json"
+          },
+          {
+            "name": "outrider-session-id",
+            "value": "[redacted]"
+          },
+          {
+            "name": "mcp-protocol-version",
+            "value": "2026-07-28"
+          },
+          {
+            "name": "mcp-method",
+            "value": "server/discover"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65206"
+          },
+          {
+            "name": "content-length",
+            "value": "282"
+          }
+        ],
+        "size": 280
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00006-req.json",
+      "status": 200,
+      "http_version": "HTTP/1.1",
+      "res_headers": {
+        "items": [
+          {
+            "name": "content-type",
+            "value": "text/event-stream"
+          },
+          {
+            "name": "cache-control",
+            "value": "no-cache"
+          },
+          {
+            "name": "x-accel-buffering",
+            "value": "no"
+          }
+        ],
+        "size": 112
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00006-res.txt",
+      "res_body_size": 756,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:24.354126Z",
+      "end_time": "2026-11-15T20:40:24.355032Z",
+      "error": null,
+      "req_body": {
+        "encode": "utf8",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}}}}}",
+        "size": 282
+      },
+      "res_body": {
+        "encode": "utf8",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
+        "size": 756
+      }
+    },
+    "7": {
+      "gid": 7,
+      "uri": "http://127.0.0.1:65206/mcp",
+      "method": "POST",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept",
+            "value": "text/event-stream, application/json"
+          },
+          {
+            "name": "mcp-protocol-version",
+            "value": "2026-07-28"
+          },
+          {
+            "name": "outrider-session-id",
+            "value": "[redacted]"
+          },
+          {
+            "name": "mcp-name",
+            "value": "outrider_catalog"
+          },
+          {
+            "name": "mcp-method",
+            "value": "tools/call"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65206"
+          },
+          {
+            "name": "content-length",
+            "value": "321"
+          }
+        ],
+        "size": 311
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00007-req.json",
+      "status": 200,
+      "http_version": "HTTP/1.1",
+      "res_headers": {
+        "items": [
+          {
+            "name": "content-type",
+            "value": "text/event-stream"
+          },
+          {
+            "name": "cache-control",
+            "value": "no-cache"
+          },
+          {
+            "name": "x-accel-buffering",
+            "value": "no"
+          }
+        ],
+        "size": 112
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00007-res.txt",
+      "res_body_size": 1009,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:24.355541Z",
+      "end_time": "2026-11-15T20:40:24.356243Z",
+      "error": null,
+      "req_body": {
+        "encode": "utf8",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":0},\"name\":\"outrider_catalog\"}}",
+        "size": 321
+      },
+      "res_body": {
+        "encode": "utf8",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}\n\n",
+        "size": 1009
+      }
+    },
+    "8": {
+      "gid": 8,
+      "uri": "http://127.0.0.1:65206/mcp",
+      "method": "POST",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept",
+            "value": "text/event-stream, application/json"
+          },
+          {
+            "name": "mcp-protocol-version",
+            "value": "2026-07-28"
+          },
+          {
+            "name": "outrider-session-id",
+            "value": "[redacted]"
+          },
+          {
+            "name": "mcp-name",
+            "value": "outrider_catalog"
+          },
+          {
+            "name": "mcp-method",
+            "value": "tools/call"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65206"
+          },
+          {
+            "name": "content-length",
+            "value": "1077"
+          }
+        ],
+        "size": 312
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00008-req.json",
+      "status": 200,
+      "http_version": "HTTP/1.1",
+      "res_headers": {
+        "items": [
+          {
+            "name": "content-type",
+            "value": "text/event-stream"
+          },
+          {
+            "name": "cache-control",
+            "value": "no-cache"
+          },
+          {
+            "name": "x-accel-buffering",
+            "value": "no"
+          }
+        ],
+        "size": 112
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00008-res.txt",
+      "res_body_size": 945,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:26.186815Z",
+      "end_time": "2026-11-15T20:40:29.529825Z",
+      "error": null,
+      "req_body": {
+        "encode": "utf8",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":1},\"name\":\"outrider_catalog\",\"inputResponses\":{\"capability_probe\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}",
+        "size": 1077
+      },
+      "res_body": {
+        "encode": "utf8",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"complete\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"session_id\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"subject\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"clef\\\":{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"},\\\"catalog\\\":[{\\\"item_id\\\":\\\"outrider_session_evidence\\\",\\\"kind\\\":\\\"tool\\\",\\\"digest\\\":\\\"d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170\\\",\\\"descriptor\\\":{\\\"tool\\\":{\\\"name\\\":\\\"outrider_session_evidence\\\",\\\"description\\\":\\\"Read the persisted evidence for the current session\\\",\\\"inputSchema\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{}}},\\\"local\\\":true,\\\"remote_name\\\":\\\"outrider_session_evidence\\\"},\\\"upstream_name\\\":null}],\\\"bundles\\\":[{\\\"bundle_id\\\":\\\"outrider_session_evidence\\\",\\\"title\\\":\\\"Session Evidence Bundle\\\",\\\"items\\\":[\\\"outrider_session_evidence\\\"],\\\"rules\\\":{\\\"required_pick\\\":\\\"http\\\"}}]}\"}],\"isError\":false}}\n\n",
+        "size": 945
+      }
+    },
+    "9": {
+      "gid": 9,
+      "uri": "http://127.0.0.1:65206/mcp",
+      "method": "POST",
+      "req_headers": {
+        "items": [
+          {
+            "name": "accept",
+            "value": "text/event-stream, application/json"
+          },
+          {
+            "name": "mcp-protocol-version",
+            "value": "2026-07-28"
+          },
+          {
+            "name": "outrider-session-id",
+            "value": "[redacted]"
+          },
+          {
+            "name": "mcp-method",
+            "value": "subscriptions/listen"
+          },
+          {
+            "name": "content-type",
+            "value": "application/json"
+          },
+          {
+            "name": "host",
+            "value": "127.0.0.1:65206"
+          },
+          {
+            "name": "content-length",
+            "value": "347"
+          }
+        ],
+        "size": 285
+      },
+      "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00009-req.json",
+      "status": 200,
+      "http_version": "HTTP/1.1",
+      "res_headers": {
+        "items": [
+          {
+            "name": "content-type",
+            "value": "text/event-stream"
+          },
+          {
+            "name": "cache-control",
+            "value": "no-cache"
+          },
+          {
+            "name": "x-accel-buffering",
+            "value": "no"
+          }
+        ],
+        "size": 112
+      },
+      "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00009-res.txt",
+      "res_body_size": 183,
+      "websocket_id": null,
+      "start_time": "2026-11-15T20:40:29.530571Z",
+      "end_time": "2026-11-15T20:40:33.149868Z",
+      "error": null,
+      "req_body": {
+        "encode": "utf8",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"subscriptions/listen\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":2},\"notifications\":{\"toolsListChanged\":true}}}",
+        "size": 347
+      },
+      "res_body": {
+        "encode": "utf8",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/subscriptions/acknowledged\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/subscriptionId\":3},\"notifications\":{\"toolsListChanged\":true}}}\n\n",
+        "size": 183
+      }
+    }
+  },
+  "inspectorState": {
+    "connections": [
+      {
+        "connection_id": "02770634-579d-4e1f-a76a-a58763506ba4",
+        "label": "http://127.0.0.1:65206/mcp",
+        "transport": "http",
+        "target": "http://127.0.0.1:65206/mcp",
+        "lifecycle": "auto",
+        "header_names": [],
+        "env_names": [],
+        "status": "Disconnected",
+        "server_info": {
+          "protocolVersion": "2026-07-28",
+          "capabilities": {
+            "extensions": {
+              "io.modelcontextprotocol/skills": {
+                "directoryRead": true
+              },
+              "io.modelcontextprotocol/tasks": {}
+            },
+            "prompts": {},
+            "resources": {},
+            "tools": {
+              "listChanged": true
+            }
+          },
+          "serverInfo": {
+            "name": "rmcp",
+            "version": "3.10.0"
+          },
+          "instructions": "Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.",
+          "_meta": {
+            "io.modelcontextprotocol/serverInfo": {
+              "name": "rmcp",
+              "version": "3.10.0"
+            }
+          }
+        },
+        "error": null,
+        "created_at": 1794775223,
+        "updated_at": 1794775233,
+        "live": false
+      }
+    ],
+    "messages": [
+      {
+        "message_id": 1,
+        "direction": "server_to_client",
+        "kind": "handshake",
+        "method": "handshake",
+        "body": {
+          "protocolVersion": "2026-07-28",
+          "capabilities": {
+            "extensions": {
+              "io.modelcontextprotocol/skills": {
+                "directoryRead": true
+              },
+              "io.modelcontextprotocol/tasks": {}
+            },
+            "prompts": {},
+            "resources": {},
+            "tools": {
+              "listChanged": true
+            }
+          },
+          "serverInfo": {
+            "name": "rmcp",
+            "version": "3.10.0"
+          },
+          "instructions": "Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.",
+          "_meta": {
+            "io.modelcontextprotocol/serverInfo": {
+              "name": "rmcp",
+              "version": "3.10.0"
+            }
+          }
+        },
+        "reply_to": null,
+        "latency_ms": 1,
+        "created_at_ms": 1794775223410
+      },
+      {
+        "message_id": 2,
+        "direction": "client_to_server",
+        "kind": "request",
+        "method": "tools/list",
+        "body": {
+          "method": "tools/list",
+          "params": {}
+        },
+        "reply_to": null,
+        "latency_ms": null,
+        "created_at_ms": 1794775223410
+      },
+      {
+        "message_id": 3,
+        "direction": "server_to_client",
+        "kind": "response",
+        "method": "tools/list",
+        "body": {
+          "resultType": "complete",
+          "ttlMs": 0,
+          "cacheScope": "private",
+          "tools": [
+            {
+              "name": "outrider_catalog",
+              "description": "List configured catalog and receipt requirements",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "receipt": {
+                    "type": "string"
+                  },
+                  "execute": {
+                    "type": "boolean"
+                  },
+                  "tool_arguments": {
+                    "type": "object"
+                  }
+                }
+              }
+            },
+            {
+              "name": "outrider_fingerprint_me",
+              "description": "Read your own captured fingerprint evidence",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "receipt": {
+                    "type": "string"
+                  },
+                  "execute": {
+                    "type": "boolean"
+                  },
+                  "tool_arguments": {
+                    "type": "object"
+                  }
+                }
+              }
+            },
+            {
+              "name": "outrider_run_probe",
+              "description": "Run a disclosed capability probe",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "receipt": {
+                    "type": "string"
+                  },
+                  "execute": {
+                    "type": "boolean"
+                  },
+                  "tool_arguments": {
+                    "type": "object"
+                  }
+                }
+              }
+            },
+            {
+              "name": "outrider_synthesized_offers",
+              "description": "Read or synthesize session bundle offers",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "receipt": {
+                    "type": "string"
+                  },
+                  "execute": {
+                    "type": "boolean"
+                  },
+                  "tool_arguments": {
+                    "type": "object"
+                  }
+                }
+              }
+            },
+            {
+              "name": "outrider_checkout_bundle",
+              "description": "Present an operator-issued receipt to unlock or execute a bundle",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "receipt": {
+                    "type": "string"
+                  },
+                  "execute": {
+                    "type": "boolean"
+                  },
+                  "tool_arguments": {
+                    "type": "object"
+                  }
+                }
+              }
+            },
+            {
+              "name": "outrider_verify_receipt",
+              "description": "Verify a capability receipt for your own subject",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "receipt": {
+                    "type": "string"
+                  },
+                  "execute": {
+                    "type": "boolean"
+                  },
+                  "tool_arguments": {
+                    "type": "object"
+                  }
+                }
+              }
+            },
+            {
+              "name": "outrider_receipt_status",
+              "description": "Read remaining quota and expiry of your own receipts",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "bundle_id": {
+                    "type": "string"
+                  },
+                  "receipt": {
+                    "type": "string"
+                  },
+                  "execute": {
+                    "type": "boolean"
+                  },
+                  "tool_arguments": {
+                    "type": "object"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "reply_to": 2,
+        "latency_ms": 0,
+        "created_at_ms": 1794775223411
+      },
+      {
+        "message_id": 4,
+        "direction": "client_to_server",
+        "kind": "request",
+        "method": "tools/call",
+        "body": {
+          "method": "tools/call",
+          "params": {
+            "name": "outrider_catalog",
+            "arguments": {}
+          }
+        },
+        "reply_to": null,
+        "latency_ms": null,
+        "created_at_ms": 1794775223412
+      },
+      {
+        "message_id": 5,
+        "direction": "server_to_client",
+        "kind": "response",
+        "method": "tools/call",
+        "body": {
+          "resultType": "input_required",
+          "inputRequests": {
+            "capability_probe": {
+              "method": "sampling/createMessage",
+              "params": {
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": {
+                      "type": "text",
+                      "text": "This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"outrider\"}."
+                    }
+                  }
+                ],
+                "includeContext": "none",
+                "temperature": 0.0,
+                "maxTokens": 32
+              }
+            },
+            "preferences": {
+              "method": "elicitation/create",
+              "params": {
+                "mode": "form",
+                "message": "This is an Outrider capability probe to record your SLA tier and bundle preference. No payment information is requested.",
+                "requestedSchema": {
+                  "type": "object",
+                  "properties": {
+                    "sla_tier": {
+                      "type": "string"
+                    },
+                    "bundle_preference": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "sla_tier",
+                    "bundle_preference"
+                  ]
+                }
+              }
+            }
+          },
+          "requestState": "rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI4NGVmZDVkYi00NjAzLTQ3ZmEtYWUxMy03NjAwZGM5ZTdjMTciLCJzZXNzaW9uX2lkIjoiZTc3ODRlYTgtOTk4Yy00MDVhLTgxNTUtYzg0OWNmMGZkM2E4Iiwic3ViamVjdCI6ImU3Nzg0ZWE4LTk5OGMtNDA1YS04MTU1LWM4NDljZjBmZDNhOCIsInJlcXVlc3RfZGlnZXN0IjoiN2RjNDhhMTAyMzNjZTNhOTZkZWI3Y2ZmYmNlZGU3YWIwMWUyYjBjMzUzMzdkNGM2NTJiMjJkNTdmODU4MjdlMCIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyMzQxMywiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjUzLCJwcmVmZXJlbmNlcyI6dHJ1ZX0.qzC3d9guU9Fa5Y45b4RjwwHfayLx6dtTLNKuhsqkV5o"
+        },
+        "reply_to": 4,
+        "latency_ms": 1,
+        "created_at_ms": 1794775223413
+      }
+    ],
+    "server_requests": []
+  },
+  "commerceSnapshot": {
+    "errors": [],
+    "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+    "clef": {
+      "status": "Ready",
+      "model_path": "/tmp/gemma-4-e2b-it.litertlm",
+      "backend": "cpu"
+    },
+    "active_peers": [
+      {
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "connected": false,
+        "sampling": false
+      },
+      {
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "connected": false,
+        "sampling": false
+      }
+    ],
+    "probe_policy": "auto",
+    "public_key": "W1g-XUKU_vWQKIX6jg4KlWLc0OeTc3JAWq_Fsyc7p1U",
+    "agent_sessions": [
+      {
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "subject": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "client_config": {
+          "protocolVersion": "2026-07-28",
+          "clientInfo": {
+            "name": "Outrider live validation client",
+            "version": "1"
+          },
+          "capabilities": {
+            "sampling": {}
+          }
+        },
+        "transport": "http",
+        "state": "CLEF Evaluated",
+        "created_at": 1794775224
+      },
+      {
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "subject": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "client_config": {
+          "protocolVersion": "2026-07-28",
+          "clientInfo": {
+            "name": "Outrider MCP Inspector",
+            "version": "0.5.4"
+          },
+          "capabilities": {
+            "roots": {
+              "listChanged": true
+            },
+            "sampling": {},
+            "elicitation": {}
+          }
+        },
+        "transport": "http",
+        "state": "Unprobed",
+        "created_at": 1794775223
+      }
+    ],
+    "fingerprint_observations": [
+      {
+        "observation_id": "24f58ef7-974b-4593-acba-c19ecc88df23",
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "connection_id": null,
+        "kind": "mcp_request",
+        "evidence": {
+          "user_agent": null,
+          "mcp_session_id": null,
+          "request_id": 2,
+          "cadence_ms": {
+            "sample_count": 2,
+            "mean": 916.371833,
+            "p50": 1.121041,
+            "p95": 1831.622625
+          }
+        },
+        "created_at": 1794775226
+      },
+      {
+        "observation_id": "03d971f2-1372-4ea5-9f2a-dd18e31fe259",
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "connection_id": null,
+        "kind": "mcp_request",
+        "evidence": {
+          "user_agent": null,
+          "mcp_session_id": null,
+          "request_id": 1,
+          "cadence_ms": {
+            "sample_count": 1,
+            "mean": 1.121041,
+            "p50": 1.121041,
+            "p95": 1.121041
+          }
+        },
+        "created_at": 1794775224
+      },
+      {
+        "observation_id": "26274684-5d7f-4d6d-b058-a9cbf62de617",
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "connection_id": null,
+        "kind": "mcp_request",
+        "evidence": {
+          "user_agent": null,
+          "mcp_session_id": null,
+          "request_id": 0,
+          "cadence_ms": {
+            "sample_count": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null
+          }
+        },
+        "created_at": 1794775224
+      },
+      {
+        "observation_id": "048454bc-2b47-445f-afe2-a397acb186e0",
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "connection_id": "b47bd058-a026-4ce2-81bd-4f2ddd24bd6d",
+        "kind": "http_header_order",
+        "evidence": {
+          "status": "Captured",
+          "scope": "first HTTP/1 request on connection",
+          "request_line": "POST /mcp HTTP/1.1",
+          "header_names_in_wire_order": [
+            "accept",
+            "outrider-session-id",
+            "mcp-protocol-version",
+            "mcp-method",
+            "content-type",
+            "host",
+            "content-length"
+          ],
+          "sha256": "c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb"
+        },
+        "created_at": 1794775224
+      },
+      {
+        "observation_id": "82c7863b-631b-4d0e-8b39-5706dfc7270d",
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "connection_id": null,
+        "kind": "mcp_request",
+        "evidence": {
+          "user_agent": null,
+          "mcp_session_id": null,
+          "request_id": 2,
+          "cadence_ms": {
+            "sample_count": 2,
+            "mean": 1.660979,
+            "p50": 1.605542,
+            "p95": 1.716416
+          }
+        },
+        "created_at": 1794775223
+      },
+      {
+        "observation_id": "34e6440a-cecc-4d1d-9555-bbe81e844b52",
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "connection_id": null,
+        "kind": "mcp_request",
+        "evidence": {
+          "user_agent": null,
+          "mcp_session_id": null,
+          "request_id": 1,
+          "cadence_ms": {
+            "sample_count": 1,
+            "mean": 1.605542,
+            "p50": 1.605542,
+            "p95": 1.605542
+          }
+        },
+        "created_at": 1794775223
+      },
+      {
+        "observation_id": "3af54769-de0d-425c-b1cd-c124be96442b",
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "connection_id": null,
+        "kind": "mcp_request",
+        "evidence": {
+          "user_agent": null,
+          "mcp_session_id": null,
+          "request_id": 0,
+          "cadence_ms": {
+            "sample_count": 0,
+            "mean": null,
+            "p50": null,
+            "p95": null
+          }
+        },
+        "created_at": 1794775223
+      },
+      {
+        "observation_id": "3ee8ea2d-7622-4e7e-8f46-907e15158075",
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "connection_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "kind": "http_header_order",
+        "evidence": {
+          "status": "Captured",
+          "scope": "first HTTP/1 request on connection",
+          "request_line": "POST /mcp HTTP/1.1",
+          "header_names_in_wire_order": [
+            "accept",
+            "mcp-method",
+            "mcp-protocol-version",
+            "content-type",
+            "host",
+            "content-length"
+          ],
+          "sha256": "dabffe117debd19075e2c842292e974cd928dc7460d9ec8aeb437a1dfbd4a442"
+        },
+        "created_at": 1794775223
+      },
+      {
+        "observation_id": "b7fb706b-1933-45ee-8bd4-7fab83b2afb5",
+        "session_id": null,
+        "connection_id": "f08da6d6-30f7-48a9-8b42-ac418b649b96",
+        "kind": "http_header_order",
+        "evidence": {
+          "status": "Captured",
+          "scope": "first HTTP/1 request on connection",
+          "request_line": "POST http://127.0.0.1:65205/v1/quote-check HTTP/1.1",
+          "header_names_in_wire_order": [
+            "Accept-Encoding",
+            "Content-Length",
+            "Host",
+            "Content-Type",
+            "Accept",
+            "User-Agent",
+            "Connection"
+          ],
+          "sha256": "58b26afd0c64ec8685e70ddafd0bd1028c36de77fdccc99ceb6a185635cbe5b8"
+        },
+        "created_at": 1794775223
+      },
+      {
+        "observation_id": "f92630b1-6119-429e-8163-6c3f387d0a83",
+        "session_id": null,
+        "connection_id": "94ee4bde-cb20-4653-895a-0a46537474e1",
+        "kind": "http_header_order",
+        "evidence": {
+          "status": "Captured",
+          "scope": "first HTTP/1 request on connection",
+          "request_line": "GET http://127.0.0.1:65205/v1/agent-manifest HTTP/1.1",
+          "header_names_in_wire_order": [
+            "Accept-Encoding",
+            "Host",
+            "Accept",
+            "User-Agent",
+            "Connection"
+          ],
+          "sha256": "70f0c75238b3b04e607f4dc8a2436e85af56490a77a1be1cb9988a04eeb6300a"
+        },
+        "created_at": 1794775223
+      }
+    ],
+    "probe_runs": [
+      {
+        "probe_id": "66e82d53-37c4-406d-b0c0-bd558c0abcd0",
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "purpose": "This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"outrider\"}.",
+        "status": "Completed",
+        "latency_ms": 1832,
+        "input_tokens": 37,
+        "output_tokens": 6,
+        "structural_compliance": 1,
+        "response": {
+          "model": "{\"status\":\"Ready\",\"model_path\":\"/tmp/gemma-4-e2b-it.litertlm\",\"backend\":\"cpu\"}",
+          "role": "assistant",
+          "content": {
+            "type": "text",
+            "text": "{\"ack\":\"outrider\"}"
+          }
+        },
+        "error": null,
+        "created_at": 1794775224
+      },
+      {
+        "probe_id": "84efd5db-4603-47fa-ae13-7600dc9e7c17",
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "purpose": "This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"outrider\"}.",
+        "status": "Awaiting client input",
+        "latency_ms": null,
+        "input_tokens": 37,
+        "output_tokens": null,
+        "structural_compliance": null,
+        "response": null,
+        "error": null,
+        "created_at": 1794775223
+      }
+    ],
+    "clef_evaluations": [
+      {
+        "evaluation_id": "56cdade2-b09d-4600-beab-e79dec85ed46",
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "question": {
+          "type": "choice",
+          "question": "Which MCP transport is recorded on this active agent session?",
+          "options": [
+            "http",
+            "stdio"
+          ]
+        },
+        "status": "Verified",
+        "model_path": "/tmp/gemma-4-e2b-it.litertlm",
+        "backend": "cpu",
+        "prompt": "Evaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}",
+        "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n",
+        "raw_output": "{\"pick\":\"http\"}",
+        "pick": "http",
+        "input_tokens": 1166,
+        "output_tokens": 5,
+        "latency_ms": 3325,
+        "option_scores": null,
+        "error": null,
+        "created_at": 1794775233
+      },
+      {
+        "evaluation_id": "b0e81307-8d9e-46e7-aea2-aabba02c93ce",
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "question": {
+          "type": "noul",
+          "question": "Does the record contain a completed structurally compliant Outrider probe?"
+        },
+        "status": "Verified",
+        "model_path": "/tmp/gemma-4-e2b-it.litertlm",
+        "backend": "cpu",
+        "prompt": "Evaluate only the evidence in this MCP session record. Question: {\"type\":\"noul\",\"question\":\"Does the record contain a completed structurally compliant Outrider probe?\"}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"boolean\"}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}",
+        "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"noul\",\"question\":\"Does the record contain a completed structurally compliant Outrider probe?\"}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"boolean\"}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n",
+        "raw_output": "{\"pick\":true}",
+        "pick": true,
+        "input_tokens": 1155,
+        "output_tokens": 5,
+        "latency_ms": 3328,
+        "option_scores": null,
+        "error": null,
+        "created_at": 1794775229
+      }
+    ],
+    "upstream_servers": [],
+    "catalog_items": [
+      {
+        "item_id": "outrider_session_evidence",
+        "kind": "tool",
+        "digest": "d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170",
+        "descriptor": {
+          "tool": {
+            "name": "outrider_session_evidence",
+            "description": "Read the persisted evidence for the current session",
+            "inputSchema": {
+              "type": "object",
+              "properties": {}
+            }
+          },
+          "local": true,
+          "remote_name": "outrider_session_evidence"
+        },
+        "upstream_name": null
+      }
+    ],
+    "bundles": [
+      {
+        "bundle_id": "outrider_session_evidence",
+        "title": "Session Evidence Bundle",
+        "items": [
+          "outrider_session_evidence"
+        ],
+        "rules": {
+          "required_pick": "http"
+        }
+      }
+    ],
+    "session_offers": [
+      {
+        "offer_id": "3b2d939d-bf3c-4717-b2c8-085cfdf39394",
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "bundle_id": "outrider_session_evidence",
+        "source": "CLEF",
+        "evaluation_id": "56cdade2-b09d-4600-beab-e79dec85ed46",
+        "created_at": 1794775233
+      }
+    ],
+    "mrtr_quotes": [],
+    "capability_receipts": [
+      {
+        "receipt_id": "daf93626-b5ff-4552-a50a-55de5385b0ee",
+        "subject": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "bundle_id": "outrider_session_evidence",
+        "payload": {
+          "receipt_id": "daf93626-b5ff-4552-a50a-55de5385b0ee",
+          "subject": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+          "bundle_id": "outrider_session_evidence",
+          "item_digests": [
+            "d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170"
+          ],
+          "max_calls": 10,
+          "expires_at_unix": 1797367233
+        },
+        "signature": "bbkaIrQWsUCpbMjO2JmMRSuTY1HcHNKz1FMXKPGKUO4aJOAI4pYBrJsmq2PL8T4TUj_CE-LC9Z21eGWmSQGrCA",
+        "max_calls": 10,
+        "remaining_calls": 10,
+        "expires_at_unix": 1797367233,
+        "revoked": 0,
+        "created_at": 1794775233,
+        "signature_verified": true
+      }
+    ],
+    "receipt_redemptions": [],
+    "admin_audit_log": [
+      {
+        "audit_id": "43f1435d-bb49-4fc4-ba36-655bfdcb3a74",
+        "actor": "admin:http",
+        "action": "receipt.issue",
+        "target": "daf93626-b5ff-4552-a50a-55de5385b0ee",
+        "details": {
+          "subject": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+          "bundle_id": "outrider_session_evidence",
+          "max_calls": 10,
+          "expires_at_unix": 1797367233
+        },
+        "created_at": 1794775233
+      },
+      {
+        "audit_id": "d9f9c014-564b-41ac-a38f-1007f87a8ced",
+        "actor": "admin:http",
+        "action": "offer.synthesize",
+        "target": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "details": {
+          "source": "Configured rules using recorded CLEF picks",
+          "bundles": [
+            {
+              "bundle_id": "outrider_session_evidence",
+              "title": "Session Evidence Bundle",
+              "items": [
+                "outrider_session_evidence"
+              ],
+              "rules": {
+                "required_pick": "http"
+              }
+            }
+          ]
+        },
+        "created_at": 1794775233
+      },
+      {
+        "audit_id": "43a16eaa-7ecf-467a-9a54-e6b361f371cd",
+        "actor": "admin:http",
+        "action": "clef.evaluate",
+        "target": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "details": {
+          "evaluation_id": "56cdade2-b09d-4600-beab-e79dec85ed46",
+          "status": "Verified",
+          "model_path": "/tmp/gemma-4-e2b-it.litertlm",
+          "backend": "cpu",
+          "question": "{\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}",
+          "pick": "http",
+          "input_tokens": 1166,
+          "output_tokens": 5,
+          "latency_ms": 3325,
+          "option_scores": null,
+          "error": null,
+          "raw_output": "{\"pick\":\"http\"}",
+          "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n"
+        },
+        "created_at": 1794775233
+      },
+      {
+        "audit_id": "6063f75c-cffc-4c05-be61-685254a0ab2c",
+        "actor": "admin:http",
+        "action": "inspector.connect",
+        "target": "02770634-579d-4e1f-a76a-a58763506ba4",
+        "details": {
+          "transport": "http",
+          "target": "http://127.0.0.1:65206/mcp",
+          "lifecycle": "auto",
+          "header_names": [],
+          "env_names": []
+        },
+        "created_at": 1794775223
+      },
+      {
+        "audit_id": "f51ea736-cf31-46d1-aaaf-47240e481e37",
+        "actor": "admin:http",
+        "action": "bundle.put",
+        "target": "outrider_session_evidence",
+        "details": {
+          "bundle_id": "outrider_session_evidence",
+          "title": "Session Evidence Bundle",
+          "items": [
+            "outrider_session_evidence"
+          ],
+          "rules": {
+            "required_pick": "http"
+          }
+        },
+        "created_at": 1794775223
+      },
+      {
+        "audit_id": "78cd4f07-f384-45c7-bf67-9768d441dd7c",
+        "actor": "desktop:local",
+        "action": "auth.local_session",
+        "target": "gateway",
+        "details": {
+          "loopback": true
+        },
+        "created_at": 1794775223
+      }
+    ],
+    "mcp_frames": [
+      {
+        "frame_id": 6,
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "upstream_name": null,
+        "direction": "request",
+        "method": "tools/call",
+        "body": {
+          "name": "outrider_catalog",
+          "inputResponses": {
+            "capability_probe": {
+              "model": "{\"status\":\"Ready\",\"model_path\":\"/tmp/gemma-4-e2b-it.litertlm\",\"backend\":\"cpu\"}",
+              "role": "assistant",
+              "content": {
+                "type": "text",
+                "text": "{\"ack\":\"outrider\"}"
+              }
+            }
+          },
+          "requestState": "rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0"
+        },
+        "created_at": 1794775226
+      },
+      {
+        "frame_id": 5,
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "upstream_name": null,
+        "direction": "request",
+        "method": "tools/call",
+        "body": {
+          "name": "outrider_catalog"
+        },
+        "created_at": 1794775224
+      },
+      {
+        "frame_id": 4,
+        "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
+        "upstream_name": null,
+        "direction": "request",
+        "method": "server/discover",
+        "body": {},
+        "created_at": 1794775224
+      },
+      {
+        "frame_id": 3,
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "upstream_name": null,
+        "direction": "request",
+        "method": "tools/call",
+        "body": {
+          "name": "outrider_catalog",
+          "arguments": {}
+        },
+        "created_at": 1794775223
+      },
+      {
+        "frame_id": 2,
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "upstream_name": null,
+        "direction": "request",
+        "method": "tools/list",
+        "body": {},
+        "created_at": 1794775223
+      },
+      {
+        "frame_id": 1,
+        "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
+        "upstream_name": null,
+        "direction": "request",
+        "method": "server/discover",
+        "body": {},
+        "created_at": 1794775223
+      }
+    ],
+    "proxy_traffic": [
+      {
+        "id": 17,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 9,
+        "head": {
+          "id": 9,
+          "method": "POST",
+          "uri": "http://127.0.0.1:65206/mcp",
+          "status": 200,
+          "size": 183,
+          "time": 3619,
+          "mime": "text/event-stream",
+          "start_time_unix_ms": 1794775229530
+        },
+        "detail": {
+          "gid": 9,
+          "uri": "http://127.0.0.1:65206/mcp",
+          "method": "POST",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept",
+                "value": "text/event-stream, application/json"
+              },
+              {
+                "name": "mcp-protocol-version",
+                "value": "2026-07-28"
+              },
+              {
+                "name": "outrider-session-id",
+                "value": "[redacted]"
+              },
+              {
+                "name": "mcp-method",
+                "value": "subscriptions/listen"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65206"
+              },
+              {
+                "name": "content-length",
+                "value": "347"
+              }
+            ],
+            "size": 285
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00009-req.json",
+          "status": 200,
+          "http_version": "HTTP/1.1",
+          "res_headers": {
+            "items": [
+              {
+                "name": "content-type",
+                "value": "text/event-stream"
+              },
+              {
+                "name": "cache-control",
+                "value": "no-cache"
+              },
+              {
+                "name": "x-accel-buffering",
+                "value": "no"
+              }
+            ],
+            "size": 112
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00009-res.txt",
+          "res_body_size": 183,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:29.530571Z",
+          "end_time": "2026-11-15T20:40:33.149868Z",
+          "error": null,
+          "req_body": {
+            "encode": "utf8",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"subscriptions/listen\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":2},\"notifications\":{\"toolsListChanged\":true}}}",
+            "size": 347
+          },
+          "res_body": {
+            "encode": "utf8",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"method\":\"notifications/subscriptions/acknowledged\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/subscriptionId\":3},\"notifications\":{\"toolsListChanged\":true}}}\n\n",
+            "size": 183
+          }
+        }
+      },
+      {
+        "id": 15,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 8,
+        "head": {
+          "id": 8,
+          "method": "POST",
+          "uri": "http://127.0.0.1:65206/mcp",
+          "status": 200,
+          "size": 945,
+          "time": 3343,
+          "mime": "text/event-stream",
+          "start_time_unix_ms": 1794775226186
+        },
+        "detail": {
+          "gid": 8,
+          "uri": "http://127.0.0.1:65206/mcp",
+          "method": "POST",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept",
+                "value": "text/event-stream, application/json"
+              },
+              {
+                "name": "mcp-protocol-version",
+                "value": "2026-07-28"
+              },
+              {
+                "name": "outrider-session-id",
+                "value": "[redacted]"
+              },
+              {
+                "name": "mcp-name",
+                "value": "outrider_catalog"
+              },
+              {
+                "name": "mcp-method",
+                "value": "tools/call"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65206"
+              },
+              {
+                "name": "content-length",
+                "value": "1077"
+              }
+            ],
+            "size": 312
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00008-req.json",
+          "status": 200,
+          "http_version": "HTTP/1.1",
+          "res_headers": {
+            "items": [
+              {
+                "name": "content-type",
+                "value": "text/event-stream"
+              },
+              {
+                "name": "cache-control",
+                "value": "no-cache"
+              },
+              {
+                "name": "x-accel-buffering",
+                "value": "no"
+              }
+            ],
+            "size": 112
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00008-res.txt",
+          "res_body_size": 945,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:26.186815Z",
+          "end_time": "2026-11-15T20:40:29.529825Z",
+          "error": null,
+          "req_body": {
+            "encode": "utf8",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":1},\"name\":\"outrider_catalog\",\"inputResponses\":{\"capability_probe\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}",
+            "size": 1077
+          },
+          "res_body": {
+            "encode": "utf8",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"complete\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"session_id\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"subject\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"clef\\\":{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"},\\\"catalog\\\":[{\\\"item_id\\\":\\\"outrider_session_evidence\\\",\\\"kind\\\":\\\"tool\\\",\\\"digest\\\":\\\"d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170\\\",\\\"descriptor\\\":{\\\"tool\\\":{\\\"name\\\":\\\"outrider_session_evidence\\\",\\\"description\\\":\\\"Read the persisted evidence for the current session\\\",\\\"inputSchema\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{}}},\\\"local\\\":true,\\\"remote_name\\\":\\\"outrider_session_evidence\\\"},\\\"upstream_name\\\":null}],\\\"bundles\\\":[{\\\"bundle_id\\\":\\\"outrider_session_evidence\\\",\\\"title\\\":\\\"Session Evidence Bundle\\\",\\\"items\\\":[\\\"outrider_session_evidence\\\"],\\\"rules\\\":{\\\"required_pick\\\":\\\"http\\\"}}]}\"}],\"isError\":false}}\n\n",
+            "size": 945
+          }
+        }
+      },
+      {
+        "id": 13,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 7,
+        "head": {
+          "id": 7,
+          "method": "POST",
+          "uri": "http://127.0.0.1:65206/mcp",
+          "status": 200,
+          "size": 1009,
+          "time": 0,
+          "mime": "text/event-stream",
+          "start_time_unix_ms": 1794775224355
+        },
+        "detail": {
+          "gid": 7,
+          "uri": "http://127.0.0.1:65206/mcp",
+          "method": "POST",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept",
+                "value": "text/event-stream, application/json"
+              },
+              {
+                "name": "mcp-protocol-version",
+                "value": "2026-07-28"
+              },
+              {
+                "name": "outrider-session-id",
+                "value": "[redacted]"
+              },
+              {
+                "name": "mcp-name",
+                "value": "outrider_catalog"
+              },
+              {
+                "name": "mcp-method",
+                "value": "tools/call"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65206"
+              },
+              {
+                "name": "content-length",
+                "value": "321"
+              }
+            ],
+            "size": 311
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00007-req.json",
+          "status": 200,
+          "http_version": "HTTP/1.1",
+          "res_headers": {
+            "items": [
+              {
+                "name": "content-type",
+                "value": "text/event-stream"
+              },
+              {
+                "name": "cache-control",
+                "value": "no-cache"
+              },
+              {
+                "name": "x-accel-buffering",
+                "value": "no"
+              }
+            ],
+            "size": 112
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00007-res.txt",
+          "res_body_size": 1009,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:24.355541Z",
+          "end_time": "2026-11-15T20:40:24.356243Z",
+          "error": null,
+          "req_body": {
+            "encode": "utf8",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":0},\"name\":\"outrider_catalog\"}}",
+            "size": 321
+          },
+          "res_body": {
+            "encode": "utf8",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}\n\n",
+            "size": 1009
+          }
+        }
+      },
+      {
+        "id": 11,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 6,
+        "head": {
+          "id": 6,
+          "method": "POST",
+          "uri": "http://127.0.0.1:65206/mcp",
+          "status": 200,
+          "size": 756,
+          "time": 0,
+          "mime": "text/event-stream",
+          "start_time_unix_ms": 1794775224354
+        },
+        "detail": {
+          "gid": 6,
+          "uri": "http://127.0.0.1:65206/mcp",
+          "method": "POST",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept",
+                "value": "text/event-stream, application/json"
+              },
+              {
+                "name": "outrider-session-id",
+                "value": "[redacted]"
+              },
+              {
+                "name": "mcp-protocol-version",
+                "value": "2026-07-28"
+              },
+              {
+                "name": "mcp-method",
+                "value": "server/discover"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65206"
+              },
+              {
+                "name": "content-length",
+                "value": "282"
+              }
+            ],
+            "size": 280
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00006-req.json",
+          "status": 200,
+          "http_version": "HTTP/1.1",
+          "res_headers": {
+            "items": [
+              {
+                "name": "content-type",
+                "value": "text/event-stream"
+              },
+              {
+                "name": "cache-control",
+                "value": "no-cache"
+              },
+              {
+                "name": "x-accel-buffering",
+                "value": "no"
+              }
+            ],
+            "size": 112
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00006-res.txt",
+          "res_body_size": 756,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:24.354126Z",
+          "end_time": "2026-11-15T20:40:24.355032Z",
+          "error": null,
+          "req_body": {
+            "encode": "utf8",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}}}}}",
+            "size": 282
+          },
+          "res_body": {
+            "encode": "utf8",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
+            "size": 756
+          }
+        }
+      },
+      {
+        "id": 9,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 5,
+        "head": {
+          "id": 5,
+          "method": "POST",
+          "uri": "http://127.0.0.1:65206/mcp",
+          "status": 200,
+          "size": 1374,
+          "time": 0,
+          "mime": "text/event-stream",
+          "start_time_unix_ms": 1794775223412
+        },
+        "detail": {
+          "gid": 5,
+          "uri": "http://127.0.0.1:65206/mcp",
+          "method": "POST",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept",
+                "value": "text/event-stream, application/json"
+              },
+              {
+                "name": "mcp-method",
+                "value": "tools/call"
+              },
+              {
+                "name": "mcp-protocol-version",
+                "value": "2026-07-28"
+              },
+              {
+                "name": "mcp-name",
+                "value": "outrider_catalog"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65206"
+              },
+              {
+                "name": "content-length",
+                "value": "377"
+              }
+            ],
+            "size": 270
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00005-req.json",
+          "status": 200,
+          "http_version": "HTTP/1.1",
+          "res_headers": {
+            "items": [
+              {
+                "name": "content-type",
+                "value": "text/event-stream"
+              },
+              {
+                "name": "cache-control",
+                "value": "no-cache"
+              },
+              {
+                "name": "x-accel-buffering",
+                "value": "no"
+              }
+            ],
+            "size": 112
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00005-res.txt",
+          "res_body_size": 1374,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:23.412771Z",
+          "end_time": "2026-11-15T20:40:23.413692Z",
+          "error": null,
+          "req_body": {
+            "encode": "utf8",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":1},\"name\":\"outrider_catalog\",\"arguments\":{}}}",
+            "size": 377
+          },
+          "res_body": {
+            "encode": "utf8",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}},\"preferences\":{\"method\":\"elicitation/create\",\"params\":{\"mode\":\"form\",\"message\":\"This is an Outrider capability probe to record your SLA tier and bundle preference. No payment information is requested.\",\"requestedSchema\":{\"type\":\"object\",\"properties\":{\"sla_tier\":{\"type\":\"string\"},\"bundle_preference\":{\"type\":\"string\"}},\"required\":[\"sla_tier\",\"bundle_preference\"]}}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI4NGVmZDVkYi00NjAzLTQ3ZmEtYWUxMy03NjAwZGM5ZTdjMTciLCJzZXNzaW9uX2lkIjoiZTc3ODRlYTgtOTk4Yy00MDVhLTgxNTUtYzg0OWNmMGZkM2E4Iiwic3ViamVjdCI6ImU3Nzg0ZWE4LTk5OGMtNDA1YS04MTU1LWM4NDljZjBmZDNhOCIsInJlcXVlc3RfZGlnZXN0IjoiN2RjNDhhMTAyMzNjZTNhOTZkZWI3Y2ZmYmNlZGU3YWIwMWUyYjBjMzUzMzdkNGM2NTJiMjJkNTdmODU4MjdlMCIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyMzQxMywiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjUzLCJwcmVmZXJlbmNlcyI6dHJ1ZX0.qzC3d9guU9Fa5Y45b4RjwwHfayLx6dtTLNKuhsqkV5o\"}}\n\n",
+            "size": 1374
+          }
+        }
+      },
+      {
+        "id": 7,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 4,
+        "head": {
+          "id": 4,
+          "method": "POST",
+          "uri": "http://127.0.0.1:65206/mcp",
+          "status": 200,
+          "size": 1977,
+          "time": 0,
+          "mime": "text/event-stream",
+          "start_time_unix_ms": 1794775223411
+        },
+        "detail": {
+          "gid": 4,
+          "uri": "http://127.0.0.1:65206/mcp",
+          "method": "POST",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept",
+                "value": "text/event-stream, application/json"
+              },
+              {
+                "name": "mcp-method",
+                "value": "tools/list"
+              },
+              {
+                "name": "mcp-protocol-version",
+                "value": "2026-07-28"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65206"
+              },
+              {
+                "name": "content-length",
+                "value": "336"
+              }
+            ],
+            "size": 234
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00004-req.json",
+          "status": 200,
+          "http_version": "HTTP/1.1",
+          "res_headers": {
+            "items": [
+              {
+                "name": "content-type",
+                "value": "text/event-stream"
+              },
+              {
+                "name": "cache-control",
+                "value": "no-cache"
+              },
+              {
+                "name": "x-accel-buffering",
+                "value": "no"
+              }
+            ],
+            "size": 112
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00004-res.txt",
+          "res_body_size": 1977,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:23.411069Z",
+          "end_time": "2026-11-15T20:40:23.411815Z",
+          "error": null,
+          "req_body": {
+            "encode": "utf8",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":0}}}",
+            "size": 336
+          },
+          "res_body": {
+            "encode": "utf8",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"complete\",\"ttlMs\":0,\"cacheScope\":\"private\",\"tools\":[{\"name\":\"outrider_catalog\",\"description\":\"List configured catalog and receipt requirements\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_fingerprint_me\",\"description\":\"Read your own captured fingerprint evidence\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_run_probe\",\"description\":\"Run a disclosed capability probe\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_synthesized_offers\",\"description\":\"Read or synthesize session bundle offers\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_checkout_bundle\",\"description\":\"Present an operator-issued receipt to unlock or execute a bundle\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_verify_receipt\",\"description\":\"Verify a capability receipt for your own subject\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_receipt_status\",\"description\":\"Read remaining quota and expiry of your own receipts\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}}]}}\n\n",
+            "size": 1977
+          }
+        }
+      },
+      {
+        "id": 5,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 3,
+        "head": {
+          "id": 3,
+          "method": "POST",
+          "uri": "http://127.0.0.1:65206/mcp",
+          "status": 200,
+          "size": 756,
+          "time": 0,
+          "mime": "text/event-stream",
+          "start_time_unix_ms": 1794775223409
+        },
+        "detail": {
+          "gid": 3,
+          "uri": "http://127.0.0.1:65206/mcp",
+          "method": "POST",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept",
+                "value": "text/event-stream, application/json"
+              },
+              {
+                "name": "mcp-method",
+                "value": "server/discover"
+              },
+              {
+                "name": "mcp-protocol-version",
+                "value": "2026-07-28"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65206"
+              },
+              {
+                "name": "content-length",
+                "value": "323"
+              }
+            ],
+            "size": 239
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00003-req.json",
+          "status": 200,
+          "http_version": "HTTP/1.1",
+          "res_headers": {
+            "items": [
+              {
+                "name": "content-type",
+                "value": "text/event-stream"
+              },
+              {
+                "name": "cache-control",
+                "value": "no-cache"
+              },
+              {
+                "name": "x-accel-buffering",
+                "value": "no"
+              }
+            ],
+            "size": 112
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00003-res.txt",
+          "res_body_size": 756,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:23.409227Z",
+          "end_time": "2026-11-15T20:40:23.410132Z",
+          "error": null,
+          "req_body": {
+            "encode": "utf8",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}}}}}",
+            "size": 323
+          },
+          "res_body": {
+            "encode": "utf8",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
+            "size": 756
+          }
+        }
+      },
+      {
+        "id": 3,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 2,
+        "head": {
+          "id": 2,
+          "method": "POST",
+          "uri": "http://127.0.0.1:65205/v1/quote-check",
+          "status": 200,
+          "size": 110,
+          "time": 0,
+          "mime": "application/json",
+          "start_time_unix_ms": 1794775223406
+        },
+        "detail": {
+          "gid": 2,
+          "uri": "http://127.0.0.1:65205/v1/quote-check",
+          "method": "POST",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept-encoding",
+                "value": "identity"
+              },
+              {
+                "name": "content-length",
+                "value": "59"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65205"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "accept",
+                "value": "application/json"
+              },
+              {
+                "name": "user-agent",
+                "value": "outrider-agent-probe/1.0"
+              },
+              {
+                "name": "connection",
+                "value": "close"
+              }
+            ],
+            "size": 248
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00002-req.json",
+          "status": 200,
+          "http_version": "HTTP/1.0",
+          "res_headers": {
+            "items": [
+              {
+                "name": "server",
+                "value": "BaseHTTP/0.6 Python/3.14.6"
+              },
+              {
+                "name": "date",
+                "value": "Sun, 15 Nov 2026 20:40:23 GMT"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "content-length",
+                "value": "110"
+              }
+            ],
+            "size": 165
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00002-res.json",
+          "res_body_size": 110,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:23.406596Z",
+          "end_time": "2026-11-15T20:40:23.407418Z",
+          "error": null,
+          "req_body": {
+            "encode": "utf8",
+            "value": "{\"bundle_id\": \"outrider_session_evidence\", \"max_calls\": 10}",
+            "size": 59
+          },
+          "res_body": {
+            "encode": "utf8",
+            "value": "{\"quote_ready\": true, \"bundle_id\": \"outrider_session_evidence\", \"requested_calls\": 10, \"currency\": \"MRTR-CAP\"}",
+            "size": 110
+          }
+        }
+      },
+      {
+        "id": 1,
+        "run_id": "e7ae9759-9fc1-4636-8c43-021ba432194e",
+        "traffic_id": 1,
+        "head": {
+          "id": 1,
+          "method": "GET",
+          "uri": "http://127.0.0.1:65205/v1/agent-manifest",
+          "status": 200,
+          "size": 154,
+          "time": 1,
+          "mime": "application/json",
+          "start_time_unix_ms": 1794775223403
+        },
+        "detail": {
+          "gid": 1,
+          "uri": "http://127.0.0.1:65205/v1/agent-manifest",
+          "method": "GET",
+          "req_headers": {
+            "items": [
+              {
+                "name": "accept-encoding",
+                "value": "identity"
+              },
+              {
+                "name": "host",
+                "value": "127.0.0.1:65205"
+              },
+              {
+                "name": "accept",
+                "value": "application/json"
+              },
+              {
+                "name": "user-agent",
+                "value": "outrider-agent-probe/1.0"
+              },
+              {
+                "name": "connection",
+                "value": "close"
+              }
+            ],
+            "size": 180
+          },
+          "req_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00001-req",
+          "status": 200,
+          "http_version": "HTTP/1.0",
+          "res_headers": {
+            "items": [
+              {
+                "name": "server",
+                "value": "BaseHTTP/0.6 Python/3.14.6"
+              },
+              {
+                "name": "date",
+                "value": "Sun, 15 Nov 2026 20:40:23 GMT"
+              },
+              {
+                "name": "content-type",
+                "value": "application/json"
+              },
+              {
+                "name": "content-length",
+                "value": "154"
+              }
+            ],
+            "size": 165
+          },
+          "res_body_file": "/var/folders/8j/5mwkcdz55xbcg1pg_54tlcf00000gn/T/proxyfor-29302/00001-res.json",
+          "res_body_size": 154,
+          "websocket_id": null,
+          "start_time": "2026-11-15T20:40:23.403557Z",
+          "end_time": "2026-11-15T20:40:23.404753Z",
+          "error": null,
+          "req_body": null,
+          "res_body": {
+            "encode": "utf8",
+            "value": "{\"service\": \"silvector-catalog-upstream\", \"mcp_protocol\": \"2026-07-28\", \"bundles\": [\"outrider_session_evidence\"], \"receipt_scheme\": \"ed25519-jcs-rfc8785\"}",
+            "size": 154
+          }
+        }
+      }
+    ],
+    "proxy_websocket_messages": []
+  }
+}

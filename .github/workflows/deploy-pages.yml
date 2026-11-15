@@ -1,0 +1,85 @@
+name: Deploy GitHub Pages Showcase
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Publish Static Showcase to GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Configure GitHub Pages
+        id: pages
+        uses: actions/configure-pages@v5
+
+      - name: Verify prebuilt showcase bundle and rewrite base path
+        shell: python
+        env:
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: |
+          import hashlib
+          import json
+          import os
+          import pathlib
+          import sys
+
+          dist = pathlib.Path("www-dist")
+          index_html = dist / "index.html"
+          har_file = dist / "demo" / "live-capture.har"
+          bundle_file = dist / "demo" / "live-session-bundle.json"
+
+          if not index_html.is_file() or index_html.stat().st_size < 200:
+              sys.exit(f"Missing or empty showcase entry: {index_html}")
+          if not har_file.is_file() or har_file.stat().st_size < 100:
+              sys.exit(f"Missing or empty recorded HAR capture: {har_file}")
+          if bundle_file.is_file():
+              bundle_data = json.loads(bundle_file.read_text(encoding="utf-8"))
+              actual_sha = hashlib.sha256(har_file.read_bytes()).hexdigest()
+              expected_sha = bundle_data.get("harSha256")
+              if expected_sha and actual_sha != expected_sha:
+                  sys.exit(f"HAR SHA-256 mismatch: expected {expected_sha}, got {actual_sha}")
+
+          raw_base = os.environ.get("PAGES_BASE_PATH", "").strip()
+          base_path = "" if raw_base in ("", "/") else "/" + raw_base.strip("/")
+
+          target_suffixes = {".html", ".js", ".css", ".txt", ".json"}
+          rewritten_files = 0
+          for path in dist.rglob("*"):
+              if not path.is_file() or path.suffix.lower() not in target_suffixes:
+                  continue
+              text = path.read_text(encoding="utf-8")
+              if "/__PAGES_BASE__" in text:
+                  path.write_text(text.replace("/__PAGES_BASE__", base_path), encoding="utf-8")
+                  rewritten_files += 1
+
+          (dist / ".nojekyll").touch()
+          print(
+              f"Verified www-dist and rewrote /__PAGES_BASE__ -> '{base_path}' across {rewritten_files} files."
+          )
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: www-dist
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
