@@ -8,7 +8,7 @@ import type {
   WebsocketFrameMessage,
 } from "../lib/types";
 
-import {Button, Chip, Tabs, toast} from "@heroui/react";
+import {Button, Chip, Table, Tabs, toast} from "@heroui/react";
 import {EmptyState} from "@heroui-pro/react";
 import {CodeBlock} from "@heroui-pro/react/code-block";
 import {useEffect, useMemo, useState} from "react";
@@ -37,35 +37,35 @@ export function formatTrafficBytes(bytes: number | null | undefined): string {
 export function renderTrafficStatusChip(status: number | null) {
   if (status === null) {
     return (
-      <Chip color="default" size="sm" variant="soft">
+      <Chip className="font-mono tabular-nums" color="default" size="sm" variant="soft">
         Pending
       </Chip>
     );
   }
   if (status >= 400) {
     return (
-      <Chip color="danger" size="sm" variant="soft">
+      <Chip className="font-mono tabular-nums" color="danger" size="sm" variant="soft">
         {status}
       </Chip>
     );
   }
   if (status >= 300) {
     return (
-      <Chip color="warning" size="sm" variant="soft">
+      <Chip className="font-mono tabular-nums" color="warning" size="sm" variant="soft">
         {status}
       </Chip>
     );
   }
   if (status >= 200) {
     return (
-      <Chip color="success" size="sm" variant="soft">
+      <Chip className="font-mono tabular-nums" color="success" size="sm" variant="soft">
         {status}
       </Chip>
     );
   }
 
   return (
-    <Chip color="accent" size="sm" variant="soft">
+    <Chip className="font-mono tabular-nums" color="accent" size="sm" variant="soft">
       {status}
     </Chip>
   );
@@ -169,35 +169,51 @@ function formatFrameTimestamp(isoTimestamp: string): string {
   });
 }
 
-function HeadersSection({headers}: {headers: TrafficHeader[]}) {
+function HeadersSection({
+  ariaLabel,
+  headers,
+}: {
+  ariaLabel: string;
+  headers: TrafficHeader[];
+}) {
   return (
     <div className="flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <span className="text-foreground text-xs font-medium">Headers</span>
-        <span className="text-muted text-xs tabular-nums">{headers.length}</span>
+        <Chip className="font-mono tabular-nums" size="sm" variant="soft">
+          {headers.length}
+        </Chip>
       </div>
       {headers.length === 0 ? (
         <p className="text-muted text-xs">No headers recorded.</p>
       ) : (
-        <div className="border-separator overflow-x-auto rounded-xl border">
-          <table className="w-full border-collapse text-left text-xs">
-            <tbody>
-              {headers.map((header, index) => (
-                <tr
-                  key={`${header.name}-${index}`}
-                  className="border-separator/60 border-b last:border-b-0"
-                >
-                  <td className="text-muted w-48 px-3 py-1.5 align-top font-mono font-medium break-all">
-                    {header.name}
-                  </td>
-                  <td className="text-foreground px-3 py-1.5 align-top font-mono break-all">
-                    {header.value}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          className="border-border rounded-lg border [&_.table__column]:rounded-none! [&_.table__row:hover_.table__cell]:bg-transparent!"
+          variant="secondary"
+        >
+          <Table.ScrollContainer>
+            <Table.Content aria-label={ariaLabel} className="text-xs">
+              <Table.Header>
+                <Table.Column isRowHeader className="w-48 px-3 py-1.5">
+                  Name
+                </Table.Column>
+                <Table.Column className="px-3 py-1.5">Value</Table.Column>
+              </Table.Header>
+              <Table.Body>
+                {headers.map((header, index) => (
+                  <Table.Row key={`${header.name}-${index}`} id={`${header.name}-${index}`}>
+                    <Table.Cell className="text-muted w-48 px-3 py-1.5 align-top font-mono text-xs font-medium tabular-nums break-all">
+                      {header.name}
+                    </Table.Cell>
+                    <Table.Cell className="text-foreground px-3 py-1.5 align-top font-mono text-xs tabular-nums break-all">
+                      {header.value}
+                    </Table.Cell>
+                  </Table.Row>
+                ))}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
+        </Table>
       )}
     </div>
   );
@@ -224,13 +240,15 @@ function BodySection({
       <div className="flex items-center justify-between gap-2">
         <span className="text-foreground text-xs font-medium">Body</span>
         {body ? (
-          <span className="text-muted text-xs tabular-nums">{formatTrafficBytes(body.size)}</span>
+          <span className="text-muted font-mono text-xs tabular-nums">
+            {formatTrafficBytes(body.size)}
+          </span>
         ) : null}
       </div>
       {formatted ? (
-        <CodeBlock className="my-0">
+        <CodeBlock className="my-0 rounded-lg">
           <CodeBlock.Header>
-            <span className="text-muted text-xs">{formatted.label}</span>
+            <span className="text-muted font-mono text-xs tabular-nums">{formatted.label}</span>
             <CodeBlock.CopyButton code={formatted.copyText} />
           </CodeBlock.Header>
           <CodeBlock.Code code={formatted.code} language={formatted.language} />
@@ -430,7 +448,7 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
       <div className="border-separator flex shrink-0 items-center justify-between gap-3 border-b px-4 py-2.5">
         <div className="flex min-w-0 items-center gap-2">
           <span
-            className="text-foreground truncate text-sm font-medium"
+            className="text-foreground truncate font-mono text-xs font-semibold tabular-nums"
             title={`${summaryMethod} ${summaryUri}`}
           >
             {summaryMethod} {summaryUri}
@@ -483,7 +501,7 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
             <p className="text-muted text-xs">Loading request details…</p>
           ) : (
             <div className="flex flex-col gap-4">
-              <HeadersSection headers={reqHeaders} />
+              <HeadersSection ariaLabel="Request headers" headers={reqHeaders} />
               <BodySection
                 body={activeDetail?.req_body ?? null}
                 contentTypeHint={reqContentType}
@@ -500,19 +518,19 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
           ) : (
             <div className="flex flex-col gap-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-foreground text-xs font-medium tabular-nums">
+                <span className="text-foreground font-mono text-xs font-medium tabular-nums">
                   {activeDetail?.http_version || "HTTP"}{" "}
                   {summaryStatus !== null ? summaryStatus : "Pending"}
                 </span>
                 <div className="flex items-center gap-3">
                   {selectedHead.time !== null ? (
-                    <span className="text-muted text-xs tabular-nums">
+                    <span className="text-muted font-mono text-xs tabular-nums">
                       {selectedHead.time} ms
                     </span>
                   ) : null}
                   {activeDetail?.res_body_size !== null &&
                   activeDetail?.res_body_size !== undefined ? (
-                    <span className="text-muted text-xs tabular-nums">
+                    <span className="text-muted font-mono text-xs tabular-nums">
                       {formatTrafficBytes(activeDetail.res_body_size)}
                     </span>
                   ) : null}
@@ -522,9 +540,9 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
               {activeDetail?.error ? (
                 <div className="flex flex-col gap-2">
                   <span className="text-danger text-xs font-medium">Connection Error</span>
-                  <CodeBlock className="my-0">
+                  <CodeBlock className="my-0 rounded-lg">
                     <CodeBlock.Header>
-                      <span className="text-muted text-xs">Upstream error</span>
+                      <span className="text-muted font-mono text-xs">Upstream error</span>
                       <CodeBlock.CopyButton code={activeDetail.error} />
                     </CodeBlock.Header>
                     <CodeBlock.Code code={activeDetail.error} language="plaintext" />
@@ -532,7 +550,7 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
                 </div>
               ) : null}
 
-              <HeadersSection headers={resHeaders} />
+              <HeadersSection ariaLabel="Response headers" headers={resHeaders} />
 
               <BodySection
                 body={activeDetail?.res_body ?? null}
@@ -578,9 +596,9 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
                   return (
                     <div key={`err-${index}`} className="flex flex-col gap-1.5">
                       <span className="text-danger text-xs font-medium">Stream Error</span>
-                      <CodeBlock className="my-0">
+                      <CodeBlock className="my-0 rounded-lg">
                         <CodeBlock.Header>
-                          <span className="text-muted text-xs">Error</span>
+                          <span className="text-muted font-mono text-xs">Error</span>
                           <CodeBlock.CopyButton code={frame.error} />
                         </CodeBlock.Header>
                         <CodeBlock.Code code={frame.error} language="plaintext" />
@@ -597,21 +615,23 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
                 return (
                   <div key={`frame-${index}`} className="flex flex-col gap-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="text-foreground text-xs font-medium">
+                      <span className="text-foreground font-mono text-xs font-medium">
                         {directionLabel}
                       </span>
                       <div className="flex items-center gap-3">
-                        <span className="text-muted text-xs tabular-nums">
+                        <span className="text-muted font-mono text-xs tabular-nums">
                           {formatFrameTimestamp(frame.data.create)}
                         </span>
-                        <span className="text-muted text-xs tabular-nums">
+                        <span className="text-muted font-mono text-xs tabular-nums">
                           {formatTrafficBytes(frame.data.body.size)}
                         </span>
                       </div>
                     </div>
-                    <CodeBlock className="my-0">
+                    <CodeBlock className="my-0 rounded-lg">
                       <CodeBlock.Header>
-                        <span className="text-muted text-xs">{formattedPayload.label}</span>
+                        <span className="text-muted font-mono text-xs tabular-nums">
+                          {formattedPayload.label}
+                        </span>
                         <CodeBlock.CopyButton code={formattedPayload.copyText} />
                       </CodeBlock.Header>
                       <CodeBlock.Code

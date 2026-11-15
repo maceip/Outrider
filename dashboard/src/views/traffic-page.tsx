@@ -193,7 +193,9 @@ export function TrafficPage() {
       {
         accessorKey: "id",
         allowsSorting: true,
-        cell: (item) => <span className="text-xs font-medium tabular-nums">#{item.id}</span>,
+        cell: (item) => (
+          <span className="text-muted font-mono text-xs font-medium tabular-nums">#{item.id}</span>
+        ),
         header: "#",
         id: "id",
         isRowHeader: true,
@@ -206,30 +208,42 @@ export function TrafficPage() {
           const protocol = getPacketProtocol(item);
 
           return (
-            <Chip color={protocol === "MCP" ? "accent" : "default"} size="sm" variant="soft">
+            <Chip
+              className="font-mono tabular-nums"
+              color={protocol === "MCP" ? "accent" : "default"}
+              size="sm"
+              variant="soft"
+            >
               {protocol}
             </Chip>
           );
         },
         header: "Protocol",
         id: "protocol",
-        minWidth: 96,
-        width: 108,
+        minWidth: 104,
+        width: 112,
       },
       {
         accessorKey: "method",
         allowsSorting: true,
-        cell: (item) => <span className="text-xs font-medium">{item.method}</span>,
+        cell: (item) => (
+          <span className="text-foreground font-mono text-xs font-semibold tabular-nums">
+            {item.method}
+          </span>
+        ),
         header: "Method",
         id: "method",
-        minWidth: 88,
-        width: 96,
+        minWidth: 92,
+        width: 100,
       },
       {
         accessorKey: "uri",
         allowsSorting: true,
         cell: (item) => (
-          <span className="block max-w-[480px] truncate text-xs" title={item.uri}>
+          <span
+            className="text-foreground block max-w-[520px] truncate font-mono text-xs tabular-nums"
+            title={item.uri}
+          >
             {item.uri}
           </span>
         ),
@@ -251,7 +265,7 @@ export function TrafficPage() {
         align: "end",
         allowsSorting: true,
         cell: (item) => (
-          <span className="text-muted text-xs tabular-nums">
+          <span className="text-muted font-mono text-xs tabular-nums">
             {item.time !== null ? `${item.time} ms` : "—"}
           </span>
         ),
@@ -265,7 +279,9 @@ export function TrafficPage() {
         align: "end",
         allowsSorting: true,
         cell: (item) => (
-          <span className="text-muted text-xs tabular-nums">{formatTrafficBytes(item.size)}</span>
+          <span className="text-muted font-mono text-xs tabular-nums">
+            {formatTrafficBytes(item.size)}
+          </span>
         ),
         header: "Size",
         id: "size",
@@ -277,12 +293,12 @@ export function TrafficPage() {
   );
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem)] max-w-7xl flex-col gap-3 px-5 pb-5 pt-4">
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex flex-wrap items-center gap-2">
+    <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-7xl flex-col gap-4 px-6 pb-6 pt-5">
+      <div className="flex flex-wrap items-center justify-between gap-2 lg:flex-nowrap">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
           <SearchField
             aria-label="Filter traffic"
-            className="w-full sm:w-[280px]"
+            className="w-full sm:w-64 lg:w-72"
             name="traffic-monitor-search"
             value={search}
             variant="secondary"
@@ -290,13 +306,17 @@ export function TrafficPage() {
           >
             <SearchField.Group>
               <SearchField.SearchIcon />
-              <SearchField.Input placeholder="Filter by host, path, method, or status..." />
+              <SearchField.Input
+                className="font-mono text-xs"
+                placeholder="Filter by host, path, method, or status..."
+              />
               <SearchField.ClearButton />
             </SearchField.Group>
           </SearchField>
 
           <Segment
             aria-label="Filter by protocol"
+            className="shrink-0"
             selectedKey={protocolFilter}
             size="sm"
             onSelectionChange={(key) => setProtocolFilter(String(key) as ProtocolFilter)}
@@ -309,8 +329,8 @@ export function TrafficPage() {
           </Segment>
 
           <Dropdown>
-            <Button size="sm" variant="secondary">
-              <Funnel className="size-4" />
+            <Button className="shrink-0" size="sm" variant="tertiary">
+              <Funnel aria-hidden="true" className="size-4 shrink-0" />
               {statusFilter === "all" ? "Status" : STATUS_FILTER_LABELS[statusFilter]}
             </Button>
             <Dropdown.Popover placement="bottom start">
@@ -323,7 +343,7 @@ export function TrafficPage() {
               >
                 {STATUS_FILTER_OPTIONS.map((option) => (
                   <Dropdown.Item key={option.id} id={option.id} textValue={option.label}>
-                    <Label>{option.label}</Label>
+                    <Label className="font-mono text-xs tabular-nums">{option.label}</Label>
                     <Dropdown.ItemIndicator />
                   </Dropdown.Item>
                 ))}
@@ -332,20 +352,20 @@ export function TrafficPage() {
           </Dropdown>
         </div>
 
-        <Button size="sm" variant="secondary" onPress={exportHar}>
+        <Button className="shrink-0" size="sm" variant="secondary" onPress={exportHar}>
           Export HAR
         </Button>
       </div>
 
-      <Card className="min-h-0 flex-1 overflow-hidden rounded-2xl p-0">
+      <Card className="min-h-0 flex-1 overflow-hidden p-0">
         <Resizable orientation="vertical">
           <Resizable.Panel className="flex flex-col" defaultSize={55} minSize={25}>
             <DataGrid
               stickyHeader
               aria-label="Live packet stream"
-              className="h-full min-h-0 flex-1 [&_.data-grid__empty-state]:py-6 [&_.table__column]:rounded-none! [&_.table__row]:cursor-[var(--cursor-interactive)] [&_.table__row[data-selected=true]_.table__cell]:bg-accent-soft/50"
+              className="h-full min-h-0 flex-1 [&_.data-grid__empty-state]:py-6 [&_.table__column]:rounded-none! [&_.table__row]:cursor-[var(--cursor-interactive)] [&_.table__row[data-selected=true]_.table__cell]:bg-accent-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground [&_.table__row[data-selected=true]:hover_.table__cell]:bg-accent-soft-hover"
               columns={columns}
-              contentClassName="min-w-[780px]"
+              contentClassName="min-w-[800px]"
               data={sortedTraffics}
               getRowId={(item) => String(item.id)}
               renderEmptyState={() => (
@@ -374,7 +394,7 @@ export function TrafficPage() {
             />
           </Resizable.Panel>
 
-          <Resizable.Handle aria-label="Resize packet panels" type="drag" />
+          <Resizable.Handle aria-label="Resize packet panels" type="drag" variant="secondary" />
 
           <Resizable.Panel className="flex flex-col" defaultSize={45} minSize={25}>
             <TrafficDetailPane selectedHead={selectedHead} selectedId={selectedId} />

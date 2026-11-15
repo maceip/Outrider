@@ -688,30 +688,30 @@ export function InspectorExplorer({
 
   return (
     <Tabs
-      className="flex h-full min-h-0 flex-col p-3"
+      className="flex h-full min-h-0 flex-col gap-0"
       selectedKey={activeTab}
       variant="secondary"
       onSelectionChange={(key) => setActiveTab(String(key))}
     >
-      <Tabs.ListContainer className="shrink-0">
-        <Tabs.List aria-label="MCP Inspector Explorer">
-          <Tabs.Tab id="tools">
+      <Tabs.ListContainer className="shrink-0 px-4 pt-1">
+        <Tabs.List aria-label="MCP Inspector Explorer" className="w-max min-w-0 gap-3">
+          <Tabs.Tab className="w-auto px-2 text-xs" id="tools">
             Tools
             <Tabs.Indicator />
           </Tabs.Tab>
-          <Tabs.Tab id="resources">
+          <Tabs.Tab className="w-auto px-2 text-xs" id="resources">
             Resources
             <Tabs.Indicator />
           </Tabs.Tab>
-          <Tabs.Tab id="prompts">
+          <Tabs.Tab className="w-auto px-2 text-xs" id="prompts">
             Prompts
             <Tabs.Indicator />
           </Tabs.Tab>
-          <Tabs.Tab id="requests">
+          <Tabs.Tab className="w-auto px-2 text-xs tabular-nums" id="requests">
             {requestsTabLabel}
             <Tabs.Indicator />
           </Tabs.Tab>
-          <Tabs.Tab id="raw">
+          <Tabs.Tab className="w-auto px-2 text-xs" id="raw">
             Raw
             <Tabs.Indicator />
           </Tabs.Tab>
@@ -719,7 +719,10 @@ export function InspectorExplorer({
       </Tabs.ListContainer>
 
       {/* 1. TOOLS */}
-      <Tabs.Panel className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pt-3" id="tools">
+      <Tabs.Panel
+        className="mt-0 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
+        id="tools"
+      >
         <div className="flex items-center gap-2">
           <Select
             className="min-w-0 flex-1"
@@ -735,15 +738,20 @@ export function InspectorExplorer({
             }}
           >
             <Label className="sr-only">Tool</Label>
-            <Select.Trigger>
-              <Select.Value />
+            <Select.Trigger className="normal-case">
+              <Select.Value className="truncate font-mono text-xs normal-case" />
               <Select.Indicator />
             </Select.Trigger>
             <Select.Popover>
               <ListBox>
                 {tools.map((tool) => (
-                  <ListBox.Item key={tool.name} id={tool.name} textValue={tool.name}>
-                    <Label className="font-mono text-xs">{tool.name}</Label>
+                  <ListBox.Item
+                    key={tool.name}
+                    className="normal-case"
+                    id={tool.name}
+                    textValue={tool.name}
+                  >
+                    <Label className="font-mono text-xs normal-case">{tool.name}</Label>
                     {tool.description ? (
                       <Description className="line-clamp-1 text-xs">{tool.description}</Description>
                     ) : null}
@@ -755,6 +763,7 @@ export function InspectorExplorer({
           </Select>
 
           <Button
+            className="shrink-0"
             isDisabled={busy}
             size="sm"
             variant="secondary"
@@ -773,7 +782,7 @@ export function InspectorExplorer({
             ) : null}
 
             {toolSchemaFields.length > 0 ? (
-              <div className="bg-surface-secondary flex flex-col gap-2.5 rounded-2xl p-3">
+              <div className="bg-surface-secondary flex flex-col gap-2.5 rounded-lg p-3">
                 {toolSchemaFields.map((field) => {
                   if (field.fieldType === "boolean") {
                     return (
@@ -821,8 +830,8 @@ export function InspectorExplorer({
                         fullWidth
                         className={
                           field.fieldType === "number" || field.fieldType === "integer"
-                            ? "tabular-nums"
-                            : undefined
+                            ? "font-mono text-xs tabular-nums"
+                            : "font-mono text-xs"
                         }
                         inputMode={
                           field.fieldType === "number" || field.fieldType === "integer"
@@ -830,7 +839,6 @@ export function InspectorExplorer({
                             : undefined
                         }
                         placeholder={field.description ?? field.name}
-                        variant="secondary"
                       />
                     </TextField>
                   );
@@ -844,7 +852,7 @@ export function InspectorExplorer({
               </Label>
               <TextArea
                 fullWidth
-                className="font-mono text-xs"
+                className="font-mono text-xs tabular-nums"
                 disabled={busy}
                 id="inspector-tool-json-args"
                 rows={4}
@@ -867,9 +875,9 @@ export function InspectorExplorer({
             </div>
 
             {toolResult !== null ? (
-              <CodeBlock className="my-0">
+              <CodeBlock className="my-0 rounded-lg">
                 <CodeBlock.Header>
-                  <span className="text-muted text-xs">Result</span>
+                  <span className="text-muted font-mono text-xs">Result</span>
                   <CodeBlock.CopyButton aria-label="Copy tool result" code={toolResult} />
                 </CodeBlock.Header>
                 <CodeBlock.Code
@@ -889,7 +897,7 @@ export function InspectorExplorer({
 
       {/* 2. RESOURCES */}
       <Tabs.Panel
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pt-3"
+        className="mt-0 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
         id="resources"
       >
         <div className="flex items-center justify-between gap-2">
@@ -897,6 +905,7 @@ export function InspectorExplorer({
             Discover exposed resources and templates, or read any URI directly.
           </span>
           <Button
+            className="shrink-0"
             isDisabled={busy}
             size="sm"
             variant="secondary"
@@ -909,31 +918,39 @@ export function InspectorExplorer({
         </div>
 
         {resources.length > 0 || resourceTemplates.length > 0 ? (
-          <div className="bg-surface-secondary flex max-h-44 flex-col gap-1 overflow-y-auto rounded-2xl p-2">
+          <div className="bg-surface-secondary flex max-h-44 flex-col gap-1 overflow-y-auto rounded-lg p-2">
             {resources.map((item) => (
               <button
                 key={`res:${item.uri}`}
-                className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-xl px-2.5 py-1.5 text-left ${
-                  resourceUri === item.uri ? "bg-surface" : "hover:bg-surface/60"
+                className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left ${
+                  resourceUri === item.uri ? "bg-accent-soft text-foreground" : "hover:bg-surface/60"
                 }`}
                 type="button"
                 onClick={() => setResourceUri(item.uri)}
               >
-                <span className="text-foreground shrink-0 text-xs font-medium">{item.name}</span>
-                <span className="text-muted min-w-0 truncate font-mono text-xs">{item.uri}</span>
+                <span className="text-foreground shrink-0 font-mono text-xs font-medium">
+                  {item.name}
+                </span>
+                <span className="text-muted min-w-0 truncate font-mono text-xs tabular-nums">
+                  {item.uri}
+                </span>
               </button>
             ))}
             {resourceTemplates.map((tpl) => (
               <button
                 key={`tpl:${tpl.uriTemplate}`}
-                className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-xl px-2.5 py-1.5 text-left ${
-                  resourceUri === tpl.uriTemplate ? "bg-surface" : "hover:bg-surface/60"
+                className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left ${
+                  resourceUri === tpl.uriTemplate
+                    ? "bg-accent-soft text-foreground"
+                    : "hover:bg-surface/60"
                 }`}
                 type="button"
                 onClick={() => setResourceUri(tpl.uriTemplate)}
               >
-                <span className="text-foreground shrink-0 text-xs font-medium">{tpl.name}</span>
-                <span className="text-muted min-w-0 truncate font-mono text-xs">
+                <span className="text-foreground shrink-0 font-mono text-xs font-medium">
+                  {tpl.name}
+                </span>
+                <span className="text-muted min-w-0 truncate font-mono text-xs tabular-nums">
                   {tpl.uriTemplate}
                 </span>
               </button>
@@ -953,12 +970,13 @@ export function InspectorExplorer({
             <Label className="text-xs">Resource URI</Label>
             <Input
               fullWidth
-              className="font-mono text-xs"
+              className="font-mono text-xs tabular-nums"
               placeholder="file:///path/to/resource"
               variant="secondary"
             />
           </TextField>
           <Button
+            className="shrink-0"
             isDisabled={busy || !resourceUri.trim()}
             size="sm"
             onPress={() => {
@@ -970,9 +988,9 @@ export function InspectorExplorer({
         </div>
 
         {resourceResult !== null ? (
-          <CodeBlock className="my-0">
+          <CodeBlock className="my-0 rounded-lg">
             <CodeBlock.Header>
-              <span className="text-muted text-xs">Resource Contents</span>
+              <span className="text-muted font-mono text-xs">Resource Contents</span>
               <CodeBlock.CopyButton aria-label="Copy resource contents" code={resourceResult} />
             </CodeBlock.Header>
             <CodeBlock.Code
@@ -985,7 +1003,10 @@ export function InspectorExplorer({
       </Tabs.Panel>
 
       {/* 3. PROMPTS */}
-      <Tabs.Panel className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pt-3" id="prompts">
+      <Tabs.Panel
+        className="mt-0 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
+        id="prompts"
+      >
         <div className="flex items-center gap-2">
           <Select
             className="min-w-0 flex-1"
@@ -1001,15 +1022,20 @@ export function InspectorExplorer({
             }}
           >
             <Label className="sr-only">Prompt</Label>
-            <Select.Trigger>
-              <Select.Value />
+            <Select.Trigger className="normal-case">
+              <Select.Value className="truncate font-mono text-xs normal-case" />
               <Select.Indicator />
             </Select.Trigger>
             <Select.Popover>
               <ListBox>
                 {prompts.map((prompt) => (
-                  <ListBox.Item key={prompt.name} id={prompt.name} textValue={prompt.name}>
-                    <Label className="font-mono text-xs">{prompt.name}</Label>
+                  <ListBox.Item
+                    key={prompt.name}
+                    className="normal-case"
+                    id={prompt.name}
+                    textValue={prompt.name}
+                  >
+                    <Label className="font-mono text-xs normal-case">{prompt.name}</Label>
                     {prompt.description ? (
                       <Description className="line-clamp-1 text-xs">
                         {prompt.description}
@@ -1023,6 +1049,7 @@ export function InspectorExplorer({
           </Select>
 
           <Button
+            className="shrink-0"
             isDisabled={busy}
             size="sm"
             variant="secondary"
@@ -1044,7 +1071,7 @@ export function InspectorExplorer({
           </Label>
           <TextArea
             fullWidth
-            className="font-mono text-xs"
+            className="font-mono text-xs tabular-nums"
             disabled={busy || !selectedPrompt}
             id="inspector-prompt-args"
             rows={4}
@@ -1069,9 +1096,9 @@ export function InspectorExplorer({
         </div>
 
         {promptResult !== null ? (
-          <CodeBlock className="my-0">
+          <CodeBlock className="my-0 rounded-lg">
             <CodeBlock.Header>
-              <span className="text-muted text-xs">Prompt Result</span>
+              <span className="text-muted font-mono text-xs">Prompt Result</span>
               <CodeBlock.CopyButton aria-label="Copy prompt result" code={promptResult} />
             </CodeBlock.Header>
             <CodeBlock.Code
@@ -1085,7 +1112,7 @@ export function InspectorExplorer({
 
       {/* 4. SERVER REQUESTS */}
       <Tabs.Panel
-        className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pt-3"
+        className="mt-0 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
         id="requests"
       >
         {serverRequests.length === 0 ? (
@@ -1111,20 +1138,25 @@ export function InspectorExplorer({
             return (
               <div
                 key={req.request_id}
-                className="border-separator flex flex-col gap-2.5 rounded-2xl border p-3"
+                className="border-border flex flex-col gap-2.5 rounded-lg border p-3"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-foreground truncate font-mono text-xs font-medium">
                     {req.method}
                   </span>
-                  <Chip color={getRequestStatusColor(req.status)} size="sm" variant="soft">
+                  <Chip
+                    className="font-mono"
+                    color={getRequestStatusColor(req.status)}
+                    size="sm"
+                    variant="soft"
+                  >
                     {req.status}
                   </Chip>
                 </div>
 
-                <CodeBlock className="my-0">
+                <CodeBlock className="my-0 rounded-lg">
                   <CodeBlock.Header>
-                    <span className="text-muted text-xs">Params</span>
+                    <span className="text-muted font-mono text-xs">Params</span>
                     <CodeBlock.CopyButton aria-label="Copy request params" code={paramsCode} />
                   </CodeBlock.Header>
                   <CodeBlock.Code
@@ -1142,7 +1174,7 @@ export function InspectorExplorer({
                       </Label>
                       <TextArea
                         fullWidth
-                        className="font-mono text-xs"
+                        className="font-mono text-xs tabular-nums"
                         disabled={busy}
                         id={`answer-${req.request_id}`}
                         rows={4}
@@ -1179,9 +1211,9 @@ export function InspectorExplorer({
                     </div>
                   </>
                 ) : responseCode ? (
-                  <CodeBlock className="my-0">
+                  <CodeBlock className="my-0 rounded-lg">
                     <CodeBlock.Header>
-                      <span className="text-muted text-xs">Recorded Answer</span>
+                      <span className="text-muted font-mono text-xs">Recorded Answer</span>
                       <CodeBlock.CopyButton aria-label="Copy recorded answer" code={responseCode} />
                     </CodeBlock.Header>
                     <CodeBlock.Code
@@ -1198,10 +1230,13 @@ export function InspectorExplorer({
       </Tabs.Panel>
 
       {/* 5. RAW JSON-RPC */}
-      <Tabs.Panel className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto pt-3" id="raw">
+      <Tabs.Panel
+        className="mt-0 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
+        id="raw"
+      >
         <div className="flex flex-wrap items-end gap-2 sm:flex-nowrap">
           <Select
-            className="w-[170px] shrink-0"
+            className="w-48 min-w-48 shrink-0"
             isDisabled={busy}
             name="inspector-raw-preset"
             placeholder="Preset"
@@ -1216,15 +1251,20 @@ export function InspectorExplorer({
             }}
           >
             <Label className="text-xs">Preset</Label>
-            <Select.Trigger>
-              <Select.Value />
+            <Select.Trigger className="normal-case">
+              <Select.Value className="truncate font-mono text-xs normal-case" />
               <Select.Indicator />
             </Select.Trigger>
             <Select.Popover>
               <ListBox>
                 {RAW_METHOD_PRESETS.map((preset) => (
-                  <ListBox.Item key={preset.id} id={preset.id} textValue={preset.label}>
-                    <Label className="font-mono text-xs">{preset.label}</Label>
+                  <ListBox.Item
+                    key={preset.id}
+                    className="normal-case"
+                    id={preset.id}
+                    textValue={preset.label}
+                  >
+                    <Label className="font-mono text-xs normal-case">{preset.label}</Label>
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
                 ))}
@@ -1256,7 +1296,7 @@ export function InspectorExplorer({
           </Label>
           <TextArea
             fullWidth
-            className="font-mono text-xs"
+            className="font-mono text-xs tabular-nums"
             disabled={busy}
             id="inspector-raw-params"
             rows={5}
@@ -1289,9 +1329,9 @@ export function InspectorExplorer({
         </div>
 
         {rawResult !== null ? (
-          <CodeBlock className="my-0">
+          <CodeBlock className="my-0 rounded-lg">
             <CodeBlock.Header>
-              <span className="text-muted text-xs">Response</span>
+              <span className="text-muted font-mono text-xs">Response</span>
               <CodeBlock.CopyButton aria-label="Copy raw response" code={rawResult} />
             </CodeBlock.Header>
             <CodeBlock.Code

@@ -207,8 +207,8 @@ export function InspectorPage() {
     selectedConnectionId === NEW_CONNECTION_KEY ? NEW_CONNECTION_KEY : activeConnectionId;
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem)] max-w-7xl flex-col gap-3 px-5 pb-5 pt-4">
-      <Card className="shrink-0 rounded-2xl p-3">
+    <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-7xl flex-col gap-4 px-6 pb-6 pt-5">
+      <Card className="shrink-0 p-3">
         <form
           className="flex flex-wrap items-center gap-2 lg:flex-nowrap"
           onSubmit={(event) => {
@@ -221,7 +221,7 @@ export function InspectorPage() {
           }}
         >
           <Select
-            className="w-[130px] shrink-0"
+            className="w-36 min-w-36 shrink-0"
             isDisabled={busy}
             name="inspector-transport"
             value={transport}
@@ -234,14 +234,14 @@ export function InspectorPage() {
           >
             <Label className="sr-only">Transport</Label>
             <Select.Trigger>
-              <Select.Value />
+              <Select.Value className="font-mono text-xs" />
               <Select.Indicator />
             </Select.Trigger>
             <Select.Popover>
               <ListBox>
                 {TRANSPORTS.map((item) => (
                   <ListBox.Item key={item.id} id={item.id} textValue={item.label}>
-                    <Label className="text-xs">{item.label}</Label>
+                    <Label className="font-mono text-xs">{item.label}</Label>
                     <ListBox.ItemIndicator />
                   </ListBox.Item>
                 ))}
@@ -266,7 +266,7 @@ export function InspectorPage() {
             <Label className="sr-only">Target</Label>
             <Input
               fullWidth
-              className="font-mono text-xs"
+              className="font-mono text-xs tabular-nums"
               placeholder={
                 transport === "http"
                   ? "http://localhost:8080/mcp"
@@ -279,7 +279,7 @@ export function InspectorPage() {
           {inspectorState.connections.length > 0 ? (
             <div className="flex shrink-0 items-center gap-2">
               <Select
-                className="w-[210px]"
+                className="w-56 min-w-56"
                 isDisabled={busy}
                 name="inspector-connection"
                 placeholder="Connections"
@@ -292,8 +292,8 @@ export function InspectorPage() {
                 }}
               >
                 <Label className="sr-only">Active Connection</Label>
-                <Select.Trigger>
-                  <Select.Value />
+                <Select.Trigger className="normal-case">
+                  <Select.Value className="truncate font-mono text-xs tabular-nums normal-case" />
                   <Select.Indicator />
                 </Select.Trigger>
                 <Select.Popover>
@@ -305,13 +305,14 @@ export function InspectorPage() {
                     {inspectorState.connections.map((conn) => (
                       <ListBox.Item
                         key={conn.connection_id}
+                        className="normal-case"
                         id={conn.connection_id}
                         textValue={conn.label || conn.target}
                       >
-                        <Label className="truncate font-mono text-xs">
+                        <Label className="truncate font-mono text-xs tabular-nums normal-case">
                           {conn.label || conn.target}
                         </Label>
-                        <Description className="text-xs">
+                        <Description className="font-mono text-xs">
                           {conn.live ? "Connected" : conn.status}
                         </Description>
                         <ListBox.ItemIndicator />
@@ -329,6 +330,7 @@ export function InspectorPage() {
 
           {isLive ? (
             <Button
+              className="shrink-0"
               isDisabled={busy}
               isPending={busy}
               size="sm"
@@ -342,6 +344,7 @@ export function InspectorPage() {
             </Button>
           ) : (
             <Button
+              className="shrink-0"
               isDisabled={busy}
               isPending={busy}
               size="sm"
@@ -353,7 +356,7 @@ export function InspectorPage() {
         </form>
       </Card>
 
-      <div className="bg-surface border-separator min-h-0 flex-1 overflow-hidden rounded-2xl border">
+      <Card className="min-h-0 flex-1 overflow-hidden p-0">
         <Resizable orientation="horizontal">
           <Resizable.Panel defaultSize={52} minSize={30}>
             <InspectorExplorer
@@ -369,13 +372,13 @@ export function InspectorPage() {
             />
           </Resizable.Panel>
 
-          <Resizable.Handle type="drag" variant="secondary" />
+          <Resizable.Handle aria-label="Resize inspector panels" type="drag" variant="secondary" />
 
           <Resizable.Panel defaultSize={48} minSize={30}>
             <InspectorWireLog messages={inspectorState.messages} />
           </Resizable.Panel>
         </Resizable>
-      </div>
+      </Card>
     </div>
   );
 }

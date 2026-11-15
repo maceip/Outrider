@@ -79,7 +79,7 @@ export function InspectorWireLog({messages}: InspectorWireLogProps) {
     <div className="flex h-full min-h-0 flex-col">
       <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-4 py-2.5">
         <span className="text-foreground text-sm font-medium">Wire Log</span>
-        <Chip className="tabular-nums" size="sm" variant="soft">
+        <Chip className="font-mono tabular-nums" size="sm" variant="soft">
           {messages.length}
         </Chip>
       </div>
@@ -111,8 +111,10 @@ export function InspectorWireLog({messages}: InspectorWireLogProps) {
                   return (
                     <button
                       key={msg.message_id}
-                      className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-xl px-3 py-1.5 text-left ${
-                        isSelected ? "bg-surface-secondary" : "hover:bg-surface-secondary/50"
+                      className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-lg px-3 py-1.5 text-left ${
+                        isSelected
+                          ? "bg-accent-soft text-foreground"
+                          : "hover:bg-surface-secondary"
                       }`}
                       type="button"
                       onClick={() => {
@@ -126,16 +128,21 @@ export function InspectorWireLog({messages}: InspectorWireLogProps) {
                         }
                       }}
                     >
-                      <span className="text-foreground min-w-0 truncate font-mono text-xs font-medium">
+                      <span className="text-foreground min-w-0 truncate font-mono text-xs font-medium tabular-nums">
                         {`${arrow} ${msg.method}`}
                       </span>
                       <span className="flex shrink-0 items-center gap-2">
                         {msg.latency_ms !== null ? (
-                          <span className="text-muted text-xs tabular-nums">
+                          <span className="text-muted font-mono text-xs tabular-nums">
                             {`${msg.latency_ms} ms`}
                           </span>
                         ) : null}
-                        <Chip color={getKindColor(msg.kind)} size="sm" variant="soft">
+                        <Chip
+                          className="font-mono"
+                          color={getKindColor(msg.kind)}
+                          size="sm"
+                          variant="soft"
+                        >
                           {msg.kind}
                         </Chip>
                       </span>
@@ -145,14 +152,14 @@ export function InspectorWireLog({messages}: InspectorWireLogProps) {
               </div>
             </Resizable.Panel>
 
-            <Resizable.Handle type="line" variant="secondary" />
+            <Resizable.Handle aria-label="Resize wire log panels" type="drag" variant="secondary" />
 
             <Resizable.Panel defaultSize={58} minSize={25}>
               {activeMessage ? (
                 <div className="flex h-full min-h-0 flex-col p-2">
-                  <CodeBlock className="my-0 flex h-full min-h-0 flex-col">
+                  <CodeBlock className="my-0 flex h-full min-h-0 flex-col rounded-lg">
                     <CodeBlock.Header className="shrink-0 pb-1">
-                      <span className="text-muted min-w-0 truncate font-mono text-xs">
+                      <span className="text-muted min-w-0 truncate font-mono text-xs tabular-nums">
                         {`${formatMessageArrow(activeMessage.direction)} ${activeMessage.method}`}
                       </span>
                       <CodeBlock.CopyButton
