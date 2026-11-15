@@ -26,6 +26,7 @@ import {
 export const PROXYFOR_BASE = "/__proxyfor__";
 export const COMMERCE_API_BASE = "/__proxyfor__/commerce";
 export const TOKEN_STORAGE_KEY = "outrider_admin_token";
+const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
 
 export interface CoreStoreValue {
   traffics: TrafficHead[];
@@ -415,6 +416,9 @@ export function CoreProvider({children}: {children: ReactNode}) {
   }, [markConnected, markDisconnected]);
 
   const refresh = useCallback(async (): Promise<void> => {
+    if (IS_WWW) {
+      return;
+    }
     await Promise.all([
       fetchStatus(),
       refreshTraffics(),
@@ -662,6 +666,9 @@ export function CoreProvider({children}: {children: ReactNode}) {
 
   // Unified live NDJSON traffic stream (`GET /__proxyfor__/subscribe/traffics`)
   useEffect(() => {
+    if (IS_WWW) {
+      return;
+    }
     const controller = new AbortController();
 
     void (async () => {
@@ -721,6 +728,9 @@ export function CoreProvider({children}: {children: ReactNode}) {
 
   // Commerce status, seamless auth, snapshot hydration, and live SSE (`GET /__proxyfor__/commerce/events`)
   useEffect(() => {
+    if (IS_WWW) {
+      return;
+    }
     const controller = new AbortController();
     let refreshTimer: ReturnType<typeof setTimeout> | null = null;
 

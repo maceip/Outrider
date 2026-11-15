@@ -3,8 +3,19 @@
 import type {CapabilityReceiptRow} from "../lib/types";
 import type {DataGridColumn} from "@heroui-pro/react";
 
-import {Calendar, Funnel} from "@gravity-ui/icons";
-import {Avatar, Button, Chip, Dropdown, Label, SearchField} from "@heroui/react";
+import {Calendar, Funnel, Plus} from "@gravity-ui/icons";
+import {
+  Avatar,
+  Button,
+  Chip,
+  Drawer,
+  Dropdown,
+  Input,
+  Label,
+  SearchField,
+  TextField,
+  toast,
+} from "@heroui/react";
 import {DataGrid, EmptyState} from "@heroui-pro/react";
 import {useMemo, useState} from "react";
 
@@ -71,15 +82,85 @@ function formatIssuedDate(unixSeconds: number): string {
 }
 
 export function OrdersPage() {
-  const {snapshot} = useCoreStore();
+  const {busy, mutate, snapshot} = useCoreStore();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
   const [dateRange, setDateRange] = useState<{cutoffSeconds: number | null; id: DateFilter}>({
     cutoffSeconds: null,
     id: "all",
   });
+  const [isIssueOpen, setIsIssueOpen] = useState(false);
+  const [issueSubject, setIssueSubject] = useState("");
+  const [issueBundleOverride, setIssueBundleOverride] = useState<string | null>(null);
+  const [issueMaxCalls, setIssueMaxCalls] = useState("10");
+  const [issueTtlHours, setIssueTtlHours] = useState("24");
 
   const receipts = useMemo(() => snapshot?.capability_receipts ?? [], [snapshot]);
+  const defaultBundleId = snapshot?.bundles[0]?.bundle_id ?? "outrider_session_evidence";
+  const effectiveBundleId = issueBundleOverride ?? defaultBundleId;
+
+  const handleIssueReceipt = async () => {
+    const trimmedSubject = issueSubject.trim();
+    const trimmedBundleId = effectiveBundleId.trim();
+    const parsedMaxCalls = Number.parseInt(issueMaxCalls.trim(), 10);
+    const parsedTtlHours = Number.parseInt(issueTtlHours.trim(), 10);
+
+    if (!trimmedSubject) {
+      toast.danger("Enter a receipt subject");
+
+      return;
+    }
+    if (!trimmedBundleId) {
+      toast.danger("Enter a bundle identifier");
+
+      return;
+    }
+    if (!Number.isFinite(parsedMaxCalls) || parsedMaxCalls < 1) {
+      toast.danger("Max calls must be at least 1");
+
+      return;
+    }
+    if (!Number.isFinite(parsedTtlHours) || parsedTtlHours < 1) {
+      toast.danger("Validity hours must be at least 1");
+
+      return;
+    }
+
+    try {
+      const existingBundles = snapshot?.bundles ?? [];
+      const bundleExists = existingBundles.some((bundle) => bundle.bundle_id === trimmedBundleId);
+
+      if (!bundleExists) {
+        const catalogItems = snapshot?.catalog_items ?? [];
+        const matchedCatalogItem =
+          catalogItems.find((item) => item.item_id === trimmedBundleId)?.item_id ??
+          catalogItems[0]?.item_id ??
+          "outrider_session_evidence";
+
+        await mutate("/bundles/put", {
+          bundle_id: trimmedBundleId,
+          items: [matchedCatalogItem],
+          rules: {},
+          title: trimmedBundleId,
+        });
+      }
+
+      const expiresAtUnix = Math.floor(Date.now() / 1000) + parsedTtlHours * 3600;
+
+      await mutate("/receipts/issue", {
+        bundle_id: trimmedBundleId,
+        expires_at_unix: expiresAtUnix,
+        max_calls: parsedMaxCalls,
+        subject: trimmedSubject,
+      });
+
+      setIssueSubject("");
+      setIsIssueOpen(false);
+      toast.success("Receipt issued");
+    } catch {
+      // Error toast is handled by mutate().
+    }
+  };
 
   const filteredReceipts = useMemo(() => {
     const query = search.trim().toLowerCase();
@@ -209,11 +290,127 @@ export function OrdersPage() {
 
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-foreground text-base font-semibold">Issued Receipts</h2>
-            <Chip className="tabular-nums" size="sm" variant="soft">
-              {filteredReceipts.length}
-            </Chip>
+          <div className="flex flex-wrap items-center justify-between gap-2.5">
+            <div className="flex flex-wrap items-center gap-2.5">
+              <h2 className="text-foreground text-base font-semibold">Issued Receipts</h2>
+              <Chip className="tabular-nums" size="sm" variant="soft">
+                {filteredReceipts.length}
+              </Chip>
+            </div>
+
+            <Drawer isOpen={isIssueOpen} onOpenChange={setIsIssueOpen}>
+              <Button size="sm" variant="primary">
+                <Plus className="size-4" />
+                Issue Receipt
+              </Button>
+              <Drawer.Backdrop>
+                <Drawer.Content placement="right">
+                  <Drawer.Dialog aria-label="Issue Receipt">
+                    <Drawer.CloseTrigger />
+                    <Drawer.Header className="flex-col items-start gap-1">
+                      <Drawer.Heading className="text-foreground text-base font-semibold">
+                        Issue Receipt
+                      </Drawer.Heading>
+                      <p className="text-muted text-xs leading-relaxed">
+                        Grant scoped bundle quota to a client or session.
+                      </p>
+                    </Drawer.Header>
+                    <Drawer.Body>
+                      <form
+                        className="flex flex-col gap-4"
+                        id="issue-receipt-form"
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          void handleIssueReceipt();
+                        }}
+                      >
+                        <TextField
+                          fullWidth
+                          isDisabled={busy}
+                          name="receipt-subject"
+                          value={issueSubject}
+                          variant="secondary"
+                          onChange={setIssueSubject}
+                        >
+                          <Label className="text-xs">Subject</Label>
+                          <Input
+                            fullWidth
+                            className="font-mono text-xs tabular-nums"
+                            placeholder="agent:session-1"
+                          />
+                        </TextField>
+
+                        <TextField
+                          fullWidth
+                          isDisabled={busy}
+                          name="receipt-bundle"
+                          value={effectiveBundleId}
+                          variant="secondary"
+                          onChange={setIssueBundleOverride}
+                        >
+                          <Label className="text-xs">Bundle ID</Label>
+                          <Input
+                            fullWidth
+                            className="font-mono text-xs tabular-nums"
+                            placeholder="outrider_session_evidence"
+                          />
+                        </TextField>
+
+                        <div className="grid grid-cols-2 gap-3">
+                          <TextField
+                            fullWidth
+                            isDisabled={busy}
+                            name="receipt-max-calls"
+                            value={issueMaxCalls}
+                            variant="secondary"
+                            onChange={setIssueMaxCalls}
+                          >
+                            <Label className="text-xs">Max Calls</Label>
+                            <Input
+                              fullWidth
+                              className="font-mono text-xs tabular-nums"
+                              inputMode="numeric"
+                              placeholder="10"
+                            />
+                          </TextField>
+
+                          <TextField
+                            fullWidth
+                            isDisabled={busy}
+                            name="receipt-ttl-hours"
+                            value={issueTtlHours}
+                            variant="secondary"
+                            onChange={setIssueTtlHours}
+                          >
+                            <Label className="text-xs">Validity (hours)</Label>
+                            <Input
+                              fullWidth
+                              className="font-mono text-xs tabular-nums"
+                              inputMode="numeric"
+                              placeholder="24"
+                            />
+                          </TextField>
+                        </div>
+                      </form>
+                    </Drawer.Body>
+                    <Drawer.Footer className="justify-end gap-2">
+                      <Button isDisabled={busy} slot="close" type="button" variant="ghost">
+                        Cancel
+                      </Button>
+                      <Button
+                        form="issue-receipt-form"
+                        isDisabled={busy}
+                        isPending={busy}
+                        type="submit"
+                        variant="primary"
+                      >
+                        Mint Receipt
+                      </Button>
+                    </Drawer.Footer>
+                  </Drawer.Dialog>
+                </Drawer.Content>
+              </Drawer.Backdrop>
+            </Drawer>
           </div>
 
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

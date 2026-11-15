@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "next dev --port 3003",
     "build": "next build",
+    "build:www": "python3 -B ../scripts/build_www.py",
     "start": "next start --port 3003",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",

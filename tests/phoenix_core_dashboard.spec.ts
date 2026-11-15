@@ -1,7 +1,16 @@
 import { test, expect, type Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash } from "node:crypto";
-import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  cp,
+  mkdtemp,
+  readdir,
+  readFile,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import http from "node:http";
 import net from "node:net";
 import { tmpdir } from "node:os";
@@ -282,7 +291,7 @@ function kpiCard(page: Page, title: string) {
 async function clickSidebarLink(page: Page, label: string) {
   const nav =
     label === "Help"
-      ? page.getByRole("treegrid", { name: "Account" })
+      ? page.getByRole("treegrid", { name: "Support" })
       : page.getByRole("treegrid", { name: "Dashboard navigation" });
   await nav.getByRole("row", { name: label, exact: true }).click();
 }
@@ -1013,7 +1022,74 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
         page.getByRole("heading", { level: 1, name: route.heading }),
       ).toBeVisible();
       await assertCleanCopyAndZeroJargon(page, route.path);
+
+      const hasNoHorizontalOverflow = await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      );
+      expect(
+        hasNoHorizontalOverflow,
+        `Zero horizontal overflow expected on ${route.path}`,
+      ).toBe(true);
     }
+
+    // Verify computed Silvector Design System fidelity, sidebar brand mark, and ThemeToggle persistence
+    await page.goto(`${gateway.baseUrl}/__proxyfor__/`);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Dashboard" }),
+    ).toBeVisible();
+
+    const silvectorTokens = await page.evaluate(() => {
+      const rootTheme = document.documentElement.dataset.theme ?? "";
+      const bodyFont = getComputedStyle(document.body).fontFamily;
+      const h1 = document.querySelector("h1");
+      const h1Font = h1 ? getComputedStyle(h1).fontFamily : "";
+      const logo = document.querySelector(
+        'img[alt="Outrider"]',
+      ) as HTMLImageElement | null;
+      return {
+        rootTheme,
+        bodyFont,
+        h1Font,
+        logoLoaded: Boolean(logo && logo.complete && logo.naturalWidth > 0),
+        logoSrc: logo?.getAttribute("src") ?? "",
+      };
+    });
+    expect(silvectorTokens.rootTheme).toBe("brutalism-dark");
+    expect(silvectorTokens.bodyFont).toMatch(/unbounded/i);
+    expect(silvectorTokens.h1Font).toMatch(/jetbrains/i);
+    expect(silvectorTokens.logoLoaded).toBe(true);
+    expect(silvectorTokens.logoSrc).toContain("/brand/dark/outrider-icon-64.png");
+
+    await page.getByRole("button", { name: "Switch to light mode" }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+      .toBe("brutalism-light");
+    await page.reload();
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Dashboard" }),
+    ).toBeVisible();
+    expect(
+      await page.evaluate(() => document.documentElement.dataset.theme),
+    ).toBe("brutalism-light");
+    expect(
+      await page.evaluate(() => {
+        const logo = document.querySelector(
+          'img[alt="Outrider"]',
+        ) as HTMLImageElement | null;
+        return Boolean(
+          logo &&
+            logo.complete &&
+            logo.naturalWidth > 0 &&
+            (logo.getAttribute("src") ?? "").includes("/brand/light/"),
+        );
+      }),
+    ).toBe(true);
+    await page.getByRole("button", { name: "Switch to dark mode" }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+      .toBe("brutalism-dark");
 
     const cleanTrafficsRes = await fetch(
       `${gateway.baseUrl}/__proxyfor__/traffics`,
@@ -1389,6 +1465,46 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
       0,
     );
 
+    // Exercise Orders (/orders/) Issue Receipt Drawer end-to-end against real SQLite backend
+    await clickSidebarLink(page, "Orders");
+    await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
+    await page.getByRole("button", { name: "Issue Receipt" }).click();
+    await expect(
+      page.getByRole("dialog", { name: "Issue Receipt" }),
+    ).toBeVisible();
+    await page
+      .locator('input[name="receipt-subject"]')
+      .fill("agent:drawer-e2e");
+    await page.locator('input[name="receipt-max-calls"]').fill("15");
+    await page
+      .getByRole("button", { name: "Mint Receipt", exact: true })
+      .click();
+    await expect(page.getByText("Receipt issued", { exact: true })).toBeVisible();
+    const drawerReceiptsGrid = page.getByRole("grid", { name: "Receipts" });
+    await expect(drawerReceiptsGrid).toContainText("agent:drawer-e2e");
+    await expect(drawerReceiptsGrid).toContainText("15 / 15");
+    await expect(drawerReceiptsGrid).toContainText("Active");
+    await assertCleanCopyAndZeroJargon(page, "Orders (after drawer issue)");
+
+    const drawerSnapRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
+      { headers: { Authorization: `Bearer ${gateway.adminToken}` } },
+    );
+    expect(drawerSnapRes.status).toBe(200);
+    const drawerSnap = (await drawerSnapRes.json()) as {
+      capability_receipts: Array<{
+        subject: string;
+        max_calls: number;
+        signature_verified: boolean;
+      }>;
+    };
+    const mintedViaDrawer = drawerSnap.capability_receipts.find(
+      (r) => r.subject === "agent:drawer-e2e",
+    );
+    expect(mintedViaDrawer).toBeDefined();
+    expect(mintedViaDrawer?.max_calls).toBe(15);
+    expect(mintedViaDrawer?.signature_verified).toBe(true);
+
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
     expect(badResponses).toEqual([]);
@@ -1405,5 +1521,278 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
       );
     }
     await gateway.close();
+  }
+});
+
+async function rewritePagesBasePathRecursively(
+  dir: string,
+  basePath: string,
+): Promise<void> {
+  const targetExts = new Set([".html", ".js", ".css", ".txt", ".json"]);
+  const entries = await readdir(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await rewritePagesBasePathRecursively(full, basePath);
+    } else if (
+      entry.isFile() &&
+      targetExts.has(path.extname(entry.name).toLowerCase())
+    ) {
+      const content = await readFile(full, "utf8");
+      if (content.includes("/__PAGES_BASE__")) {
+        await writeFile(
+          full,
+          content.replaceAll("/__PAGES_BASE__", basePath),
+          "utf8",
+        );
+      }
+    }
+  }
+}
+
+function staticMimeType(filePath: string): string {
+  switch (path.extname(filePath).toLowerCase()) {
+    case ".html":
+      return "text/html; charset=utf-8";
+    case ".js":
+      return "application/javascript; charset=utf-8";
+    case ".css":
+      return "text/css; charset=utf-8";
+    case ".json":
+    case ".har":
+      return "application/json; charset=utf-8";
+    case ".txt":
+      return "text/plain; charset=utf-8";
+    case ".png":
+      return "image/png";
+    case ".ico":
+      return "image/x-icon";
+    case ".svg":
+      return "image/svg+xml";
+    case ".woff2":
+      return "font/woff2";
+    case ".mp4":
+      return "video/mp4";
+    default:
+      return "application/octet-stream";
+  }
+}
+
+test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with zero errors, plays 1080p walkthrough, and drives interactive HAR + WebCrypto Ed25519 labs", async ({
+  page,
+}) => {
+  const srcDist = path.join(ROOT, "www-dist");
+  const pagesTmpRoot = await mkdtemp(
+    path.join(tmpdir(), "outrider-pages-e2e-"),
+  );
+  const mountedOutriderDir = path.join(pagesTmpRoot, "Outrider");
+  await cp(srcDist, mountedOutriderDir, { recursive: true });
+  await rewritePagesBasePathRecursively(mountedOutriderDir, "/Outrider");
+
+  const openSockets = new Set<net.Socket>();
+  const staticServer = http.createServer(async (req, res) => {
+    try {
+      const urlObj = new URL(req.url ?? "/", "http://127.0.0.1");
+      const decodedPath = decodeURIComponent(urlObj.pathname);
+      const safeRel = path
+        .normalize(decodedPath)
+        .replace(/^(\.\.(\/|\\|$))+/, "")
+        .replace(/^\/+/, "");
+      let candidate = path.join(pagesTmpRoot, safeRel);
+      let fileStat = await stat(candidate).catch(() => null);
+      if (fileStat?.isDirectory()) {
+        candidate = path.join(candidate, "index.html");
+        fileStat = await stat(candidate).catch(() => null);
+      }
+      if (!fileStat || !fileStat.isFile()) {
+        res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });
+        res.end("Not Found");
+        return;
+      }
+
+      const mime = staticMimeType(candidate);
+      const totalSize = fileStat.size;
+      const rangeHeader = req.headers.range;
+
+      if (rangeHeader && rangeHeader.startsWith("bytes=")) {
+        const [startStr, endStr] = rangeHeader
+          .slice("bytes=".length)
+          .split("-");
+        const start = Number.parseInt(startStr ?? "0", 10);
+        const end = endStr
+          ? Math.min(Number.parseInt(endStr, 10), totalSize - 1)
+          : totalSize - 1;
+        if (
+          Number.isFinite(start) &&
+          Number.isFinite(end) &&
+          start >= 0 &&
+          start <= end &&
+          start < totalSize
+        ) {
+          const fullBuf = await readFile(candidate);
+          const slice = fullBuf.subarray(start, end + 1);
+          res.writeHead(206, {
+            "Accept-Ranges": "bytes",
+            "Content-Length": String(slice.byteLength),
+            "Content-Range": `bytes ${start}-${end}/${totalSize}`,
+            "Content-Type": mime,
+          });
+          res.end(slice);
+          return;
+        }
+      }
+
+      const body = await readFile(candidate);
+      res.writeHead(200, {
+        "Accept-Ranges": "bytes",
+        "Content-Length": String(body.byteLength),
+        "Content-Type": mime,
+      });
+      res.end(body);
+    } catch (err) {
+      res.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      res.end(String(err));
+    }
+  });
+
+  staticServer.on("connection", (sock) => {
+    openSockets.add(sock);
+    sock.on("close", () => openSockets.delete(sock));
+  });
+
+  await new Promise<void>((resolve) =>
+    staticServer.listen(0, "127.0.0.1", resolve),
+  );
+  const staticPort = (staticServer.address() as net.AddressInfo).port;
+  const pagesUrl = `http://127.0.0.1:${staticPort}/Outrider/`;
+
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const badResponses: string[] = [];
+
+  page.on("console", (msg) => {
+    if (msg.type() === "error") consoleErrors.push(msg.text());
+  });
+  page.on("pageerror", (err) => pageErrors.push(err.message));
+  page.on("response", (res) => {
+    if (res.status() >= 400) {
+      badResponses.push(
+        `${res.status()} ${res.request().method()} ${res.url()}`,
+      );
+    }
+  });
+
+  try {
+    const res = await page.goto(pagesUrl);
+    expect(res?.status()).toBe(200);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Outrider" }),
+    ).toBeVisible();
+
+    // 1. Live Walkthrough <video> loads real 1080p H.264 metadata
+    await expect
+      .poll(async () =>
+        page.evaluate(() => {
+          const video = document.querySelector("video");
+          return video
+            ? { width: video.videoWidth, duration: video.duration }
+            : { width: 0, duration: 0 };
+        }),
+      )
+      .toEqual({
+        width: expect.any(Number),
+        duration: expect.any(Number),
+      });
+    const videoMeta = await page.evaluate(() => {
+      const video = document.querySelector("video");
+      return {
+        width: video?.videoWidth ?? 0,
+        duration: video?.duration ?? 0,
+      };
+    });
+    expect(videoMeta.width).toBeGreaterThan(0);
+    expect(videoMeta.duration).toBeGreaterThan(5);
+
+    // 2. Traffic Monitor workbench renders 9 recorded packets, filters by MCP, and copies cURL
+    const demoGrid = page.getByRole("grid", { name: "Recorded packet stream" });
+    const demoRows = demoGrid
+      .getByRole("row")
+      .filter({ hasNot: page.getByRole("columnheader") });
+    await expect(demoRows).toHaveCount(9);
+
+    const protoSegment = page.locator(
+      '[aria-label="Filter packets by protocol"]',
+    );
+    await protoSegment.getByText("MCP", { exact: true }).click();
+    const mcpCount = await demoRows.count();
+    expect(mcpCount).toBeGreaterThan(0);
+    expect(mcpCount).toBeLessThan(9);
+
+    await page.getByRole("button", { name: "Copy cURL", exact: true }).click();
+    await expect(page.getByText(/Copied cURL for #/)).toBeVisible();
+    const copiedDemoCurl = await page.evaluate(() =>
+      navigator.clipboard.readText(),
+    );
+    expect(copiedDemoCurl).toContain("curl");
+
+    await protoSegment.getByText("All", { exact: true }).click();
+    await expect(demoRows).toHaveCount(9);
+
+    // 3. MCP 2026-07-28 & CLEF Trace tab renders recorded wire frames + CLEF evaluations
+    const workbenchTabs = page.getByRole("tablist", {
+      name: "Workbench surfaces",
+    });
+    await workbenchTabs
+      .getByRole("tab", { name: /MCP 2026-07-28 & CLEF Trace/ })
+      .click();
+    await expect(
+      page.getByText("Recorded MCP Inspector Wire Frames", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Recorded On-Device CLEF Evaluations", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /<-\s*handshake/ }),
+    ).toBeVisible();
+    await expect(page.getByText('pick: "http"', { exact: true })).toBeVisible();
+    await expect(page.getByText("pick: true", { exact: true })).toBeVisible();
+
+    // 4. WebCrypto Ed25519 Receipt Lab verifies recorded receipt, mints fresh receipt, and detects tampering
+    const receiptSection = page.locator("#receipt-lab");
+    await expect(
+      receiptSection.getByText("Valid", { exact: true }),
+    ).toBeVisible();
+
+    await receiptSection
+      .getByRole("button", { name: "Mint Signed Receipt", exact: true })
+      .click();
+    await expect(
+      page.getByText("Minted Ed25519 receipt signature via WebCrypto", {
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      receiptSection.getByText("Valid", { exact: true }),
+    ).toBeVisible();
+
+    const payloadBox = receiptSection.locator("#www-receipt-payload");
+    const currentJson = await payloadBox.inputValue();
+    const parsedJson = JSON.parse(currentJson) as Record<string, unknown>;
+    parsedJson.max_calls = 99999;
+    await payloadBox.fill(JSON.stringify(parsedJson, null, 2));
+
+    await expect(
+      receiptSection.getByText("Invalid Signature", { exact: true }),
+    ).toBeVisible();
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    expect(badResponses).toEqual([]);
+  } finally {
+    for (const sock of openSockets) {
+      sock.destroy();
+    }
+    await new Promise<void>((resolve) => staticServer.close(() => resolve()));
+    await rm(pagesTmpRoot, { recursive: true, force: true });
   }
 });

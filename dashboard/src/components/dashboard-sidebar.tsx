@@ -6,6 +6,7 @@ import {Chip} from "@heroui/react";
 import {Sidebar} from "@heroui-pro/react";
 
 import {useCoreStore} from "../lib/core-store";
+import {withWwwBasePath} from "../lib/www-base-path";
 import {FOOTER_ITEMS, NAV_ITEMS} from "../nav-items";
 import {useThemeMode} from "./theme-toggle";
 
@@ -68,8 +69,8 @@ function SidebarContents({
             height={32}
             src={
               mode === "brutalism-light"
-                ? "/__proxyfor__/brand/light/outrider-icon-64.png"
-                : "/__proxyfor__/brand/dark/outrider-icon-64.png"
+                ? withWwwBasePath("/brand/light/outrider-icon-64.png")
+                : withWwwBasePath("/brand/dark/outrider-icon-64.png")
             }
             width={32}
           />

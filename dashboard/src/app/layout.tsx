@@ -5,6 +5,7 @@ import {Toast} from "@heroui/react";
 import {JetBrains_Mono, Unbounded} from "next/font/google";
 
 import {CoreProvider} from "../lib/core-store";
+import {WWW_BASE_PATH} from "../lib/www-base-path";
 
 import "./globals.css";
 
@@ -34,46 +35,46 @@ export const metadata: Metadata = {
       {
         sizes: "256x256",
         type: "image/png",
-        url: "/__proxyfor__/brand/dark/outrider-logo-256.png",
+        url: `${WWW_BASE_PATH}/brand/dark/outrider-logo-256.png`,
       },
     ],
     icon: [
       {
         media: "(prefers-color-scheme: dark)",
         type: "image/x-icon",
-        url: "/__proxyfor__/brand/favicon-dark.ico",
+        url: `${WWW_BASE_PATH}/brand/favicon-dark.ico`,
       },
       {
         media: "(prefers-color-scheme: light)",
         type: "image/x-icon",
-        url: "/__proxyfor__/brand/favicon-light.ico",
+        url: `${WWW_BASE_PATH}/brand/favicon-light.ico`,
       },
       {
         media: "(prefers-color-scheme: dark)",
         sizes: "32x32",
         type: "image/png",
-        url: "/__proxyfor__/brand/dark/outrider-icon-32.png",
+        url: `${WWW_BASE_PATH}/brand/dark/outrider-icon-32.png`,
       },
       {
         media: "(prefers-color-scheme: light)",
         sizes: "32x32",
         type: "image/png",
-        url: "/__proxyfor__/brand/light/outrider-icon-32.png",
+        url: `${WWW_BASE_PATH}/brand/light/outrider-icon-32.png`,
       },
       {
         media: "(prefers-color-scheme: dark)",
         sizes: "64x64",
         type: "image/png",
-        url: "/__proxyfor__/brand/dark/outrider-icon-64.png",
+        url: `${WWW_BASE_PATH}/brand/dark/outrider-icon-64.png`,
       },
       {
         media: "(prefers-color-scheme: light)",
         sizes: "64x64",
         type: "image/png",
-        url: "/__proxyfor__/brand/light/outrider-icon-64.png",
+        url: `${WWW_BASE_PATH}/brand/light/outrider-icon-64.png`,
       },
     ],
-    shortcut: "/__proxyfor__/brand/favicon-dark.ico",
+    shortcut: `${WWW_BASE_PATH}/brand/favicon-dark.ico`,
   },
   title: "Outrider",
 };

@@ -18,10 +18,13 @@ cargo build -p proxyfor --bins --example commerce_live_client
 ./target/debug/outrider --web --clef-model ~/.avery/redteam-models/gemma-4-e2b-it.litertlm
 ```
 
-Open `http://127.0.0.1:8080/__proxyfor__/`. Enter the admin token printed once on
-first startup; the private copy is `~/.proxyfor/outrider-admin-token`. The proxy
-and `/mcp` share the listener. It also accepts direct TLS using the proxy CA.
-The original `proxyfor` executable remains available. `--tui` selects the terminal
+Open `http://127.0.0.1:8080/__proxyfor__/`. Loopback browsers authenticate
+automatically through the local bootstrap endpoint (desktop launches exchange a
+single-use `#bootstrap=<nonce>` token; the private operator token remains at
+`~/.proxyfor/outrider-admin-token`). The proxy and `/mcp` share the listener and
+also accept direct TLS using the proxy CA. A static showcase and browser-side
+capture/receipt workbench is published at `https://maceip.github.io/Outrider/`.
+The original `proxyfor` executable remains available; `--tui` selects the terminal
 workbench and `--stdio` serves MCP without an HTTP listener.
 
 Omit `--clef-model` for explicit Unconfigured operation. No picks, token estimates
@@ -30,11 +33,13 @@ or option distributions are supplied in that state. `--clef-backend cpu|gpu`,
 The native installation is explicit and checks archive hashes; every macOS arm64
 build also checks the installed library hashes. Cargo never downloads native code.
 
-## MCP Inspector
+## Traffic Monitor and MCP Inspector
 
-`http://127.0.0.1:8080/__proxyfor__/inspector` (admin token required) is the dashboard's
-Inspector page (`dashboard/src/views/inspector-page.tsx`); it is only served when the
-dashboard export (`dashboard/out`) is built in or `OUTRIDER_DASHBOARD_DIR` points at it. It connects to any
+`http://127.0.0.1:8080/__proxyfor__/traffic` streams unified HTTP(S), WebSocket and
+`/mcp` packets in a live split-pane inspector with protocol/status filtering, HAR
+export and cURL copy. `http://127.0.0.1:8080/__proxyfor__/inspector` is the
+embedded MCP 2026-07-28 Inspector (`dashboard/src/views/inspector-page.tsx`),
+served from the built-in `dashboard/out` export or `OUTRIDER_DASHBOARD_DIR`. It connects to any
 MCP server over Streamable HTTP or a stdio command, or to this gateway's own `/mcp`
 to see exactly what agents see. It lists and calls tools through forms generated from
 their schemas, reads resources and templates, gets prompts with completions, fetches
