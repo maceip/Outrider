@@ -496,7 +496,10 @@ impl Server {
                 }
                 let query = req.uri().query().unwrap_or_default();
                 self.handle_list_traffics(&mut res, query).await
-            } else if let Some(id) = path.strip_prefix("/traffic/") {
+            } else if let Some(id) = path
+                .strip_prefix("/traffic/")
+                .filter(|s| !s.is_empty() && s.bytes().all(|b| b.is_ascii_digit()))
+            {
                 if is_head {
                     *res.status_mut() = StatusCode::METHOD_NOT_ALLOWED;
                     return Ok(res);

@@ -148,6 +148,7 @@ async fn outrider_dashboard_dir_serves_static_export_and_preserves_api_routes() 
     let export_dir = workspace.path().join("out");
     std::fs::create_dir_all(export_dir.join("orders"))?;
     std::fs::create_dir_all(export_dir.join("inspector"))?;
+    std::fs::create_dir_all(export_dir.join("traffic"))?;
     std::fs::create_dir_all(export_dir.join("_next/static/chunks"))?;
     std::fs::create_dir_all(export_dir.join("_next/static/media"))?;
 
@@ -162,6 +163,14 @@ async fn outrider_dashboard_dir_serves_static_export_and_preserves_api_routes() 
     std::fs::write(
         export_dir.join("inspector/index.html"),
         "<!doctype html><html><head><title>Outrider</title></head><body>outrider-inspector-export</body></html>",
+    )?;
+    std::fs::write(
+        export_dir.join("traffic/index.html"),
+        "<!doctype html><html><head><title>Outrider</title></head><body>outrider-traffic-export</body></html>",
+    )?;
+    std::fs::write(
+        export_dir.join("traffic/index.txt"),
+        "0:[\"$\",\"div\",null,{\"children\":\"outrider-traffic-rsc\"}]\n",
     )?;
     std::fs::write(
         export_dir.join("settings.html"),
@@ -243,12 +252,14 @@ async fn outrider_dashboard_dir_serves_static_export_and_preserves_api_routes() 
         assert!(text.contains("outrider-home-export"));
     }
 
-    // Nested directory index routes (`/orders/`, `/orders`, `/inspector/`, `/inspector`) and `{trimmed}.html` (`/settings`, `/settings/`)
+    // Nested directory index routes (`/orders/`, `/orders`, `/inspector/`, `/inspector`, `/traffic/`, `/traffic`) and `{trimmed}.html` (`/settings`, `/settings/`)
     for (route, marker) in [
         ("/orders/", "outrider-orders-export"),
         ("/orders", "outrider-orders-export"),
         ("/inspector/", "outrider-inspector-export"),
         ("/inspector", "outrider-inspector-export"),
+        ("/traffic/", "outrider-traffic-export"),
+        ("/traffic", "outrider-traffic-export"),
         ("/settings", "outrider-settings-export"),
         ("/settings/", "outrider-settings-export"),
     ] {
@@ -268,6 +279,21 @@ async fn outrider_dashboard_dir_serves_static_export_and_preserves_api_routes() 
         );
         assert!(res.text().await?.contains(marker), "route {route}");
     }
+
+    // HEAD `/traffic/` and GET `/traffic/index.txt` (Next.js RSC flight payload) must route to static export, not numeric `handle_get_traffic`
+    let head_traffic_res = client.head(format!("{root_url}/traffic/")).send().await?;
+    assert_eq!(head_traffic_res.status(), 200);
+    let rsc_traffic_res = client
+        .get(format!("{root_url}/traffic/index.txt"))
+        .send()
+        .await?;
+    assert_eq!(rsc_traffic_res.status(), 200);
+    assert!(
+        rsc_traffic_res
+            .text()
+            .await?
+            .contains("outrider-traffic-rsc")
+    );
 
     // Immutable hashed Next.js JS asset
     let js_res = client
@@ -371,6 +397,31 @@ async fn outrider_dashboard_dir_serves_static_export_and_preserves_api_routes() 
     assert_eq!(traffics_res.status(), 200);
     let traffics_json: Value = traffics_res.json().await?;
     assert!(traffics_json.as_array().is_some_and(|arr| !arr.is_empty()));
+
+    // Numeric `/traffic/<id>` and `/traffic/<id>?har` API routes remain routed to `handle_get_traffic`
+    let first_id = traffics_json[0]["id"].as_u64().expect("numeric traffic id");
+    let traffic_detail_res = client
+        .get(format!("{root_url}/traffic/{first_id}"))
+        .send()
+        .await?;
+    assert_eq!(traffic_detail_res.status(), 200);
+    let traffic_detail_json: Value = traffic_detail_res.json().await?;
+    assert!(
+        traffic_detail_json["uri"]
+            .as_str()
+            .is_some_and(|u| u.ends_with("/hello"))
+    );
+    let traffic_har_res = client
+        .get(format!("{root_url}/traffic/{first_id}?har"))
+        .send()
+        .await?;
+    assert_eq!(traffic_har_res.status(), 200);
+    let traffic_har_json: Value = traffic_har_res.json().await?;
+    assert!(
+        traffic_har_json["log"]["entries"]
+            .as_array()
+            .is_some_and(|entries| entries.len() == 1)
+    );
 
     let cert_page = client
         .get(format!("{root_url}/certificate/"))

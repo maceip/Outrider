@@ -87,6 +87,8 @@ jobs:
               sys.exit("Unexpected legacy /zim export directory")
           required = [
               out / "index.html",
+              out / "traffic/index.html",
+              out / "inspector/index.html",
               out / "analytics/index.html",
               out / "orders/index.html",
               out / "settings/index.html",

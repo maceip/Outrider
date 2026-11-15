@@ -1,5 +1,6 @@
 import { test, expect, type Page } from "@playwright/test";
 import { spawn, type ChildProcess } from "node:child_process";
+import { createHash } from "node:crypto";
 import { chmod, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import http from "node:http";
 import net from "node:net";
@@ -111,21 +112,32 @@ async function startReleaseGateway(
   };
 }
 
-function sendProxiedHttpGet(
+function sendProxiedHttpRequest(
   proxyPort: number,
   targetUrl: string,
+  options: {
+    method?: string;
+    headers?: Record<string, string>;
+    body?: string;
+  } = {},
 ): Promise<{ statusCode: number; body: string }> {
   const parsed = new URL(targetUrl);
+  const method = options.method ?? "GET";
+  const bodyBuf =
+    options.body !== undefined ? Buffer.from(options.body, "utf8") : undefined;
+
   return new Promise((resolve, reject) => {
     const req = http.request(
       {
         host: "127.0.0.1",
         port: proxyPort,
-        method: "GET",
+        method,
         path: targetUrl,
         headers: {
           Host: parsed.host,
           Connection: "close",
+          ...(bodyBuf ? { "Content-Length": String(bodyBuf.length) } : {}),
+          ...options.headers,
         },
       },
       (res) => {
@@ -140,7 +152,119 @@ function sendProxiedHttpGet(
       },
     );
     req.on("error", reject);
+    if (bodyBuf) {
+      req.write(bodyBuf);
+    }
     req.end();
+  });
+}
+
+function sendProxiedHttpGet(
+  proxyPort: number,
+  targetUrl: string,
+): Promise<{ statusCode: number; body: string }> {
+  return sendProxiedHttpRequest(proxyPort, targetUrl, { method: "GET" });
+}
+
+function encodeMaskedWsTextFrame(text: string): Buffer {
+  const payload = Buffer.from(text, "utf8");
+  if (payload.length >= 126) {
+    throw new Error("Test helper expects short WS frame (< 126 bytes)");
+  }
+  const mask = Buffer.from([0x12, 0x34, 0x56, 0x78]);
+  const header = Buffer.from([0x81, 0x80 | payload.length]);
+  const masked = Buffer.alloc(payload.length);
+  for (let i = 0; i < payload.length; i++) {
+    masked[i] = payload[i]! ^ mask[i % 4]!;
+  }
+  return Buffer.concat([header, mask, masked]);
+}
+
+function encodeUnmaskedWsTextFrame(text: string): Buffer {
+  const payload = Buffer.from(text, "utf8");
+  if (payload.length >= 126) {
+    throw new Error("Test helper expects short WS frame (< 126 bytes)");
+  }
+  return Buffer.concat([Buffer.from([0x81, payload.length]), payload]);
+}
+
+function decodeSingleWsTextFrame(buf: Buffer): string | null {
+  if (buf.length < 2) return null;
+  const second = buf[1]!;
+  const isMasked = (second & 0x80) !== 0;
+  const len = second & 0x7f;
+  if (len >= 126) return null;
+  const headerLen = 2 + (isMasked ? 4 : 0);
+  if (buf.length < headerLen + len) return null;
+  const payload = Buffer.alloc(len);
+  if (isMasked) {
+    const mask = buf.subarray(2, 6);
+    for (let i = 0; i < len; i++) {
+      payload[i] = buf[headerLen + i]! ^ mask[i % 4]!;
+    }
+  } else {
+    buf.copy(payload, 0, headerLen, headerLen + len);
+  }
+  return payload.toString("utf8");
+}
+
+function sendProxiedWebSocketEcho(
+  proxyPort: number,
+  targetWsHttpUrl: string,
+  clientMessage: string,
+): Promise<{ echoed: string; closeSocket: () => void }> {
+  const parsed = new URL(targetWsHttpUrl);
+  return new Promise((resolve, reject) => {
+    const sock = net.createConnection({ host: "127.0.0.1", port: proxyPort });
+    let stage: "handshake" | "frame" | "done" = "handshake";
+    let buffer = Buffer.alloc(0);
+
+    sock.on("error", (err) => {
+      if (stage !== "done") reject(err);
+    });
+
+    sock.once("connect", () => {
+      const handshakeReq = [
+        `GET ${targetWsHttpUrl} HTTP/1.1`,
+        `Host: ${parsed.host}`,
+        "Upgrade: websocket",
+        "Connection: Upgrade",
+        "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==",
+        "Sec-WebSocket-Version: 13",
+        "",
+        "",
+      ].join("\r\n");
+      sock.write(handshakeReq);
+    });
+
+    sock.on("data", (chunk: Buffer) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      if (stage === "handshake") {
+        const headerEnd = buffer.indexOf("\r\n\r\n");
+        if (headerEnd === -1) return;
+        const headerStr = buffer.subarray(0, headerEnd).toString("utf8");
+        if (!headerStr.startsWith("HTTP/1.1 101")) {
+          reject(new Error(`Unexpected WS upgrade response: ${headerStr}`));
+          sock.destroy();
+          return;
+        }
+        buffer = buffer.subarray(headerEnd + 4);
+        stage = "frame";
+        sock.write(encodeMaskedWsTextFrame(clientMessage));
+      }
+      if (stage === "frame") {
+        const decoded = decodeSingleWsTextFrame(buffer);
+        if (decoded !== null) {
+          stage = "done";
+          resolve({
+            echoed: decoded,
+            closeSocket: () => {
+              sock.destroy();
+            },
+          });
+        }
+      }
+    });
   });
 }
 
@@ -224,7 +348,7 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
     expect(badResponses).toEqual([]);
 
     // =========================================================================
-    // (b) Zero Self-Pollution & Zero Fake Data / Jargon across all 5 routes
+    // (b) Zero Self-Pollution & Zero Fake Data / Jargon across all 7 routes
     // =========================================================================
     // 1. Dashboard (/)
     await expect(
@@ -238,7 +362,38 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
     ).toBeVisible();
     await assertCleanCopyAndZeroJargon(page, "Dashboard");
 
-    // 2. Analytics (/analytics/)
+    // 2. Traffic (/traffic/)
+    await clickSidebarLink(page, "Traffic");
+    await expect(page).toHaveURL(/\/__proxyfor__\/traffic\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Traffic" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("No Packets Captured", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("No Request Selected", { exact: true }),
+    ).toBeVisible();
+    await assertCleanCopyAndZeroJargon(page, "Traffic");
+
+    // 3. Inspector (/inspector/)
+    await clickSidebarLink(page, "Inspector");
+    await expect(page).toHaveURL(/\/__proxyfor__\/inspector\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Inspector" }),
+    ).toBeVisible();
+    await expect(page.locator('input[name="inspector-target"]')).toHaveValue(
+      new RegExp(`^http://(localhost|127\\.0\\.0\\.1):${gateway.port}/mcp$`),
+    );
+    await expect(
+      page.getByText("No Live Connection", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("No Wire Messages", { exact: true }),
+    ).toBeVisible();
+    await assertCleanCopyAndZeroJargon(page, "Inspector");
+
+    // 4. Analytics (/analytics/)
     await clickSidebarLink(page, "Analytics");
     await expect(page).toHaveURL(/\/__proxyfor__\/analytics\/?$/);
     await expect(
@@ -804,5 +959,451 @@ test("Desktop mode launches http://localhost:<port>/__proxyfor__/#bootstrap=<non
   } finally {
     await gateway.close();
     await rm(openerDir, { recursive: true, force: true });
+  }
+});
+
+test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and Wireshark Traffic Monitor (/traffic/) end-to-end", async ({
+  page,
+}) => {
+  const gateway = await startReleaseGateway();
+  let upstreamServer: http.Server | null = null;
+  let closeWsClient: (() => void) | null = null;
+  const openServerSockets = new Set<net.Socket>();
+
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const badResponses: string[] = [];
+
+  page.on("console", (msg) => {
+    if (msg.type() === "error") {
+      consoleErrors.push(msg.text());
+    }
+  });
+  page.on("pageerror", (err) => {
+    pageErrors.push(err.message);
+  });
+  page.on("response", (res) => {
+    if (res.status() >= 400) {
+      badResponses.push(
+        `${res.status()} ${res.request().method()} ${res.url()}`,
+      );
+    }
+  });
+
+  try {
+    // =========================================================================
+    // (a) Direct Static Load of All 7 Routes Clean & Zero Self-Pollution
+    // =========================================================================
+    const sevenRoutes: ReadonlyArray<{ path: string; heading: string }> = [
+      { path: "/", heading: "Dashboard" },
+      { path: "/traffic/", heading: "Traffic" },
+      { path: "/inspector/", heading: "Inspector" },
+      { path: "/analytics/", heading: "Analytics" },
+      { path: "/orders/", heading: "Orders" },
+      { path: "/settings/", heading: "Settings" },
+      { path: "/help/", heading: "Help" },
+    ];
+
+    for (const route of sevenRoutes) {
+      const response = await page.goto(
+        `${gateway.baseUrl}/__proxyfor__${route.path}`,
+      );
+      expect(response?.status(), `200 OK for ${route.path}`).toBe(200);
+      await expect(
+        page.getByRole("heading", { level: 1, name: route.heading }),
+      ).toBeVisible();
+      await assertCleanCopyAndZeroJargon(page, route.path);
+    }
+
+    const cleanTrafficsRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/traffics`,
+    );
+    expect(cleanTrafficsRes.status).toBe(200);
+    expect(((await cleanTrafficsRes.json()) as unknown[]).length).toBe(0);
+
+    const cleanSnapRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
+      { headers: { Authorization: `Bearer ${gateway.adminToken}` } },
+    );
+    expect(cleanSnapRes.status).toBe(200);
+    const cleanSnap = (await cleanSnapRes.json()) as {
+      fingerprint_observations: unknown[];
+    };
+    expect(cleanSnap.fingerprint_observations.length).toBe(0);
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    expect(badResponses).toEqual([]);
+
+    // =========================================================================
+    // (b) MCP Inspector 2-Pane Surface (/inspector/)
+    // =========================================================================
+    await clickSidebarLink(page, "Inspector");
+    await expect(page).toHaveURL(/\/__proxyfor__\/inspector\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Inspector" }),
+    ).toBeVisible();
+
+    const targetInput = page.locator('input[name="inspector-target"]');
+    await expect(targetInput).toHaveValue(
+      new RegExp(`^http://(localhost|127\\.0\\.0\\.1):${gateway.port}/mcp$`),
+    );
+
+    // Click "Connect" -> status becomes "Connected", Tools populate, Wire Log records handshake
+    await page.getByRole("button", { name: "Connect", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Disconnect", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.locator("form").getByText("Connected", { exact: true }),
+    ).toBeVisible();
+
+    // Assert Tools tab populates real gateway tools (outrider_catalog & outrider_checkout_bundle)
+    const toolsPanel = page.getByRole("tabpanel", { name: "Tools" });
+    const toolSelectBtn = toolsPanel.locator('[data-slot="select-trigger"]');
+    await expect(toolSelectBtn).toContainText("outrider_catalog");
+
+    await toolSelectBtn.click();
+    await expect(
+      page.getByRole("option", { name: /outrider_catalog\b/ }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("option", { name: /outrider_checkout_bundle\b/ }),
+    ).toBeVisible();
+    await page
+      .getByRole("option", { name: /outrider_catalog\b/ })
+      .first()
+      .click();
+
+    // Assert Wire Log right pane records handshake frame & displays handshake payload in CodeBlock
+    await expect(page.getByText("Wire Log", { exact: true })).toBeVisible();
+    const handshakeFrameBtn = page.getByRole("button", {
+      name: /<-\s*handshake/,
+    });
+    await expect(handshakeFrameBtn).toBeVisible();
+    await handshakeFrameBtn.click();
+    await expect(page.locator("pre, code").last()).toContainText(
+      "protocolVersion",
+    );
+
+    // Run real tool (outrider_catalog) via "Run Tool" and verify request & response frames in Wire Log CodeBlock
+    await toolsPanel
+      .getByRole("button", { name: "Run Tool", exact: true })
+      .click();
+    const toolCallReqBtn = page.getByRole("button", {
+      name: /->\s*tools\/call/,
+    });
+    const toolCallResBtn = page.getByRole("button", {
+      name: /<-\s*tools\/call/,
+    });
+    await expect(toolCallReqBtn).toBeVisible();
+    await expect(toolCallResBtn).toBeVisible();
+
+    await toolCallReqBtn.click();
+    await expect(page.locator("pre, code").last()).toContainText(
+      "outrider_catalog",
+    );
+
+    await toolCallResBtn.click();
+    await expect(page.locator("pre, code").last()).toContainText("content");
+
+    // Switch to Raw tab and run "ping" via "Send Request"
+    const explorerTabs = page.getByRole("tablist", {
+      name: "MCP Inspector Explorer",
+    });
+    await explorerTabs.getByRole("tab", { name: "Raw", exact: true }).click();
+    const rawPanel = page.getByRole("tabpanel", { name: "Raw" });
+    await expect(
+      rawPanel.locator('input[name="inspector-raw-method"]'),
+    ).toHaveValue("ping");
+    await rawPanel
+      .getByRole("button", { name: "Send Request", exact: true })
+      .click();
+
+    const pingReqBtn = page.getByRole("button", { name: /->\s*ping/ });
+    const pingResBtn = page.getByRole("button", { name: /<-\s*ping/ });
+    await expect(pingReqBtn).toBeVisible();
+    await expect(pingResBtn).toBeVisible();
+    await pingReqBtn.click();
+    await expect(page.locator("pre, code").last()).toContainText('"ping"');
+    await pingResBtn.click();
+    await expect(page.locator("pre, code").last()).toContainText("{");
+
+    // Click "Disconnect" and verify clean "Disconnected" transition
+    await page.getByRole("button", { name: "Disconnect", exact: true }).click();
+    await expect(
+      page.getByRole("button", { name: "Connect", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.locator("form").getByText("Disconnected", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("No Live Connection", { exact: true }),
+    ).toBeVisible();
+    await assertCleanCopyAndZeroJargon(page, "Inspector (after session)");
+
+    // =========================================================================
+    // (c) Wireshark Traffic Monitor Top/Bottom Split (/traffic/)
+    // =========================================================================
+    // Spin up ephemeral local HTTP + WebSocket echo server
+    upstreamServer = http.createServer((req, res) => {
+      if (req.method === "POST" && req.url === "/e2e-json-echo") {
+        let rawBody = "";
+        req.setEncoding("utf8");
+        req.on("data", (chunk) => {
+          rawBody += chunk;
+        });
+        req.on("end", () => {
+          let parsedBody: unknown = rawBody;
+          try {
+            parsedBody = JSON.parse(rawBody);
+          } catch {
+            // Keep raw string if non-JSON
+          }
+          res.writeHead(201, {
+            "Content-Type": "application/json",
+            "X-Outrider-Echo": "verified",
+          });
+          res.end(
+            JSON.stringify({
+              echoed: parsedBody,
+              ok: true,
+            }),
+          );
+        });
+        return;
+      }
+      res.writeHead(404, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ error: "missing_item" }));
+    });
+
+    upstreamServer.on("connection", (sock) => {
+      openServerSockets.add(sock);
+      sock.on("close", () => openServerSockets.delete(sock));
+    });
+
+    upstreamServer.on("upgrade", (req, socket) => {
+      const wsSocket = socket as net.Socket;
+      openServerSockets.add(wsSocket);
+      wsSocket.on("close", () => openServerSockets.delete(wsSocket));
+
+      const wsKey = String(req.headers["sec-websocket-key"] ?? "");
+      const acceptKey = createHash("sha1")
+        .update(`${wsKey}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+        .digest("base64");
+      wsSocket.write(
+        [
+          "HTTP/1.1 101 Switching Protocols",
+          "Upgrade: websocket",
+          "Connection: Upgrade",
+          `Sec-WebSocket-Accept: ${acceptKey}`,
+          "",
+          "",
+        ].join("\r\n"),
+      );
+
+      let wsBuf = Buffer.alloc(0);
+      wsSocket.on("data", (chunk: Buffer) => {
+        wsBuf = Buffer.concat([wsBuf, chunk]);
+        const msg = decodeSingleWsTextFrame(wsBuf);
+        if (msg !== null) {
+          wsBuf = Buffer.alloc(0);
+          wsSocket.write(
+            encodeUnmaskedWsTextFrame(
+              JSON.stringify({ ws_server_echo: JSON.parse(msg) }),
+            ),
+          );
+        }
+      });
+    });
+
+    await new Promise<void>((resolve) =>
+      upstreamServer!.listen(0, "127.0.0.1", resolve),
+    );
+    const upstreamPort = (upstreamServer.address() as net.AddressInfo).port;
+    const httpPostUrl = `http://127.0.0.1:${upstreamPort}/e2e-json-echo`;
+    const http404Url = `http://127.0.0.1:${upstreamPort}/e2e-not-found`;
+    const wsEchoUrl = `http://127.0.0.1:${upstreamPort}/ws-echo`;
+
+    // 1. Send proxied HTTP POST with JSON body
+    const postRes = await sendProxiedHttpRequest(gateway.port, httpPostUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order_id: "ord_phoenix_99", amount: 42 }),
+    });
+    expect(postRes.statusCode).toBe(201);
+    expect(JSON.parse(postRes.body)).toEqual({
+      echoed: { order_id: "ord_phoenix_99", amount: 42 },
+      ok: true,
+    });
+
+    // 2. Send proxied HTTP 404 GET (for Status 4xx dropdown verification)
+    const notFoundRes = await sendProxiedHttpGet(gateway.port, http404Url);
+    expect(notFoundRes.statusCode).toBe(404);
+
+    // 3. Send proxied WebSocket upgrade + JSON frame echo
+    const wsSession = await sendProxiedWebSocketEcho(
+      gateway.port,
+      wsEchoUrl,
+      JSON.stringify({ ws_client_hello: "outrider_packet" }),
+    );
+    closeWsClient = wsSession.closeSocket;
+    expect(JSON.parse(wsSession.echoed)).toEqual({
+      ws_server_echo: { ws_client_hello: "outrider_packet" },
+    });
+
+    // Navigate to /traffic/ and verify MCP (from /inspector/), HTTP POST, and WebSocket rows in DataGrid
+    await clickSidebarLink(page, "Traffic");
+    await expect(page).toHaveURL(/\/__proxyfor__\/traffic\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Traffic" }),
+    ).toBeVisible();
+    await expect(page.getByText("Unable to reach local gateway")).toHaveCount(
+      0,
+    );
+
+    const packetGrid = page.getByRole("grid", { name: "Live packet stream" });
+    const packetDataRows = packetGrid
+      .getByRole("row")
+      .filter({ hasNot: page.getByRole("columnheader") });
+
+    await expect(packetGrid).toContainText("/mcp");
+    await expect(packetGrid).toContainText(httpPostUrl);
+    await expect(packetGrid).toContainText(wsEchoUrl);
+
+    // Test <Segment> protocol filter: MCP, HTTP, WebSocket, All
+    const protocolSegment = page.locator('[aria-label="Filter by protocol"]');
+
+    await protocolSegment.getByText("MCP", { exact: true }).click();
+    await expect(packetGrid).toContainText("/mcp");
+    await expect(packetGrid).not.toContainText(httpPostUrl);
+    await expect(packetGrid).not.toContainText(wsEchoUrl);
+
+    await protocolSegment.getByText("HTTP", { exact: true }).click();
+    await expect(packetDataRows).toHaveCount(2);
+    await expect(packetGrid).toContainText(httpPostUrl);
+    await expect(packetGrid).toContainText(http404Url);
+    await expect(packetGrid).not.toContainText("/mcp");
+    await expect(packetGrid).not.toContainText(wsEchoUrl);
+
+    await protocolSegment.getByText("WebSocket", { exact: true }).click();
+    await expect(packetDataRows).toHaveCount(1);
+    await expect(packetGrid).toContainText(wsEchoUrl);
+    await expect(packetGrid).toContainText("WS");
+
+    await protocolSegment.getByText("All", { exact: true }).click();
+    await expect(packetGrid).toContainText("/mcp");
+    await expect(packetGrid).toContainText(httpPostUrl);
+    await expect(packetGrid).toContainText(wsEchoUrl);
+
+    // Test <SearchField>
+    const filterInput = page.getByPlaceholder(
+      "Filter by host, path, method, or status...",
+    );
+    await filterInput.fill("e2e-json-echo");
+    await expect(packetDataRows).toHaveCount(1);
+    await expect(packetGrid).toContainText(httpPostUrl);
+    await filterInput.fill("");
+    await expect(packetGrid).toContainText("/mcp");
+
+    // Test Status dropdown (4xx -> 2xx -> All)
+    await page.getByRole("button", { name: "Status", exact: true }).click();
+    await page.getByRole("menuitemradio", { name: "4xx", exact: true }).click();
+    await expect(packetGrid).toContainText(http404Url);
+    await expect(packetGrid).not.toContainText(httpPostUrl);
+    await expect(packetGrid).not.toContainText(wsEchoUrl);
+
+    await page.getByRole("button", { name: "4xx", exact: true }).click();
+    await page.getByRole("menuitemradio", { name: "2xx", exact: true }).click();
+    await expect(packetGrid).toContainText(httpPostUrl);
+    await expect(packetGrid).toContainText("/mcp");
+    await expect(packetGrid).not.toContainText(http404Url);
+
+    await page.getByRole("button", { name: "2xx", exact: true }).click();
+    await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
+
+    // Click a captured 200 OK /mcp POST row in the top DataGrid -> inspect Request & Response in bottom Resizable pane
+    const mcpPostRow = packetDataRows
+      .filter({ hasText: "/mcp" })
+      .filter({ hasText: "POST" })
+      .filter({ hasText: "200" })
+      .first();
+    await mcpPostRow.click();
+
+    const detailTabs = page.getByRole("tablist", {
+      name: "Packet inspector sections",
+    });
+    const reqPanel = page.getByRole("tabpanel", { name: "Request" });
+    await expect(reqPanel).toContainText("content-type");
+    await expect(reqPanel).toContainText("application/json");
+    await expect(reqPanel).toContainText('"jsonrpc": "2.0"');
+
+    await detailTabs
+      .getByRole("tab", { name: "Response", exact: true })
+      .click();
+    const resPanel = page.getByRole("tabpanel", { name: "Response" });
+    await expect(resPanel).toContainText("Headers");
+    await expect(resPanel).toContainText('"jsonrpc"');
+
+    // Click the captured HTTP POST row -> inspect Request JSON body, Response JSON body, Copy cURL, & Download HAR
+    await detailTabs.getByRole("tab", { name: "Request", exact: true }).click();
+    await packetDataRows.filter({ hasText: "e2e-json-echo" }).first().click();
+    await expect(reqPanel).toContainText("ord_phoenix_99");
+
+    await detailTabs
+      .getByRole("tab", { name: "Response", exact: true })
+      .click();
+    await expect(resPanel).toContainText("x-outrider-echo");
+    await expect(resPanel).toContainText("ord_phoenix_99");
+
+    await page.getByRole("button", { name: "Copy cURL", exact: true }).click();
+    await expect(
+      page.getByText("Copied cURL command", { exact: true }),
+    ).toBeVisible();
+    const detailCurl = await page.evaluate(() =>
+      navigator.clipboard.readText(),
+    );
+    expect(detailCurl).toContain("curl");
+    expect(detailCurl).toContain("e2e-json-echo");
+
+    const singleHarPromise = page.waitForEvent("download");
+    await page
+      .getByRole("button", { name: "Download HAR", exact: true })
+      .click();
+    const singleHarDownload = await singleHarPromise;
+    expect(singleHarDownload.suggestedFilename()).toMatch(/^traffic-\d+\.har$/);
+
+    // Select captured WebSocket row -> switch to WebSocket tab & assert live bidirectional frames in CodeBlock
+    await packetDataRows.filter({ hasText: "ws-echo" }).first().click();
+    await detailTabs
+      .getByRole("tab", { name: "WebSocket", exact: true })
+      .click();
+    const wsPanel = page.getByRole("tabpanel", { name: "WebSocket" });
+    await expect(wsPanel).toContainText("Client -> Server");
+    await expect(wsPanel).toContainText("outrider_packet");
+    await expect(wsPanel).toContainText("Server -> Client");
+    await expect(wsPanel).toContainText("ws_server_echo");
+
+    await assertCleanCopyAndZeroJargon(page, "Traffic (populated)");
+    await expect(page.getByText("Unable to reach local gateway")).toHaveCount(
+      0,
+    );
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    expect(badResponses).toEqual([]);
+  } finally {
+    if (closeWsClient) {
+      closeWsClient();
+    }
+    for (const sock of openServerSockets) {
+      sock.destroy();
+    }
+    if (upstreamServer) {
+      await new Promise<void>((resolve) =>
+        upstreamServer!.close(() => resolve()),
+      );
+    }
+    await gateway.close();
   }
 });
