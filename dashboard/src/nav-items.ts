@@ -1,6 +1,14 @@
 import type {ComponentType} from "react";
 
-import {ChartColumn, CircleQuestion, Gear, House, Receipt} from "@gravity-ui/icons";
+import {
+  ArrowRightArrowLeft,
+  ChartColumn,
+  CircleQuestion,
+  Gear,
+  House,
+  Receipt,
+  Terminal,
+} from "@gravity-ui/icons";
 
 export type NavItem = {
   readonly href: string;
@@ -11,6 +19,8 @@ export type NavItem = {
 
 export const NAV_ITEMS: readonly NavItem[] = [
   {href: "/", icon: House, label: "Dashboard"},
+  {href: "/traffic", icon: ArrowRightArrowLeft, label: "Traffic"},
+  {href: "/inspector", icon: Terminal, label: "Inspector"},
   {href: "/analytics", icon: ChartColumn, label: "Analytics"},
   {href: "/orders", icon: Receipt, label: "Orders"},
   {href: "/settings", icon: Gear, label: "Settings"},

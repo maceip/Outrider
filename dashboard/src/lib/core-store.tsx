@@ -5,6 +5,7 @@ import type {
   CommerceStatus,
   DashboardPeriod,
   DashboardTab,
+  InspectorState,
   TimeRange,
   TrafficDetail,
   TrafficHead,
@@ -32,6 +33,7 @@ export interface CoreStoreValue {
   snapshot: CommerceSnapshot | null;
   connected: boolean;
   busy: boolean;
+  eventsVersion: number;
   timeRange: TimeRange;
   setTimeRange: (range: TimeRange) => void;
   dashboardPeriod: DashboardPeriod;
@@ -41,8 +43,10 @@ export interface CoreStoreValue {
   refresh: () => Promise<void>;
   refreshTraffics: () => Promise<void>;
   fetchTrafficDetail: (id: number) => Promise<TrafficDetail>;
+  fetchInspectorState: (connectionId?: string | null, after?: number) => Promise<InspectorState>;
   mutate: <T = unknown>(path: string, body: unknown) => Promise<T>;
   exportHar: () => void;
+  downloadTrafficHar: (id: number) => Promise<void>;
   copyTrafficCurl: (id: number) => Promise<void>;
 }
 
@@ -130,6 +134,7 @@ export function CoreProvider({children}: {children: ReactNode}) {
   const [snapshot, setSnapshot] = useState<CommerceSnapshot | null>(null);
   const [connected, setConnected] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [eventsVersion, setEventsVersion] = useState(0);
   const [timeRange, setTimeRange] = useState<TimeRange>("ALL");
   const [dashboardPeriod, setDashboardPeriod] = useState<DashboardPeriod>("monthly");
   const [dashboardTab, setDashboardTab] = useState<DashboardTab>("overview");
@@ -442,6 +447,72 @@ export function CoreProvider({children}: {children: ReactNode}) {
     return (await response.json()) as TrafficDetail;
   }, []);
 
+  const fetchInspectorState = useCallback(
+    async (connectionId?: string | null, after?: number): Promise<InspectorState> => {
+      const params = new URLSearchParams();
+
+      if (connectionId) {
+        params.set("connection_id", connectionId);
+      }
+      if (typeof after === "number" && Number.isFinite(after)) {
+        params.set("after", String(Math.trunc(after)));
+      }
+      const query = params.toString();
+      const url = `${COMMERCE_API_BASE}/inspector/state${query ? `?${query}` : ""}`;
+
+      try {
+        let bearer = tokenRef.current || (await ensureAuthenticated());
+
+        if (!bearer) {
+          const message = "401: Admin session unavailable";
+
+          toast.danger(message);
+          throw new Error(message);
+        }
+
+        let response = await fetch(url, {
+          cache: "no-store",
+          headers: {
+            Authorization: `Bearer ${bearer}`,
+          },
+        });
+
+        if (response.status === 401 || response.status === 403) {
+          tokenRef.current = "";
+          writeStoredToken("");
+          bearer = await ensureAuthenticated();
+          if (bearer) {
+            response = await fetch(url, {
+              cache: "no-store",
+              headers: {
+                Authorization: `Bearer ${bearer}`,
+              },
+            });
+          }
+        }
+
+        if (!response.ok) {
+          const message = await parseErrorMessage(response);
+
+          toast.danger(message);
+          throw new Error(message);
+        }
+
+        const state = (await response.json()) as InspectorState;
+
+        markConnected();
+
+        return state;
+      } catch (error) {
+        if (error instanceof TypeError) {
+          markDisconnected("Unable to reach local gateway");
+        }
+        throw error;
+      }
+    },
+    [ensureAuthenticated, markConnected, markDisconnected],
+  );
+
   const mutate = useCallback(
     async <T = unknown>(path: string, body: unknown): Promise<T> => {
       const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -539,6 +610,34 @@ export function CoreProvider({children}: {children: ReactNode}) {
         toast.danger(message);
       }
     })();
+  }, []);
+
+  const downloadTrafficHar = useCallback(async (id: number): Promise<void> => {
+    try {
+      const response = await fetch(`${PROXYFOR_BASE}/traffic/${id}?har`, {cache: "no-store"});
+
+      if (!response.ok) {
+        const text = await response.text().catch(() => "");
+
+        throw new Error(text || `Failed to download packet HAR (${response.status})`);
+      }
+      const harContent = await response.text();
+      const blob = new Blob([harContent], {type: "application/json; charset=utf-8"});
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+
+      link.href = url;
+      link.download = `traffic-${id}.har`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      toast.success("Downloaded packet HAR");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Failed to download packet HAR";
+
+      toast.danger(message);
+    }
   }, []);
 
   const copyTrafficCurl = useCallback(async (id: number): Promise<void> => {
@@ -678,6 +777,7 @@ export function CoreProvider({children}: {children: ReactNode}) {
             const {done} = await reader.read();
 
             if (done) break;
+            setEventsVersion((v) => v + 1);
             scheduleSnapshotRefresh();
           }
         } catch (error) {
@@ -754,7 +854,10 @@ export function CoreProvider({children}: {children: ReactNode}) {
       copyTrafficCurl,
       dashboardPeriod,
       dashboardTab,
+      downloadTrafficHar,
+      eventsVersion,
       exportHar,
+      fetchInspectorState,
       fetchTrafficDetail,
       mutate,
       refresh,
@@ -773,7 +876,10 @@ export function CoreProvider({children}: {children: ReactNode}) {
       copyTrafficCurl,
       dashboardPeriod,
       dashboardTab,
+      downloadTrafficHar,
+      eventsVersion,
       exportHar,
+      fetchInspectorState,
       fetchTrafficDetail,
       mutate,
       refresh,

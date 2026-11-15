@@ -45,6 +45,16 @@ export interface TrafficDetail {
   error: string | null;
 }
 
+export interface WebsocketFrameData {
+  create: string;
+  server_to_client: boolean;
+  body: TrafficBody;
+}
+
+export type WebsocketFrameMessage =
+  | {data: {create: string; server_to_client: boolean; body: TrafficBody}}
+  | {error: string};
+
 export type TimeRange = "5M" | "1H" | "24H" | "ALL";
 
 export type DashboardPeriod = "daily" | "weekly" | "monthly" | "yearly";
@@ -285,7 +295,7 @@ export interface ProxyWebsocketMessage {
   id: number;
   run_id: string;
   websocket_id: number;
-  message: Record<string, unknown>;
+  message: WebsocketFrameMessage | Record<string, unknown>;
   created_at: number;
 }
 
