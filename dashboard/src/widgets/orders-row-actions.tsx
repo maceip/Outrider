@@ -1,19 +1,60 @@
 "use client";
 
-import {Eye} from "@gravity-ui/icons";
+import {Ban, Copy, EllipsisVertical} from "@gravity-ui/icons";
+import {Button, Dropdown, Label, toast} from "@heroui/react";
 
-import {IconButton} from "../components/icon-button";
+import {useCoreStore} from "../lib/core-store";
 
 export interface OrdersRowActionsProps {
-  orderId: string;
+  receiptId: string;
+  isRevoked: boolean;
 }
 
-export function OrdersRowActions({orderId}: OrdersRowActionsProps) {
+export function OrdersRowActions({isRevoked, receiptId}: OrdersRowActionsProps) {
+  const {busy, mutate} = useCoreStore();
+
   return (
-    <div className="flex items-center justify-end gap-0.5" data-order-id={orderId}>
-      <IconButton isDisabled label="View receipt" size="sm" variant="tertiary">
-        <Eye className="size-4" />
-      </IconButton>
+    <div className="flex items-center justify-end" data-receipt-id={receiptId}>
+      <Dropdown>
+        <Button isIconOnly aria-label="Receipt actions" size="sm" variant="ghost">
+          <EllipsisVertical className="size-4" />
+        </Button>
+        <Dropdown.Popover className="min-w-[160px]" placement="bottom end">
+          <Dropdown.Menu
+            disabledKeys={isRevoked || busy ? ["revoke"] : []}
+            onAction={(key) => {
+              if (key === "copy") {
+                void (async () => {
+                  try {
+                    await navigator.clipboard.writeText(receiptId);
+                    toast.success("Copied receipt ID");
+                  } catch {
+                    toast.danger("Failed to copy receipt ID");
+                  }
+                })();
+              } else if (key === "revoke" && !isRevoked) {
+                void (async () => {
+                  try {
+                    await mutate("/receipts/revoke", {receipt_id: receiptId});
+                    toast.success("Receipt revoked");
+                  } catch {
+                    // Error toast is handled by mutate().
+                  }
+                })();
+              }
+            }}
+          >
+            <Dropdown.Item id="copy" textValue="Copy ID">
+              <Copy className="size-4" />
+              <Label>Copy ID</Label>
+            </Dropdown.Item>
+            <Dropdown.Item id="revoke" textValue="Revoke" variant="danger">
+              <Ban className="text-danger size-4" />
+              <Label>Revoke</Label>
+            </Dropdown.Item>
+          </Dropdown.Menu>
+        </Dropdown.Popover>
+      </Dropdown>
     </div>
   );
 }

@@ -1,37 +1,45 @@
 "use client";
 
+import type {CapabilityReceiptRow} from "../lib/types";
 import type {DataGridColumn} from "@heroui-pro/react";
 
-import {Avatar, Chip, SearchField} from "@heroui/react";
-import {DataGrid, NumberValue} from "@heroui-pro/react";
-import {useMemo} from "react";
+import {Calendar, Funnel} from "@gravity-ui/icons";
+import {Avatar, Button, Chip, Dropdown, Label, SearchField} from "@heroui/react";
+import {DataGrid, EmptyState} from "@heroui-pro/react";
+import {useMemo, useState} from "react";
 
+import {useCoreStore} from "../lib/core-store";
 import {OrdersRowActions} from "../widgets/orders-row-actions";
 
-export type OrderStatus = "Paid" | "Pending" | "Refunded" | "Failed";
+type ReceiptStatus = "Active" | "Revoked" | "Exhausted";
+type StatusFilter = "all" | "active" | "revoked" | "exhausted";
+type DateFilter = "all" | "7d" | "30d" | "90d";
 
-export type Order = {
-  id: string;
-  orderId: string;
-  customer: {
-    name: string;
-    email: string;
-    avatar?: string;
-  };
-  status: OrderStatus;
-  total: number;
-  currency: string;
-  date: string;
+const STATUS_COLORS: Record<ReceiptStatus, "success" | "danger" | "default"> = {
+  Active: "success",
+  Exhausted: "default",
+  Revoked: "danger",
 };
 
-const STATUS_COLORS: Record<OrderStatus, "success" | "warning" | "default" | "danger"> = {
-  Failed: "danger",
-  Paid: "success",
-  Pending: "warning",
-  Refunded: "default",
+const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
+  active: "Active",
+  all: "All",
+  exhausted: "Exhausted",
+  revoked: "Revoked",
 };
 
-const ORDERS: readonly Order[] = [];
+const DATE_FILTER_LABELS: Record<DateFilter, string> = {
+  "30d": "Last 30 days",
+  "7d": "Last 7 days",
+  "90d": "Last 90 days",
+  all: "All time",
+};
+
+const DATE_FILTER_SECONDS: Record<Exclude<DateFilter, "all">, number> = {
+  "30d": 30 * 86_400,
+  "7d": 7 * 86_400,
+  "90d": 90 * 86_400,
+};
 
 const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
   day: "numeric",
@@ -39,86 +47,144 @@ const DATE_FORMAT_OPTIONS: Intl.DateTimeFormatOptions = {
   year: "numeric",
 };
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString("en-US", DATE_FORMAT_OPTIONS);
+function getReceiptStatus(row: CapabilityReceiptRow): ReceiptStatus {
+  if (row.revoked !== 0) return "Revoked";
+  if (row.remaining_calls <= 0) return "Exhausted";
+
+  return "Active";
+}
+
+function getSubjectInitials(subject: string): string {
+  const parts = subject
+    .trim()
+    .split(/[\s:._/-]+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return "OR";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+}
+
+function formatIssuedDate(unixSeconds: number): string {
+  return new Date(unixSeconds * 1000).toLocaleDateString("en-US", DATE_FORMAT_OPTIONS);
 }
 
 export function OrdersPage() {
-  const columns = useMemo<DataGridColumn<Order>[]>(
+  const {snapshot} = useCoreStore();
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+  const [dateRange, setDateRange] = useState<{cutoffSeconds: number | null; id: DateFilter}>({
+    cutoffSeconds: null,
+    id: "all",
+  });
+
+  const receipts = useMemo(() => snapshot?.capability_receipts ?? [], [snapshot]);
+
+  const filteredReceipts = useMemo(() => {
+    const query = search.trim().toLowerCase();
+    const {cutoffSeconds} = dateRange;
+
+    return receipts.filter((row) => {
+      if (statusFilter !== "all") {
+        const status = getReceiptStatus(row).toLowerCase();
+
+        if (status !== statusFilter) return false;
+      }
+
+      if (cutoffSeconds !== null && row.created_at < cutoffSeconds) {
+        return false;
+      }
+
+      if (query) {
+        const matchesQuery =
+          row.receipt_id.toLowerCase().includes(query) ||
+          row.bundle_id.toLowerCase().includes(query) ||
+          row.subject.toLowerCase().includes(query);
+
+        if (!matchesQuery) return false;
+      }
+
+      return true;
+    });
+  }, [dateRange, receipts, search, statusFilter]);
+
+  const columns = useMemo<DataGridColumn<CapabilityReceiptRow>[]>(
     () => [
       {
-        accessorKey: "orderId",
+        accessorKey: "receipt_id",
         allowsSorting: true,
-        cell: (item) => <span className="font-medium tabular-nums">{item.orderId}</span>,
-        header: "Order ID",
-        id: "orderId",
+        cell: (item) => <span className="font-medium tabular-nums">{item.receipt_id}</span>,
+        header: "Receipt ID",
+        id: "receipt_id",
         isRowHeader: true,
-        minWidth: 140,
+        minWidth: 160,
       },
       {
-        accessorKey: "customer",
+        accessorKey: "subject",
+        allowsSorting: true,
         cell: (item) => (
           <div className="flex items-center gap-3">
             <Avatar className="size-8">
-              <Avatar.Fallback>
-                {item.customer.name
-                  .split(" ")
-                  .map((part) => part[0])
-                  .join("")}
-              </Avatar.Fallback>
+              <Avatar.Fallback>{getSubjectInitials(item.subject)}</Avatar.Fallback>
             </Avatar>
             <div className="flex min-w-0 flex-col">
-              <span className="text-xs font-medium">{item.customer.name}</span>
-              <span className="text-muted text-xs">{item.customer.email}</span>
+              <span className="truncate text-xs font-medium">{item.subject}</span>
+              <span className="text-muted truncate text-xs">{item.bundle_id}</span>
             </div>
           </div>
         ),
-        header: "Customer",
-        id: "customer",
+        header: "Subject & Bundle",
+        id: "subject",
         minWidth: 220,
       },
       {
-        accessorKey: "status",
         allowsSorting: true,
-        cell: (item) => (
-          <Chip color={STATUS_COLORS[item.status]} size="sm" variant="soft">
-            {item.status}
-          </Chip>
-        ),
+        cell: (item) => {
+          const receiptStatus = getReceiptStatus(item);
+
+          return (
+            <Chip color={STATUS_COLORS[receiptStatus]} size="sm" variant="soft">
+              {receiptStatus}
+            </Chip>
+          );
+        },
         header: "Status",
         id: "status",
         minWidth: 120,
+        sortFn: (a, b) => getReceiptStatus(a).localeCompare(getReceiptStatus(b)),
       },
       {
-        accessorKey: "total",
         allowsSorting: true,
         cell: (item) => (
-          <NumberValue
-            className="tabular-nums"
-            currency={item.currency}
-            maximumFractionDigits={2}
-            style="currency"
-            value={item.total}
-          />
+          <span className="tabular-nums">
+            {item.remaining_calls} / {item.max_calls}
+          </span>
         ),
-        header: "Total",
-        id: "total",
+        header: "Calls",
+        id: "calls",
         minWidth: 120,
+        sortFn: (a, b) => a.remaining_calls - b.remaining_calls,
       },
       {
-        accessorKey: "date",
+        accessorKey: "created_at",
         allowsSorting: true,
-        cell: (item) => <span className="text-muted tabular-nums">{formatDate(item.date)}</span>,
-        header: "Date",
-        id: "date",
+        cell: (item) => (
+          <span className="text-muted tabular-nums">{formatIssuedDate(item.created_at)}</span>
+        ),
+        header: "Issued",
+        id: "created_at",
         minWidth: 140,
+        sortFn: (a, b) => a.created_at - b.created_at,
       },
       {
         align: "end",
-        cell: (item) => <OrdersRowActions orderId={item.id} />,
+        cell: (item) => (
+          <OrdersRowActions isRevoked={item.revoked !== 0} receiptId={item.receipt_id} />
+        ),
         header: "Actions",
         id: "actions",
-        minWidth: 140,
+        minWidth: 100,
       },
     ],
     [],
@@ -126,22 +192,121 @@ export function OrdersPage() {
 
   return (
     <div className="mx-auto flex max-w-7xl flex-col gap-4 px-5 pb-10 pt-4">
+      <p className="text-muted text-sm">Manage issued receipts and bundle access.</p>
+
       <div className="flex flex-wrap items-center gap-2">
-        <SearchField className="w-full sm:w-[240px]" name="orders-search" variant="secondary">
+        <SearchField
+          aria-label="Search receipts"
+          className="w-full sm:w-[240px]"
+          name="orders-search"
+          value={search}
+          variant="secondary"
+          onChange={setSearch}
+        >
           <SearchField.Group>
             <SearchField.SearchIcon />
-            <SearchField.Input placeholder="Search..." />
+            <SearchField.Input placeholder="Search receipts..." />
             <SearchField.ClearButton />
           </SearchField.Group>
         </SearchField>
+
+        <Dropdown>
+          <Button size="sm" variant="secondary">
+            <Funnel className="size-4" />
+            {statusFilter === "all" ? "Status" : STATUS_FILTER_LABELS[statusFilter]}
+          </Button>
+          <Dropdown.Popover>
+            <Dropdown.Menu
+              selectedKeys={new Set([statusFilter])}
+              selectionMode="single"
+              onSelectionChange={(keys) => {
+                const next = [...keys][0];
+
+                setStatusFilter(typeof next === "string" ? (next as StatusFilter) : "all");
+              }}
+            >
+              <Dropdown.Item id="all" textValue="All">
+                <Label>All</Label>
+                <Dropdown.ItemIndicator />
+              </Dropdown.Item>
+              <Dropdown.Item id="active" textValue="Active">
+                <Label>Active</Label>
+                <Dropdown.ItemIndicator />
+              </Dropdown.Item>
+              <Dropdown.Item id="revoked" textValue="Revoked">
+                <Label>Revoked</Label>
+                <Dropdown.ItemIndicator />
+              </Dropdown.Item>
+              <Dropdown.Item id="exhausted" textValue="Exhausted">
+                <Label>Exhausted</Label>
+                <Dropdown.ItemIndicator />
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
+
+        <Dropdown>
+          <Button size="sm" variant="secondary">
+            <Calendar className="size-4" />
+            {dateRange.id === "all" ? "Date range" : DATE_FILTER_LABELS[dateRange.id]}
+          </Button>
+          <Dropdown.Popover>
+            <Dropdown.Menu
+              selectedKeys={new Set([dateRange.id])}
+              selectionMode="single"
+              onSelectionChange={(keys) => {
+                const next = [...keys][0];
+                const nextId: DateFilter =
+                  next === "7d" || next === "30d" || next === "90d" ? next : "all";
+                const nowSeconds = Math.floor(Date.now() / 1000);
+
+                setDateRange({
+                  cutoffSeconds:
+                    nextId === "all" ? null : nowSeconds - DATE_FILTER_SECONDS[nextId],
+                  id: nextId,
+                });
+              }}
+            >
+              <Dropdown.Item id="all" textValue="All time">
+                <Label>All time</Label>
+                <Dropdown.ItemIndicator />
+              </Dropdown.Item>
+              <Dropdown.Item id="7d" textValue="Last 7 days">
+                <Label>Last 7 days</Label>
+                <Dropdown.ItemIndicator />
+              </Dropdown.Item>
+              <Dropdown.Item id="30d" textValue="Last 30 days">
+                <Label>Last 30 days</Label>
+                <Dropdown.ItemIndicator />
+              </Dropdown.Item>
+              <Dropdown.Item id="90d" textValue="Last 90 days">
+                <Label>Last 90 days</Label>
+                <Dropdown.ItemIndicator />
+              </Dropdown.Item>
+            </Dropdown.Menu>
+          </Dropdown.Popover>
+        </Dropdown>
       </div>
 
       <DataGrid
-        aria-label="Orders"
+        aria-label="Receipts"
         columns={columns}
         contentClassName="min-w-[820px]"
-        data={[...ORDERS]}
-        getRowId={(item) => item.id}
+        data={filteredReceipts}
+        defaultSortDescriptor={{column: "created_at", direction: "descending"}}
+        getRowId={(item) => item.receipt_id}
+        renderEmptyState={() => (
+          <EmptyState size="sm">
+            <EmptyState.Header>
+              <EmptyState.Title>No receipts found</EmptyState.Title>
+              <EmptyState.Description>
+                {receipts.length === 0
+                  ? "Issued receipts will appear here."
+                  : "No receipts match the active search or filters."}
+              </EmptyState.Description>
+            </EmptyState.Header>
+          </EmptyState>
+        )}
       />
     </div>
   );
