@@ -11,56 +11,51 @@ import {FOOTER_ITEMS, NAV_ITEMS} from "../nav-items";
 import {DashboardNavbar} from "./dashboard-navbar";
 import {DashboardSidebar} from "./dashboard-sidebar";
 
-export const GATEWAY_BASE_PATH = "/__proxyfor__";
+const HOME_TITLE = "Dashboard";
 
 const ROUTE_LABELS = new Map<string, string>(
   [...NAV_ITEMS, ...FOOTER_ITEMS].map((item) => [item.href, item.label]),
 );
 
-export function normalizeRoutePath(rawPath: string, basePath = GATEWAY_BASE_PATH): string {
-  let path = rawPath || "/";
-
-  if (basePath && path.startsWith(basePath)) {
-    path = path.slice(basePath.length) || "/";
-  }
-  if (!path.startsWith("/")) {
-    path = `/${path}`;
-  }
-  if (path.length > 1 && path.endsWith("/")) {
-    path = path.replace(/\/+$/, "");
-  }
-
-  return path || "/";
-}
-
 export interface AppShellProps {
   children: ReactNode;
+  /**
+   * Prefix used for navigation and active-state matching.
+   * Empty in standalone/Next (`basePath: "/__proxyfor__"` is handled by Next's router).
+   */
   basePath?: string;
 }
 
-export function AppShell({basePath = GATEWAY_BASE_PATH, children}: AppShellProps) {
+export function AppShell({basePath = "", children}: AppShellProps) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const currentRoute = useMemo(() => normalizeRoutePath(pathname, basePath), [pathname, basePath]);
-
   const navigate = useCallback(
     (href: string) => {
-      const target = normalizeRoutePath(href, basePath);
+      const prefixed = basePath + href;
+      const route = prefixed.startsWith("/__proxyfor__")
+        ? prefixed.slice("/__proxyfor__".length) || "/"
+        : prefixed;
 
-      router.push(target === "/" ? "/" : `${target}/`);
+      router.push(route);
     },
     [router, basePath],
   );
 
-  const title = ROUTE_LABELS.get(currentRoute) ?? "Overview";
+  const title = useMemo(() => {
+    const sliced = pathname.slice(basePath.length) || "/";
+    const relative = sliced.length > 1 ? sliced.replace(/\/+$/, "") : sliced;
+
+    if (relative === "/" || relative === "") return HOME_TITLE;
+
+    return ROUTE_LABELS.get(relative) ?? HOME_TITLE;
+  }, [pathname, basePath]);
 
   return (
     <AppLayout
-      navbar={<DashboardNavbar currentRoute={currentRoute} title={title} />}
+      navbar={<DashboardNavbar title={title} />}
       navigate={navigate}
-      scrollMode="content"
-      sidebar={<DashboardSidebar basePath={basePath} currentRoute={currentRoute} />}
+      sidebar={<DashboardSidebar basePath={basePath} pathname={pathname} />}
       sidebarCollapsible="offcanvas"
     >
       {children}

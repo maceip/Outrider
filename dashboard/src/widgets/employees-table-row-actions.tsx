@@ -1,28 +1,32 @@
 "use client";
 
-import {Code} from "@gravity-ui/icons";
+import {Copy} from "@gravity-ui/icons";
 
 import {IconButton} from "../components/icon-button";
-import {useOutrider} from "../lib/outrider-store";
+import {useCoreStore} from "../lib/core-store";
 
 export interface RowActionsProps {
-  label: string;
-  record: unknown;
+  employeeId: string;
 }
 
-export function RowActions({label, record}: RowActionsProps) {
-  const {setSelectedEvidence} = useOutrider();
+export function RowActions({employeeId}: RowActionsProps) {
+  const {copyTrafficCurl} = useCoreStore();
+  const numericId = Number(employeeId);
 
   return (
-    <div className="flex items-center justify-end gap-1">
+    <div className="flex items-center justify-end gap-0.5" data-employee-id={employeeId}>
       <IconButton
-        label={`Inspect ${label}`}
+        isDisabled={!Number.isFinite(numericId) || numericId <= 0}
+        label="Copy cURL"
         size="sm"
-        tooltip={`Inspect raw JSON for ${label}`}
         variant="tertiary"
-        onPress={() => setSelectedEvidence({label, record})}
+        onPress={() => {
+          if (Number.isFinite(numericId) && numericId > 0) {
+            void copyTrafficCurl(numericId);
+          }
+        }}
       >
-        <Code aria-hidden="true" className="size-4" />
+        <Copy className="size-4" />
       </IconButton>
     </div>
   );

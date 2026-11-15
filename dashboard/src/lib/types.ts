@@ -1,3 +1,56 @@
+export interface TrafficHead {
+  id: number;
+  method: string;
+  uri: string;
+  status: number | null;
+  size: number | null;
+  time: number | null;
+  mime: string;
+  websocket_id?: number;
+  start_time_unix_ms?: number;
+}
+
+export interface TrafficHeader {
+  name: string;
+  value: string;
+}
+
+export interface TrafficHeaders {
+  items: TrafficHeader[];
+  size: number;
+}
+
+export interface TrafficBody {
+  encode: string;
+  value: string;
+  size: number;
+}
+
+export interface TrafficDetail {
+  gid: number;
+  uri: string;
+  method: string;
+  req_headers: TrafficHeaders | null;
+  req_body_file: string | null;
+  req_body: TrafficBody | null;
+  status: number | null;
+  http_version: string | null;
+  res_headers: TrafficHeaders | null;
+  res_body_file: string | null;
+  res_body_size: number | null;
+  res_body: TrafficBody | null;
+  websocket_id: number | null;
+  start_time: string | null;
+  end_time: string | null;
+  error: string | null;
+}
+
+export type TimeRange = "5M" | "1H" | "24H" | "ALL";
+
+export type DashboardPeriod = "daily" | "weekly" | "monthly" | "yearly";
+
+export type DashboardTab = "overview" | "traffic" | "mcp";
+
 export type ProbePolicy = "off" | "on-request" | "auto";
 
 export type ClefEngineStatus =
@@ -211,11 +264,12 @@ export interface ProxyTrafficHead {
   id?: number;
   method?: string;
   uri?: string;
-  status?: number;
-  time?: number;
+  status?: number | null;
+  time?: number | null;
   websocket_id?: number | null;
   mime?: string;
-  size?: number;
+  size?: number | null;
+  start_time_unix_ms?: number;
   [key: string]: unknown;
 }
 
@@ -319,15 +373,6 @@ export interface InspectorState {
   server_requests: InspectorServerRequest[];
 }
 
-export type OverviewFilterTab = "overview" | "commerce" | "evidence";
-
-export type OperatorDialogKind =
-  | "connect-upstream"
-  | "put-bundle"
-  | "issue-receipt"
-  | "evaluate-clef"
-  | "connect-local-agents";
-
 export interface DetectedLocalAgent {
   id: "claude-desktop" | "claude-code" | "codex" | (string & {});
   name: string;
@@ -373,11 +418,6 @@ export interface RunSortieResponse {
   proxy_traffic_recorded: boolean;
   fingerprint_observations: unknown;
   redeemed_output: unknown;
-}
-
-export interface SelectedEvidence {
-  label: string;
-  record: unknown;
 }
 
 export function formatClefState(clef: ClefEngineStatus | null | undefined): string {

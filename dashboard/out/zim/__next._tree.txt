@@ -1,5 +1,0 @@
-:HL["/__proxyfor__/_next/static/chunks/0h62nl557i1yp.css","style"]
-3:[["children",{"s":"__PAGE__","h":160}]]
-2:[["children",{"s":"zim","h":96,"c":"$Q3"}]]
-1:[["children",{"s":"(app)","h":96,"c":"$Q2"}]]
-0:{"b":"iZEkCEzgPBKyxsexWxqyv","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

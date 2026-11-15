@@ -1,32 +1,21 @@
 import type {ComponentType} from "react";
 
-import {
-  ChartColumn,
-  CircleQuestion,
-  DisplayPulse,
-  Gear,
-  House,
-  ListCheck,
-  Receipt,
-  Rocket,
-} from "@gravity-ui/icons";
+import {ChartColumn, CircleQuestion, Gear, House, Receipt} from "@gravity-ui/icons";
 
 export type NavItem = {
   readonly href: string;
   readonly label: string;
   readonly icon: ComponentType<{className?: string}>;
+  readonly badge?: string;
 };
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  {href: "/", icon: House, label: "Overview"},
-  {href: "/zim", icon: Rocket, label: "Command Center"},
-  {href: "/orders", icon: Receipt, label: "Commerce & Receipts"},
-  {href: "/tracker", icon: ListCheck, label: "Sessions & Evidence"},
-  {href: "/analytics", icon: ChartColumn, label: "CLEF & Telemetry"},
-  {href: "/inspector", icon: DisplayPulse, label: "MCP Inspector"},
-  {href: "/settings", icon: Gear, label: "Gateway Settings"},
+  {href: "/", icon: House, label: "Dashboard"},
+  {href: "/analytics", icon: ChartColumn, label: "Analytics"},
+  {href: "/orders", icon: Receipt, label: "Orders"},
+  {href: "/settings", icon: Gear, label: "Settings"},
 ] as const;
 
 export const FOOTER_ITEMS: readonly NavItem[] = [
-  {href: "/help", icon: CircleQuestion, label: "Certificates & Protocol"},
+  {href: "/help", icon: CircleQuestion, label: "Help"},
 ] as const;

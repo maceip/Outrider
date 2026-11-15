@@ -1,75 +1,89 @@
 "use client";
 
-import type {OverviewFilterTab} from "../lib/types";
-import type {Key} from "react";
+import type {DashboardPeriod, DashboardTab} from "../lib/types";
 
-import {ArrowDownToLine, ArrowsRotateLeft} from "@gravity-ui/icons";
-import {Button, Tabs} from "@heroui/react";
+import {ArrowsRotateLeft, Calendar, ChevronDown} from "@gravity-ui/icons";
+import {Button, ButtonGroup, Dropdown, Label, Tabs} from "@heroui/react";
 
 import {IconButton} from "../components/icon-button";
-import {useOutrider} from "../lib/outrider-store";
+import {useCoreStore} from "../lib/core-store";
+
+const PERIOD_LABELS: Record<DashboardPeriod, string> = {
+  daily: "Daily",
+  monthly: "Monthly",
+  weekly: "Weekly",
+  yearly: "Yearly",
+};
 
 export function DashboardToolbar() {
-  const {busy, exportSnapshot, overviewTab, refresh, setOverviewTab, snapshot, unlocked} =
-    useOutrider();
-
-  const refreshReason = !unlocked
-    ? "Admin token required"
-    : busy
-      ? "Backend action in progress"
-      : undefined;
-
-  const exportReason = !unlocked || !snapshot ? "Admin token required to export snapshot" : undefined;
+  const {
+    dashboardPeriod,
+    dashboardTab,
+    exportHar,
+    refresh,
+    setDashboardPeriod,
+    setDashboardTab,
+  } = useCoreStore();
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <Tabs
-        selectedKey={overviewTab}
-        onSelectionChange={(key: Key) => setOverviewTab(String(key) as OverviewFilterTab)}
+        selectedKey={dashboardTab}
+        onSelectionChange={(key) => setDashboardTab(String(key) as DashboardTab)}
       >
         <Tabs.ListContainer>
-          <Tabs.List aria-label="Overview workspace filter">
+          <Tabs.List aria-label="Dashboard tabs">
             <Tabs.Tab id="overview">
               Overview
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab id="commerce">
-              Commerce
+            <Tabs.Tab id="traffic">
+              Traffic
               <Tabs.Indicator />
             </Tabs.Tab>
-            <Tabs.Tab id="evidence">
-              Evidence
+            <Tabs.Tab id="mcp">
+              MCP
               <Tabs.Indicator />
             </Tabs.Tab>
           </Tabs.List>
         </Tabs.ListContainer>
       </Tabs>
-
       <div className="flex flex-wrap items-center gap-2">
-        <span title={refreshReason}>
-          <IconButton
-            isDisabled={Boolean(refreshReason)}
-            label="Refresh snapshot"
-            size="sm"
-            tooltip={refreshReason ?? "Reload persisted commerce snapshot"}
-            variant="tertiary"
-            onPress={() => void refresh()}
-          >
-            <ArrowsRotateLeft aria-hidden="true" className="size-4" />
-          </IconButton>
-        </span>
-
-        <span title={exportReason}>
-          <Button
-            isDisabled={Boolean(exportReason)}
-            size="sm"
-            variant="secondary"
-            onPress={exportSnapshot}
-          >
-            <ArrowDownToLine aria-hidden="true" className="size-4" />
-            Export Snapshot
+        <IconButton label="Refresh" size="sm" variant="tertiary" onPress={() => void refresh()}>
+          <ArrowsRotateLeft className="size-4" />
+        </IconButton>
+        <ButtonGroup size="sm" variant="tertiary">
+          <Button>
+            <Calendar className="size-4" />
+            {PERIOD_LABELS[dashboardPeriod]}
           </Button>
-        </span>
+          <Dropdown>
+            <Button isIconOnly aria-label="Change period" size="sm" variant="tertiary">
+              <ChevronDown className="size-4" />
+            </Button>
+            <Dropdown.Popover placement="bottom end">
+              <Dropdown.Menu
+                onAction={(key) => setDashboardPeriod(String(key) as DashboardPeriod)}
+              >
+                <Dropdown.Item id="daily" textValue="Daily">
+                  <Label>Daily</Label>
+                </Dropdown.Item>
+                <Dropdown.Item id="weekly" textValue="Weekly">
+                  <Label>Weekly</Label>
+                </Dropdown.Item>
+                <Dropdown.Item id="monthly" textValue="Monthly">
+                  <Label>Monthly</Label>
+                </Dropdown.Item>
+                <Dropdown.Item id="yearly" textValue="Yearly">
+                  <Label>Yearly</Label>
+                </Dropdown.Item>
+              </Dropdown.Menu>
+            </Dropdown.Popover>
+          </Dropdown>
+        </ButtonGroup>
+        <Button size="sm" onPress={exportHar}>
+          Export HAR
+        </Button>
       </div>
     </div>
   );
