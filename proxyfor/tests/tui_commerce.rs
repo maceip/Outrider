@@ -70,6 +70,8 @@ async fn seeded_database_render_and_keyboard_transitions() -> Result<()> {
         screen.contains("OUTRIDER")
             && screen.contains("Unconfigured")
             && screen.contains("TUI recorded session")
+            && !screen.contains("\n[p] ")
+            && !screen.contains("[p] MCP 2026")
     );
     ui.key(key(KeyCode::Char('e'))).await;
     assert!(ui.status.contains("Unconfigured"));
@@ -97,10 +99,31 @@ async fn seeded_database_render_and_keyboard_transitions() -> Result<()> {
     .await;
     assert!(ui.status.starts_with("Persisted"), "{}", ui.status);
     assert_eq!(rt.db.rows("upstream_servers")?[0]["status"], "Connected");
+    assert_eq!(ui.tab, 2);
+    terminal.draw(|f| ui.render(f))?;
+    let tab2_screen = terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(|c| c.symbol())
+        .collect::<String>();
+    assert!(tab2_screen.contains("RECEIPTS & REDEMPTIONS") && !tab2_screen.contains("ED25519"));
     ui.key(key(KeyCode::Tab)).await;
+    assert_eq!(ui.tab, 0);
+    ui.key(key(KeyCode::Tab)).await;
+    assert_eq!(ui.tab, 1);
     ui.key(key(KeyCode::Char(']'))).await;
     ui.key(key(KeyCode::Down)).await;
     terminal.draw(|f| ui.render(f))?;
+    let tab1_screen = terminal
+        .backend()
+        .buffer()
+        .content
+        .iter()
+        .map(|c| c.symbol())
+        .collect::<String>();
+    assert!(tab1_screen.contains("MCP FRAMES") && !tab1_screen.contains("MRTR"));
     let mut locked = Workbench::new(rt.clone(), false)?;
     locked.key(key(KeyCode::Char('i'))).await;
     assert!(locked.status.contains("Admin token required"));

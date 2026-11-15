@@ -347,8 +347,8 @@ impl Workbench {
         );
         let (title, table) = match self.tab {
             0 => (" HTTP / WS PROXY TRAFFIC ", "proxy_traffic"),
-            1 => (" MCP / MRTR FRAMES ", "mcp_frames"),
-            _ => (" ED25519 RECEIPTS & REDEMPTIONS ", "capability_receipts"),
+            1 => (" MCP FRAMES ", "mcp_frames"),
+            _ => (" RECEIPTS & REDEMPTIONS ", "capability_receipts"),
         };
         let lines = self
             .rows(table)
@@ -408,8 +408,9 @@ impl Workbench {
             _ => "capability_receipts",
         };
         let selected_evidence = self.rows(evidence_table).get(self.evidence_index);
-        let mut inspector = format!(
-            "CLEF {}\n{}\n\nHANDSHAKE EVIDENCE\n{}\n\nRECEIPT\n{}",
+        let inspector = format!(
+            "SELECTED EVIDENCE · j/k to navigate\n{}\n\nCLEF {}\n{}\n\nHANDSHAKE EVIDENCE\n{}\n\nRECEIPT\n{}",
+            serde_json::to_string_pretty(&selected_evidence).unwrap_or_default(),
             self.snapshot["clef"]["status"]
                 .as_str()
                 .unwrap_or("Unconfigured"),
@@ -417,16 +418,6 @@ impl Workbench {
             serde_json::to_string_pretty(&observations).unwrap_or_default(),
             serde_json::to_string_pretty(&receipt).unwrap_or_default()
         );
-        inspector = format!(
-            "SELECTED EVIDENCE · j/k to navigate\n{}\n\n{}",
-            serde_json::to_string_pretty(&selected_evidence).unwrap_or_default(),
-            inspector
-        );
-        for action in ['p', 'e', 's', 'i', 'r', 'u'] {
-            if let Some(reason) = self.reason(action) {
-                inspector.push_str(&format!("\n[{action}] {reason}"));
-            }
-        }
         frame.render_widget(
             Paragraph::new(inspector)
                 .scroll((self.inspector_scroll, 0))
