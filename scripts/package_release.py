@@ -294,12 +294,15 @@ def build_windows_msi(
                     str(light_exe),
                     "-nologo",
                     "-sval",
+                    "-spdb",
                     "-out",
                     str(msi_out),
                     str(wixobj_path),
                 ],
                 check=True,
             )
+            for stray_pdb in msi_out.parent.glob("*.wixpdb"):
+                stray_pdb.unlink(missing_ok=True)
             return
 
         wix_v4 = shutil.which("wix") or shutil.which("wix.exe")
@@ -331,9 +334,11 @@ def build_windows_msi(
             wxs4_path = tmp_path / "outrider-v4.wxs"
             wxs4_path.write_text(wxs4, encoding="utf-8")
             subprocess.run(
-                [wix_v4, "build", "-arch", "x64", "-o", str(msi_out), str(wxs4_path)],
+                [wix_v4, "build", "-arch", "x64", "-pdbtype", "none", "-o", str(msi_out), str(wxs4_path)],
                 check=True,
             )
+            for stray_pdb in msi_out.parent.glob("*.wixpdb"):
+                stray_pdb.unlink(missing_ok=True)
             return
 
         sys.exit("Neither WiX v3 (candle.exe/light.exe) nor WiX v4+ (wix.exe) was found on Windows host.")

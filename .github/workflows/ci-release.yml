@@ -196,13 +196,16 @@ jobs:
         shell: python
         run: |
           import pathlib, subprocess, sys
-          artifacts = sorted(pathlib.Path("dist").iterdir())
+          valid_suffixes = (".tar.gz", ".dmg", ".zip", ".msi")
+          artifacts = [
+              p for p in sorted(pathlib.Path("dist").iterdir())
+              if p.is_file() and p.name.endswith(valid_suffixes)
+          ]
           if not artifacts:
               sys.exit("No packaged artifacts found in dist/")
           cmd = [sys.executable, "scripts/smoke_test_release_binary.py"]
           for art in artifacts:
-              if art.is_file():
-                  cmd.extend(["--artifact", str(art)])
+              cmd.extend(["--artifact", str(art)])
           subprocess.run(cmd, check=True)
 
       - name: Upload smoke-verified platform artifacts
@@ -277,7 +280,16 @@ jobs:
           set -euo pipefail
           for asset in release-assets/*.tar.gz release-assets/*.dmg release-assets/*.zip release-assets/*.msi; do
             echo "Verifying attestation for ${asset}..."
-            gh attestation verify "$asset" --repo "${{ github.repository }}"
+            for attempt in 1 2 3; do
+              if gh attestation verify "$asset" --repo "${{ github.repository }}"; then
+                break
+              fi
+              if [[ "$attempt" -eq 3 ]]; then
+                echo "Attestation verification failed for ${asset}" >&2
+                exit 1
+              fi
+              sleep 3
+            done
           done
 
       - name: Upload attested release bundle
