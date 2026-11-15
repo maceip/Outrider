@@ -33,16 +33,12 @@ export function AnalyticsPage() {
           ))}
         </Segment>
       </div>
-
       <AnalyticsKpiRow />
-
       <SessionsOverTimeCard />
-
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <DeviceBreakdownCard />
         <TopChannelsCard />
       </div>
-
       <TopPagesCard />
     </div>
   );

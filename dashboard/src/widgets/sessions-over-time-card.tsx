@@ -3,45 +3,59 @@
 import {Card} from "@heroui/react";
 import {NumberValue} from "@heroui-pro/react";
 import {LineChart} from "@heroui-pro/react/line-chart";
+import {useMemo} from "react";
 
-export type SessionsPoint = {
-  day: string;
-  sessions: number;
-  users: number;
-};
+import {useCoreStore} from "../lib/core-store";
 
-const SESSIONS_OVER_TIME: readonly SessionsPoint[] = [];
+import {buildAnalyticsBuckets, filterAnalyticsTraffics} from "./analytics-kpi-row";
+import {useEffectiveNowMs} from "./kpi-row";
 
 function formatThousands(value: number): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : `${value}`;
 }
 
 export function SessionsOverTimeCard() {
-  const total = SESSIONS_OVER_TIME.reduce((sum, p) => sum + p.sessions, 0);
+  const {timeRange, traffics} = useCoreStore();
+  const nowMs = useEffectiveNowMs(traffics);
+
+  const rangeTraffics = useMemo(
+    () => filterAnalyticsTraffics(traffics, timeRange, nowMs),
+    [traffics, timeRange, nowMs],
+  );
+
+  const buckets = useMemo(
+    () => buildAnalyticsBuckets(rangeTraffics, timeRange, nowMs),
+    [rangeTraffics, timeRange, nowMs],
+  );
 
   return (
     <Card className="rounded-2xl">
       <Card.Header className="flex-row items-start justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <Card.Title className="text-base">Requests over time</Card.Title>
+          <Card.Title className="text-base">Events over time</Card.Title>
           <NumberValue
             className="text-foreground text-2xl font-semibold tabular-nums"
             maximumFractionDigits={0}
-            value={total}
+            value={rangeTraffics.length}
           />
         </div>
         <div className="flex items-center gap-4">
           <LegendDot color="var(--chart-2)" label="Requests" />
-          <LegendDot color="var(--chart-4)" label="Sessions" />
+          <LegendDot color="var(--chart-4)" label="Errors" />
         </div>
       </Card.Header>
       <Card.Content>
-        <LineChart data={[...SESSIONS_OVER_TIME]} height={240}>
+        <LineChart data={buckets} height={240}>
           <LineChart.Grid vertical={false} />
-          <LineChart.XAxis dataKey="day" minTickGap={32} tickMargin={8} />
-          <LineChart.YAxis tickFormatter={formatThousands} width={40} />
+          <LineChart.XAxis dataKey="bucket" minTickGap={24} tickMargin={8} />
+          <LineChart.YAxis
+            allowDecimals={false}
+            domain={[0, (dataMax: number) => Math.max(dataMax, 1)]}
+            tickFormatter={formatThousands}
+            width={40}
+          />
           <LineChart.Line
-            dataKey="sessions"
+            dataKey="requests"
             dot={false}
             name="Requests"
             stroke="var(--chart-2)"
@@ -49,9 +63,9 @@ export function SessionsOverTimeCard() {
             type="monotone"
           />
           <LineChart.Line
-            dataKey="users"
+            dataKey="errors"
             dot={false}
-            name="Sessions"
+            name="Errors"
             stroke="var(--chart-4)"
             strokeWidth={2}
             type="monotone"

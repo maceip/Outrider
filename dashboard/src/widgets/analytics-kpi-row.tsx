@@ -1,50 +1,245 @@
 "use client";
 
-import type {ComponentProps} from "react";
+import type {TimeRange, TrafficHead} from "../lib/types";
 
 import {KPI} from "@heroui-pro/react/kpi";
+import {useMemo} from "react";
+
+import {useCoreStore} from "../lib/core-store";
+
+import {extractTrafficHost, formatBucketTimestamp, useEffectiveNowMs} from "./kpi-row";
 
 export type SparklinePoint = {value: number};
 
-type TrendDir = ComponentProps<typeof KPI.Trend>["trend"];
-
-type AnalyticsKpi = {
-  chartColor: string;
-  chartData: readonly SparklinePoint[];
-  label: string;
-  numberProps: Omit<ComponentProps<typeof KPI.Value>, "children">;
-  trend?: TrendDir;
-  trendValue?: string;
+export type AnalyticsBucket = {
+  avgLatencyMs: number;
+  bucket: string;
+  errorRatePct: number;
+  errors: number;
+  requests: number;
+  uniqueHosts: number;
 };
 
-const ANALYTICS_KPIS: readonly AnalyticsKpi[] = [];
+const TIME_RANGE_WINDOW_MS: Record<Exclude<TimeRange, "ALL">, number> = {
+  "1H": 60 * 60 * 1000,
+  "24H": 24 * 60 * 60 * 1000,
+  "5M": 5 * 60 * 1000,
+};
+
+const ZERO_SPARKLINE: SparklinePoint[] = Array.from({length: 12}, () => ({value: 0}));
+
+export function countUniqueHosts(items: readonly TrafficHead[]): number {
+  const hosts = new Set<string>();
+
+  for (const item of items) {
+    const host = extractTrafficHost(item.uri);
+
+    if (host) {
+      hosts.add(host);
+    }
+  }
+
+  return hosts.size;
+}
+
+export function computeAvgLatencyMs(items: readonly TrafficHead[]): number {
+  let sum = 0;
+  let count = 0;
+
+  for (const item of items) {
+    if (typeof item.time === "number") {
+      sum += item.time;
+      count += 1;
+    }
+  }
+
+  return count === 0 ? 0 : Math.round(sum / count);
+}
+
+export function filterAnalyticsTraffics(
+  traffics: readonly TrafficHead[],
+  timeRange: TimeRange,
+  nowMs: number | null,
+): TrafficHead[] {
+  if (timeRange === "ALL") {
+    return [...traffics];
+  }
+  if (nowMs === null) {
+    return [];
+  }
+  const cutoffMs = nowMs - TIME_RANGE_WINDOW_MS[timeRange];
+
+  return traffics.filter(
+    (item) => typeof item.start_time_unix_ms === "number" && item.start_time_unix_ms >= cutoffMs,
+  );
+}
+
+export function buildAnalyticsBuckets(
+  rangeTraffics: readonly TrafficHead[],
+  timeRange: TimeRange,
+  nowMs: number | null,
+): AnalyticsBucket[] {
+  if (nowMs === null) return [];
+
+  let spanMs: number;
+  let startMs: number;
+
+  if (timeRange !== "ALL") {
+    spanMs = TIME_RANGE_WINDOW_MS[timeRange];
+    startMs = nowMs - spanMs;
+  } else {
+    let minTs = Number.POSITIVE_INFINITY;
+
+    for (const item of rangeTraffics) {
+      if (typeof item.start_time_unix_ms === "number" && item.start_time_unix_ms < minTs) {
+        minTs = item.start_time_unix_ms;
+      }
+    }
+
+    const minSpanMs = 5 * 60 * 1000;
+
+    if (!Number.isFinite(minTs) || nowMs - minTs < minSpanMs) {
+      spanMs = minSpanMs;
+      startMs = nowMs - spanMs;
+    } else {
+      startMs = minTs;
+      spanMs = nowMs - startMs;
+    }
+  }
+
+  const stepMs = spanMs / 12;
+  const grouped: TrafficHead[][] = Array.from({length: 12}, () => []);
+
+  for (const item of rangeTraffics) {
+    const ts = item.start_time_unix_ms;
+
+    if (typeof ts !== "number" || ts < startMs) continue;
+    const rawIdx = Math.floor(((ts - startMs) / spanMs) * 12);
+    const idx = Math.min(11, Math.max(0, rawIdx));
+
+    grouped[idx].push(item);
+  }
+
+  return grouped.map((items, index) => {
+    const requests = items.length;
+    const errors = items.filter((t) => t.status !== null && t.status >= 400).length;
+
+    return {
+      avgLatencyMs: computeAvgLatencyMs(items),
+      bucket: formatBucketTimestamp(Math.round(startMs + (index + 1) * stepMs), spanMs),
+      errorRatePct: requests === 0 ? 0 : (errors / requests) * 100,
+      errors,
+      requests,
+      uniqueHosts: countUniqueHosts(items),
+    };
+  });
+}
 
 export function AnalyticsKpiRow() {
-  if (ANALYTICS_KPIS.length === 0) {
-    return null;
-  }
+  const {timeRange, traffics} = useCoreStore();
+  const nowMs = useEffectiveNowMs(traffics);
+
+  const rangeTraffics = useMemo(
+    () => filterAnalyticsTraffics(traffics, timeRange, nowMs),
+    [traffics, timeRange, nowMs],
+  );
+
+  const buckets = useMemo(
+    () => buildAnalyticsBuckets(rangeTraffics, timeRange, nowMs),
+    [rangeTraffics, timeRange, nowMs],
+  );
+
+  const metrics = useMemo(() => {
+    const events = rangeTraffics.length;
+    const uniqueHosts = countUniqueHosts(rangeTraffics);
+    const errors = rangeTraffics.filter((t) => t.status !== null && t.status >= 400).length;
+    const errorRateRatio = events === 0 ? 0 : errors / events;
+    const avgLatencyMs = computeAvgLatencyMs(rangeTraffics);
+
+    const eventsSparkline =
+      buckets.length === 12 ? buckets.map((b) => ({value: b.requests})) : ZERO_SPARKLINE;
+    const hostsSparkline =
+      buckets.length === 12 ? buckets.map((b) => ({value: b.uniqueHosts})) : ZERO_SPARKLINE;
+    const errorSparkline =
+      buckets.length === 12 ? buckets.map((b) => ({value: b.errorRatePct})) : ZERO_SPARKLINE;
+    const latencySparkline =
+      buckets.length === 12 ? buckets.map((b) => ({value: b.avgLatencyMs})) : ZERO_SPARKLINE;
+
+    return {
+      avgLatencyMs,
+      errorRateRatio,
+      errorSparkline,
+      events,
+      eventsSparkline,
+      hostsSparkline,
+      latencySparkline,
+      uniqueHosts,
+    };
+  }, [buckets, rangeTraffics]);
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
-      {ANALYTICS_KPIS.map((kpi) => (
-        <KPI key={kpi.label}>
-          <KPI.Header>
-            <KPI.Title>{kpi.label}</KPI.Title>
-          </KPI.Header>
-          <KPI.Content>
-            <KPI.Value {...kpi.numberProps} />
-            {kpi.trend && kpi.trendValue ? (
-              <KPI.Trend trend={kpi.trend}>{kpi.trendValue}</KPI.Trend>
-            ) : null}
-          </KPI.Content>
-          <KPI.Chart
-            color={kpi.chartColor}
-            data={[...kpi.chartData]}
-            height={60}
-            strokeWidth={1.5}
-          />
-        </KPI>
-      ))}
+      <KPI>
+        <KPI.Header>
+          <KPI.Title>Events</KPI.Title>
+        </KPI.Header>
+        <KPI.Content>
+          <KPI.Value maximumFractionDigits={0} style="decimal" value={metrics.events} />
+        </KPI.Content>
+        <KPI.Chart
+          color="var(--color-accent)"
+          data={metrics.eventsSparkline}
+          height={60}
+          strokeWidth={1.5}
+        />
+      </KPI>
+
+      <KPI>
+        <KPI.Header>
+          <KPI.Title>Unique Hosts</KPI.Title>
+        </KPI.Header>
+        <KPI.Content>
+          <KPI.Value maximumFractionDigits={0} style="decimal" value={metrics.uniqueHosts} />
+        </KPI.Content>
+        <KPI.Chart
+          color="var(--color-success)"
+          data={metrics.hostsSparkline}
+          height={60}
+          strokeWidth={1.5}
+        />
+      </KPI>
+
+      <KPI>
+        <KPI.Header>
+          <KPI.Title>Error Rate</KPI.Title>
+        </KPI.Header>
+        <KPI.Content>
+          <KPI.Value maximumFractionDigits={1} style="percent" value={metrics.errorRateRatio} />
+        </KPI.Content>
+        <KPI.Chart
+          color="var(--color-muted)"
+          data={metrics.errorSparkline}
+          height={60}
+          strokeWidth={1.5}
+        />
+      </KPI>
+
+      <KPI>
+        <KPI.Header>
+          <KPI.Title>Avg. Latency</KPI.Title>
+        </KPI.Header>
+        <KPI.Content>
+          <span className="text-foreground text-2xl font-semibold tabular-nums">
+            {metrics.avgLatencyMs} ms
+          </span>
+        </KPI.Content>
+        <KPI.Chart
+          color="var(--color-warning)"
+          data={metrics.latencySparkline}
+          height={60}
+          strokeWidth={1.5}
+        />
+      </KPI>
     </div>
   );
 }
