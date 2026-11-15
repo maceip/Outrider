@@ -53,6 +53,7 @@ export function AppShell({basePath = "", children}: AppShellProps) {
 
   return (
     <AppLayout
+      className="bg-background text-foreground"
       navbar={<DashboardNavbar title={title} />}
       navigate={navigate}
       sidebar={<DashboardSidebar basePath={basePath} pathname={pathname} />}

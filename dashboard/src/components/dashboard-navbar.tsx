@@ -7,6 +7,7 @@ import {AppLayout, Navbar, Sidebar} from "@heroui-pro/react";
 import {useCoreStore} from "../lib/core-store";
 
 import {IconButton} from "./icon-button";
+import {ThemeToggle} from "./theme-toggle";
 
 export interface DashboardNavbarProps {
   /** Title rendered in the navbar. */
@@ -21,13 +22,14 @@ export function DashboardNavbar({title = "Dashboard"}: DashboardNavbarProps) {
       <Navbar.Header>
         <AppLayout.MenuToggle />
         <Sidebar.Trigger aria-label="Toggle sidebar" />
-        <h1 className="text-foreground truncate text-xl font-semibold">{title}</h1>
+        <h1 className="text-foreground truncate text-lg font-semibold tracking-tight">{title}</h1>
         <Navbar.Spacer />
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           <IconButton label="Refresh" size="sm" variant="tertiary" onPress={() => void refresh()}>
             <ArrowsRotateLeft className="size-4" />
           </IconButton>
-          <Button size="sm" onPress={exportHar}>
+          <Button size="sm" variant="primary" onPress={exportHar}>
             Export HAR
           </Button>
         </div>

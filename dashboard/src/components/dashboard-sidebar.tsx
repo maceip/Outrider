@@ -59,12 +59,16 @@ function SidebarContents({
     <>
       <Sidebar.Header>
         <div className="flex items-center gap-3 px-1 py-1">
-          <Avatar className="size-9">
-            <Avatar.Fallback>OR</Avatar.Fallback>
+          <Avatar className="bg-accent text-accent-foreground size-9 rounded-lg">
+            <Avatar.Fallback className="bg-accent text-accent-foreground font-mono text-xs font-bold tracking-wider">
+              OR
+            </Avatar.Fallback>
           </Avatar>
-          <div className="flex min-w-0 flex-col" data-sidebar="label">
-            <span className="text-foreground text-sm font-medium leading-tight">Outrider</span>
-            <span className="text-muted truncate text-xs font-medium leading-tight">
+          <div className="flex min-w-0 flex-col gap-0.5" data-sidebar="label">
+            <span className="text-foreground truncate text-sm font-semibold leading-tight">
+              Outrider
+            </span>
+            <span className="text-muted truncate font-mono text-xs leading-tight">
               {status?.listen_addr ?? "Local Gateway"}
             </span>
           </div>
@@ -87,7 +91,7 @@ function SidebarContents({
         </Sidebar.Group>
       </Sidebar.Content>
       <Sidebar.Footer>
-        <Sidebar.Menu aria-label="Account">
+        <Sidebar.Menu aria-label="Support">
           {FOOTER_ITEMS.map((item) => (
             <SidebarNavItem
               key={item.href}

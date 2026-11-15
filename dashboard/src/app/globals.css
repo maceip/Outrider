@@ -1,8 +1,367 @@
+/*
+ * HeroUI Pro Theme — Silvector (d4e7a7e9-4ff8-4be2-a5d8-b79e9b0dd88b)
+ * @see https://heroui.com/docs/react/getting-started/theming
+ */
 @import "@heroui/styles/css";
 @import "@heroui-pro/react/css";
+@import "@heroui-pro/react/themes/brutalism";
 
 @source "../**/*.{ts,tsx}";
 
-body {
-  background-color: var(--background);
+.brutalism-light,
+[data-theme="brutalism-light"],
+.brutalism-dark,
+[data-theme="brutalism-dark"] {
+  /* Border Radius */
+  --radius: 0.5rem;
+  --field-radius: 0.75rem;
+
+  /* Spacing & Field Border */
+  --spacing: 0.234375rem;
+  --field-border-width: 1px;
+
+  /* Font */
+  --font-sans: var(--font-custom-unbounded, "Unbounded"), sans-serif;
+  --font-heading: var(--font-custom-jetbrains-mono, "JetBrains Mono"), monospace;
+  --font-mono: var(--font-custom-jetbrains-mono, "JetBrains Mono"), ui-monospace, monospace;
+
+  /* Primitives */
+  --black: #000000;
+  --white: #FFFFFF;
+  --snow: #FCFCFC;
+  --eclipse: #18181B;
+
+  /* Chart Series (Silvector volt-lime ramp) */
+  --chart-1: #91A102;
+  --chart-2: #B6C744;
+  --chart-3: #DCEF6F;
+  --chart-4: #F9FF8D;
+  --chart-5: #F9FF8D;
+}
+
+.brutalism-light,
+[data-theme="brutalism-light"] {
+  color-scheme: light;
+
+  /* Neutral Base Canvas & Surfaces (0-chroma) */
+  --backdrop: rgba(0, 0, 0, 0.5);
+  --background: #F5F5F5;
+  --background-secondary: #EBEBEB;
+  --background-tertiary: #E1E1E1;
+  --background-inverse: #18181B;
+  --foreground: #18181B;
+  --muted: #727272;
+  --link: #18181B;
+  --scrollbar: #D4D4D4;
+
+  --overlay: #FFFFFF;
+  --overlay-foreground: #18181B;
+
+  --surface: #FFFFFF;
+  --surface-foreground: #18181B;
+  --surface-hover: #EAEAEA;
+  --surface-secondary: #EFEFEF;
+  --surface-secondary-foreground: #18181B;
+  --surface-tertiary: #EAEAEA;
+  --surface-tertiary-foreground: #18181B;
+
+  --default: #EBEBEB;
+  --default-foreground: #18181B;
+  --default-hover: #E1E1E2;
+  --default-soft: rgba(235, 235, 235, 0.5);
+  --default-soft-foreground: #18181B;
+  --default-soft-hover: rgba(235, 235, 235, 0.6);
+
+  --border: #DEDEDE;
+  --border-secondary: #C6C6C7;
+  --border-tertiary: #A8A8A9;
+
+  --separator: #E4E4E4;
+  --separator-secondary: #D8D8D8;
+  --separator-tertiary: #CDCDCE;
+
+  --segment: #FFFFFF;
+  --segment-foreground: #18181B;
+
+  /* Form Fields */
+  --field-background: #FFFFFF;
+  --field-background-hover: #F9F9F9;
+  --field-hover: #F9F9F9;
+  --field-border: #DEDEDE;
+  --field-border-hover: #C7C7C8;
+  --field-border-focus: #ABABAC;
+  --field-foreground: #18181B;
+  --field-placeholder: #727272;
+  --field-focus: #FFFFFF;
+
+  /* Theme Colors */
+  --accent: oklch(91.26% 0.1540 116.59);
+  --accent-foreground: oklch(15% 0.0300 116.59);
+  --accent-soft: color-mix(in oklab, oklch(91.26% 0.1540 116.59) 15%, transparent);
+  --accent-soft-foreground: #5C6818;
+  --accent-soft-hover: color-mix(in oklab, oklch(91.26% 0.1540 116.59) 20%, transparent);
+  --accent-hover: color-mix(in oklab, oklch(91.26% 0.1540 116.59) 90%, oklch(15% 0.0300 116.59) 10%);
+
+  --success: oklch(73.29% 0.1935 134.34);
+  --success-foreground: #18181B;
+  --success-hover: #68AE2F;
+  --success-soft: rgba(113, 193, 44, 0.15);
+  --success-soft-foreground: #49732F;
+  --success-soft-hover: rgba(113, 193, 44, 0.2);
+
+  --warning: oklch(78.19% 0.1585 55.86);
+  --warning-foreground: #18181B;
+  --warning-hover: #E58C44;
+  --warning-soft: rgba(255, 154, 70, 0.15);
+  --warning-soft-foreground: #8A5A37;
+  --warning-soft-hover: rgba(255, 154, 70, 0.2);
+
+  --danger: oklch(65.32% 0.2328 9.27);
+  --danger-foreground: #FCFCFC;
+  --danger-hover: #FE527E;
+  --danger-soft: rgba(251, 51, 113, 0.15);
+  --danger-soft-foreground: #A23250;
+  --danger-soft-hover: rgba(251, 51, 113, 0.2);
+
+  --focus: oklch(91.26% 0.1540 116.59);
+
+  /* Elevation */
+  --surface-shadow: none;
+  --overlay-shadow:
+    0px 0px 0px 1px rgba(0, 0, 0, 0.06), 0px 1px 2px -1px rgba(0, 0, 0, 0.06),
+    0px 2px 4px 0px rgba(0, 0, 0, 0.04);
+  --field-shadow: none;
+
+  /* Design Theme */
+  --brutalism-font-body: var(--font-custom-unbounded, "Unbounded"), sans-serif;
+  --brutalism-font-display: var(--font-custom-jetbrains-mono, "JetBrains Mono"), monospace;
+}
+
+.brutalism-dark,
+[data-theme="brutalism-dark"] {
+  color-scheme: dark;
+
+  /* Neutral Base Canvas & Surfaces (0-chroma) */
+  --backdrop: rgba(0, 0, 0, 0.6);
+  --background: #060606;
+  --background-secondary: #0D0D0D;
+  --background-tertiary: #141414;
+  --background-inverse: #FCFCFC;
+  --foreground: #FCFCFC;
+  --muted: #A0A0A0;
+  --link: #FCFCFC;
+  --scrollbar: #A0A0A0;
+
+  --overlay: #181818;
+  --overlay-foreground: #FCFCFC;
+
+  --surface: #181818;
+  --surface-foreground: #FCFCFC;
+  --surface-hover: #272727;
+  --surface-secondary: #232323;
+  --surface-secondary-foreground: #FCFCFC;
+  --surface-tertiary: #272727;
+  --surface-tertiary-foreground: #FCFCFC;
+
+  --default: #272727;
+  --default-foreground: #FCFCFC;
+  --default-hover: #2E2E2E;
+  --default-soft: rgba(39, 39, 39, 0.5);
+  --default-soft-foreground: #FCFCFC;
+  --default-soft-hover: rgba(39, 39, 39, 0.6);
+
+  --border: #292929;
+  --border-secondary: #434343;
+  --border-tertiary: #5C5C5C;
+
+  --separator: #222222;
+  --separator-secondary: #343434;
+  --separator-tertiary: #3C3C3C;
+
+  --segment: #474747;
+  --segment-foreground: #FCFCFC;
+
+  /* Form Fields */
+  --field-background: #181818;
+  --field-background-hover: #1C1C1C;
+  --field-hover: #1C1C1C;
+  --field-border: #292929;
+  --field-border-hover: #3B3B3B;
+  --field-border-focus: #535353;
+  --field-foreground: #FCFCFC;
+  --field-placeholder: #A0A0A0;
+  --field-focus: #181818;
+
+  /* Theme Colors */
+  --accent: oklch(91.26% 0.1540 116.59);
+  --accent-foreground: oklch(15% 0.0300 116.59);
+  --accent-soft: color-mix(in oklab, oklch(91.26% 0.1540 116.59) 15%, transparent);
+  --accent-soft-foreground: #E4F39B;
+  --accent-soft-hover: color-mix(in oklab, oklch(91.26% 0.1540 116.59) 16%, transparent);
+  --accent-hover: color-mix(in oklab, oklch(91.26% 0.1540 116.59) 90%, oklch(15% 0.0300 116.59) 10%);
+
+  --success: oklch(73.29% 0.1935 134.34);
+  --success-foreground: #18181B;
+  --success-hover: #68AE2F;
+  --success-soft: rgba(113, 193, 44, 0.12);
+  --success-soft-foreground: #98D272;
+  --success-soft-hover: rgba(113, 193, 44, 0.16);
+
+  --warning: oklch(82.03% 0.1388 59.87);
+  --warning-foreground: #18181B;
+  --warning-hover: #E59D5B;
+  --warning-soft: rgba(255, 173, 97, 0.12);
+  --warning-soft-foreground: #FFC38F;
+  --warning-soft-hover: rgba(255, 173, 97, 0.16);
+
+  --danger: oklch(59.40% 0.1967 8.16);
+  --danger-foreground: #FCFCFC;
+  --danger-hover: #DF5175;
+  --danger-soft: rgba(216, 56, 103, 0.15);
+  --danger-soft-foreground: #E8768D;
+  --danger-soft-hover: rgba(216, 56, 103, 0.2);
+
+  --focus: oklch(91.26% 0.1540 116.59);
+
+  /* Elevation */
+  --surface-shadow: none;
+  --overlay-shadow:
+    0px 0px 0px 1px rgba(255, 255, 255, 0.06), 0px 1px 2px -1px rgba(255, 255, 255, 0.06),
+    0px 2px 4px 0px rgba(255, 255, 255, 0.04);
+  --field-shadow: none;
+
+  /* Design Theme */
+  --brutalism-font-body: var(--font-custom-unbounded, "Unbounded"), sans-serif;
+  --brutalism-font-display: var(--font-custom-jetbrains-mono, "JetBrains Mono"), monospace;
+}
+
+@layer base {
+  :where(h1, h2, h3, h4, h5, h6, [role="heading"]) {
+    font-family: var(--font-heading, var(--font-sans, sans-serif));
+  }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+  }
+}
+
+/* Component overrides */
+@layer components {
+  @font-face {
+    font-family: "Unbounded";
+    font-style: normal;
+    font-weight: 200;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG65jx043HgP6LR0Y.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "Unbounded";
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG60bx043HgP6LR0Y.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "Unbounded";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG6xjx043HgP6LR0Y.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "Unbounded";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG6yrx043HgP6LR0Y.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "Unbounded";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG68b2043HgP6LR0Y.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 100;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yK1jPVmUsaaDhw.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 200;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8SKxjPVmUsaaDhw.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 300;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8lqxjPVmUsaaDhw.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPVmUsaaDhw.ttf")
+      format("truetype");
+  }
+
+  @font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxjPVmUsaaDhw.ttf")
+      format("truetype");
+  }
+
+  .button,
+  .toggle-button {
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .badge,
+  .chip {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+
+  .input-group__prefix {
+    border-right: none;
+  }
+
+  .input-group__suffix {
+    border-left: none;
+  }
+
+  .card--default {
+    border: 1px solid var(--border);
+  }
 }
