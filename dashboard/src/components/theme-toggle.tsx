@@ -6,6 +6,7 @@ import {useCallback, useSyncExternalStore} from "react";
 import {IconButton} from "./icon-button";
 
 export type SilvectorTheme = "brutalism-dark" | "brutalism-light";
+export type ThemeMode = SilvectorTheme;
 
 const THEME_STORAGE_KEY = "outrider.theme";
 const themeListeners = new Set<() => void>();
@@ -101,8 +102,12 @@ export function setSilvectorTheme(theme: SilvectorTheme) {
   notifyThemeListeners();
 }
 
+export function useThemeMode(): ThemeMode {
+  return useSyncExternalStore(subscribeTheme, getThemeSnapshot, getServerThemeSnapshot);
+}
+
 export function ThemeToggle() {
-  const theme = useSyncExternalStore(subscribeTheme, getThemeSnapshot, getServerThemeSnapshot);
+  const theme = useThemeMode();
   const isDark = theme === "brutalism-dark";
 
   const handleToggle = useCallback(() => {

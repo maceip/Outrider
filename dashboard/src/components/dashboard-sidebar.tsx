@@ -2,11 +2,12 @@
 
 import type {NavItem} from "../nav-items";
 
-import {Avatar, Chip} from "@heroui/react";
+import {Chip} from "@heroui/react";
 import {Sidebar} from "@heroui-pro/react";
 
 import {useCoreStore} from "../lib/core-store";
 import {FOOTER_ITEMS, NAV_ITEMS} from "../nav-items";
+import {useThemeMode} from "./theme-toggle";
 
 interface DashboardSidebarProps {
   pathname: string;
@@ -54,18 +55,26 @@ function SidebarContents({
   pathname,
 }: SidebarContentsProps) {
   const {status} = useCoreStore();
+  const mode = useThemeMode();
 
   return (
     <>
       <Sidebar.Header>
         <div className="flex items-center gap-3 px-1 py-1">
-          <Avatar className="bg-accent text-accent-foreground size-9 rounded-lg">
-            <Avatar.Fallback className="bg-accent text-accent-foreground font-mono text-xs font-bold tracking-wider">
-              OR
-            </Avatar.Fallback>
-          </Avatar>
+          {/* eslint-disable-next-line @next/next/no-img-element -- static export served under /__proxyfor__ basePath */}
+          <img
+            alt="Outrider"
+            className="size-8 shrink-0 rounded-md object-contain"
+            height={32}
+            src={
+              mode === "brutalism-light"
+                ? "/__proxyfor__/brand/light/outrider-icon-64.png"
+                : "/__proxyfor__/brand/dark/outrider-icon-64.png"
+            }
+            width={32}
+          />
           <div className="flex min-w-0 flex-col gap-0.5" data-sidebar="label">
-            <span className="text-foreground truncate text-sm font-semibold leading-tight">
+            <span className="text-foreground truncate font-mono text-sm font-semibold leading-tight tracking-wider">
               Outrider
             </span>
             <span className="text-muted truncate font-mono text-xs leading-tight">

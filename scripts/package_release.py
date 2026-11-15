@@ -13,7 +13,41 @@ import sys
 import tarfile
 import tempfile
 import uuid
+from xml.sax.saxutils import escape as xml_escape
 import zipfile
+
+
+MACOS_ICONSET_SOURCES: dict[str, str] = {
+    "icon_16x16.png": "outrider-icon-16.png",
+    "icon_16x16@2x.png": "outrider-icon-32.png",
+    "icon_32x32.png": "outrider-icon-32.png",
+    "icon_32x32@2x.png": "outrider-logo-64.png",
+    "icon_128x128.png": "outrider-logo-128.png",
+    "icon_128x128@2x.png": "outrider-logo-256.png",
+    "icon_256x256.png": "outrider-logo-256.png",
+    "icon_256x256@2x.png": "outrider-logo-512.png",
+    "icon_512x512.png": "outrider-logo-512.png",
+    "icon_512x512@2x.png": "outrider-logo-1024.png",
+}
+
+
+def build_macos_icns(
+    brand_dark_dir: pathlib.Path,
+    tmp_path: pathlib.Path,
+    out_icns: pathlib.Path,
+) -> None:
+    iconset_dir = tmp_path / "Outrider.iconset"
+    iconset_dir.mkdir(parents=True, exist_ok=True)
+    for iconset_name, source_name in MACOS_ICONSET_SOURCES.items():
+        src = brand_dark_dir / source_name
+        if not src.is_file():
+            sys.exit(f"Missing macOS icon source PNG: {src}")
+        shutil.copy2(src, iconset_dir / iconset_name)
+    out_icns.parent.mkdir(parents=True, exist_ok=True)
+    subprocess.run(
+        ["iconutil", "-c", "icns", "-o", str(out_icns), str(iconset_dir)],
+        check=True,
+    )
 
 
 def sha256_file(path: pathlib.Path) -> str:
@@ -103,14 +137,22 @@ def package_macos(
         contents_dir = app_dir / "Contents"
         macos_dir = contents_dir / "MacOS"
         frameworks_dir = contents_dir / "Frameworks"
+        resources_dir = contents_dir / "Resources"
         macos_dir.mkdir(parents=True, exist_ok=True)
         frameworks_dir.mkdir(parents=True, exist_ok=True)
+        resources_dir.mkdir(parents=True, exist_ok=True)
 
         shutil.copy2(exe, macos_dir / "outrider")
         os.chmod(macos_dir / "outrider", 0o755)
         for dylib in dylibs:
             shutil.copy2(dylib, frameworks_dir / dylib.name)
         (frameworks_dir / "liblitert-lm.so").symlink_to("liblitert-lm.dylib")
+
+        build_macos_icns(
+            root / "dashboard/public/brand/dark",
+            tmp_path,
+            resources_dir / "Outrider.icns",
+        )
 
         info_plist = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -122,6 +164,8 @@ def package_macos(
   <string>Outrider</string>
   <key>CFBundleExecutable</key>
   <string>outrider</string>
+  <key>CFBundleIconFile</key>
+  <string>Outrider</string>
   <key>CFBundleIdentifier</key>
   <string>com.silvector.outrider</string>
   <key>CFBundleInfoDictionaryVersion</key>
@@ -207,9 +251,24 @@ def build_windows_msi(
     dll_names: list[str],
     version: str,
     msi_out: pathlib.Path,
+    icon_path: pathlib.Path | None = None,
 ) -> None:
     upgrade_code = "8F41B3E6-3E92-4C6D-9B4C-7A1802A45D19"
     wix_v3 = find_wix_v3_tools()
+    resolved_icon = (
+        icon_path
+        if icon_path is not None
+        else pathlib.Path(__file__).resolve().parents[1] / "dashboard/public/brand/favicon-dark.ico"
+    )
+    has_icon = resolved_icon.is_file()
+    escaped_icon = xml_escape(str(resolved_icon), {'"': "&quot;"}) if has_icon else ""
+    product_icon_xml = (
+        f'\n    <Icon Id="OutriderIcon.ico" SourceFile="{escaped_icon}" />'
+        '\n    <Property Id="ARPPRODUCTICON" Value="OutriderIcon.ico" />'
+        if has_icon
+        else ""
+    )
+    shortcut_icon_attr = '\n                      Icon="OutriderIcon.ico"' if has_icon else ""
 
     with tempfile.TemporaryDirectory(prefix="outrider-wix-") as wix_tmp:
         tmp_path = pathlib.Path(wix_tmp)
@@ -238,7 +297,7 @@ def build_windows_msi(
            UpgradeCode="{upgrade_code}">
     <Package InstallerVersion="500" Compressed="yes" InstallScope="perMachine" Platform="x64" />
     <MajorUpgrade DowngradeErrorMessage="A newer version of Outrider is already installed." />
-    <MediaTemplate EmbedCab="yes" />
+    <MediaTemplate EmbedCab="yes" />{product_icon_xml}
 
     <Directory Id="TARGETDIR" Name="SourceDir">
       <Directory Id="ProgramFiles64Folder">
@@ -254,10 +313,10 @@ def build_windows_msi(
         <Directory Id="ApplicationProgramsFolder" Name="Outrider">
           <Component Id="CmpStartMenuShortcut" Guid="3D7A5E14-92A1-49D2-A7C0-6118D3F01002" Win64="yes">
             <Shortcut Id="ApplicationStartMenuShortcut"
-                      Name="Outrider Command Center"
-                      Description="Launch Outrider MCP Commerce Gateway and Command Center"
+                      Name="Outrider"
+                      Description="Launch Outrider Local HTTP and MCP Gateway"
                       Target="[INSTALLFOLDER]outrider.exe"
-                      WorkingDirectory="INSTALLFOLDER" />
+                      WorkingDirectory="INSTALLFOLDER"{shortcut_icon_attr} />
             <RemoveFolder Id="CleanUpShortCut" Directory="ApplicationProgramsFolder" On="uninstall" />
             <RegistryValue Root="HKMU" Key="Software\\Silvector\\Outrider" Name="installed" Type="integer" Value="1" KeyPath="yes" />
           </Component>
@@ -319,7 +378,7 @@ def build_windows_msi(
            UpgradeCode="{upgrade_code}"
            Scope="perMachine">
     <MajorUpgrade DowngradeErrorMessage="A newer version of Outrider is already installed." />
-    <MediaTemplate EmbedCab="yes" />
+    <MediaTemplate EmbedCab="yes" />{product_icon_xml}
     <StandardDirectory Id="ProgramFiles64Folder">
       <Directory Id="INSTALLFOLDER" Name="Outrider">
         <Component Id="CmpOutriderExe">
@@ -376,7 +435,13 @@ def package_windows(
         produced.append(zip_path)
 
         msi_path = out_dir / f"Outrider-v{version}-windows-x64.msi"
-        build_windows_msi(stage, [d.name for d in dlls], version, msi_path)
+        build_windows_msi(
+            stage,
+            [d.name for d in dlls],
+            version,
+            msi_path,
+            icon_path=root / "dashboard/public/brand/favicon-dark.ico",
+        )
         produced.append(msi_path)
 
     return produced

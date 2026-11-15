@@ -29,6 +29,52 @@ const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("outrider.
 
 export const metadata: Metadata = {
   description: "Local HTTP & MCP Gateway",
+  icons: {
+    apple: [
+      {
+        sizes: "256x256",
+        type: "image/png",
+        url: "/__proxyfor__/brand/dark/outrider-logo-256.png",
+      },
+    ],
+    icon: [
+      {
+        media: "(prefers-color-scheme: dark)",
+        type: "image/x-icon",
+        url: "/__proxyfor__/brand/favicon-dark.ico",
+      },
+      {
+        media: "(prefers-color-scheme: light)",
+        type: "image/x-icon",
+        url: "/__proxyfor__/brand/favicon-light.ico",
+      },
+      {
+        media: "(prefers-color-scheme: dark)",
+        sizes: "32x32",
+        type: "image/png",
+        url: "/__proxyfor__/brand/dark/outrider-icon-32.png",
+      },
+      {
+        media: "(prefers-color-scheme: light)",
+        sizes: "32x32",
+        type: "image/png",
+        url: "/__proxyfor__/brand/light/outrider-icon-32.png",
+      },
+      {
+        media: "(prefers-color-scheme: dark)",
+        sizes: "64x64",
+        type: "image/png",
+        url: "/__proxyfor__/brand/dark/outrider-icon-64.png",
+      },
+      {
+        media: "(prefers-color-scheme: light)",
+        sizes: "64x64",
+        type: "image/png",
+        url: "/__proxyfor__/brand/light/outrider-icon-64.png",
+      },
+    ],
+    shortcut: "/__proxyfor__/brand/favicon-dark.ico",
+  },
   title: "Outrider",
 };
 
