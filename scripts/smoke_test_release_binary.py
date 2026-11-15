@@ -3,10 +3,10 @@
 
 Extracts each archive/installer into an isolated directory outside the repository,
 launches the packaged `outrider` binary against a fresh SQLite database, and verifies:
-  1. Embedded HeroUI Pro dashboard (`/__proxyfor__/`, `/__proxyfor__/zim/`, hashed `/_next/static/*.js`)
+  1. Embedded HeroUI Pro dashboard (`/__proxyfor__/`, hashed `/_next/static/*.js`, zero UI traffic pollution)
   2. Public runtime & native LiteRT-LM C-API link check (`/__proxyfor__/commerce/status`)
-  3. Admin bearer authentication enforcement (`401` unauthenticated vs `200` bearer-authenticated)
-  4. Live MCP `2026-07-28` wire session (`POST /mcp`: `server/discover` -> `tools/list` -> `tools/call`)
+  3. Admin bearer authentication & loopback local bootstrap (`401`/`403`/`200` + DNS-rebind/CSRF rejection)
+  4. Live MCP `2026-07-28` wire session (`POST /mcp` + unified `Traffic` & `subscribe/traffics` verification)
   5. Live TLS 1.3 loopback `rmcp` sortie (`POST /onboarding/run-sortie`) + Ed25519 receipt signature verification
   6. Graceful shutdown & SQLite `PRAGMA integrity_check == 'ok'`
 """
@@ -14,6 +14,7 @@ import argparse
 import json
 import os
 import pathlib
+import plistlib
 import re
 import shutil
 import signal
@@ -131,29 +132,31 @@ def run_six_live_checks(exe_path: pathlib.Path, work_dir: pathlib.Path, label: s
         if status_json is None:
             raise TimeoutError(f"Timed out waiting for {base_url}/__proxyfor__/commerce/status")
 
-        # Check 1: Embedded HeroUI Dashboard, /zim Command Center, and hashed Next.js static chunks
+        # Check 1: Embedded HeroUI Dashboard and hashed Next.js static chunks (excluded from traffics)
         code_root, _, html_root_bytes = http_request(f"{base_url}/__proxyfor__/")
         assert code_root == 200, f"Expected 200 on /__proxyfor__/, got {code_root}"
         html_root = html_root_bytes.decode("utf-8", errors="replace")
-
-        code_zim, _, html_zim_bytes = http_request(f"{base_url}/__proxyfor__/zim/")
-        assert code_zim == 200, f"Expected 200 on /__proxyfor__/zim/, got {code_zim}"
-        html_zim = html_zim_bytes.decode("utf-8", errors="replace")
-        assert "ZIM HOME STUDY" in html_zim, "Embedded /zim/ HTML missing Command Center content"
+        assert "<html" in html_root.lower(), "Embedded /__proxyfor__/ HTML missing document root"
 
         chunk_match = re.search(r'(/__proxyfor__/_next/static/[^"\'\s>]+\.js)', html_root)
         assert chunk_match is not None, "Could not find hashed /_next/static/*.js asset in /__proxyfor__/ HTML"
         chunk_path = chunk_match.group(1)
         code_js, js_headers, js_bytes = http_request(f"{base_url}{chunk_path}")
         assert code_js == 200 and len(js_bytes) > 100, f"Static JS chunk {chunk_path} failed: {code_js}"
-        print(f"[smoke]   1/6 Embedded HeroUI dashboard, /zim/, and {chunk_path} verified.")
+
+        code_ui_traffics, _, ui_traffics_bytes = http_request(f"{base_url}/__proxyfor__/traffics")
+        assert code_ui_traffics == 200, f"Expected 200 on /__proxyfor__/traffics, got {code_ui_traffics}"
+        assert json.loads(ui_traffics_bytes.decode("utf-8")) == [], (
+            f"Expected /__proxyfor__/ UI requests to be excluded from /traffics, got {ui_traffics_bytes!r}"
+        )
+        print(f"[smoke]   1/6 Embedded HeroUI dashboard and {chunk_path} verified (0 UI traffic pollution).")
 
         # Check 2: Public status & native LiteRT-LM C API link state
         assert "clef" in status_json and "status" in status_json["clef"], f"Malformed status: {status_json}"
         assert status_json.get("mcp_endpoint") == f"{base_url}/mcp", f"Unexpected mcp_endpoint: {status_json}"
         print(f"[smoke]   2/6 Native runtime & commerce status verified (clef={status_json['clef']['status']}).")
 
-        # Check 3: Admin token enforcement (401 unauthenticated vs 200 authenticated)
+        # Check 3: Admin token enforcement (401/200) & loopback /bootstrap/local security gates
         token_file = cfg_dir / "outrider-admin-token"
         assert token_file.is_file(), f"Missing generated admin token at {token_file}"
         admin_token = token_file.read_text(encoding="utf-8").strip()
@@ -162,13 +165,41 @@ def run_six_live_checks(exe_path: pathlib.Path, work_dir: pathlib.Path, label: s
         code_unauth, _, _ = http_request(f"{base_url}/__proxyfor__/commerce/snapshot")
         assert code_unauth == 401, f"Expected 401 for unauthenticated snapshot, got {code_unauth}"
 
+        c_rebind, _, _ = http_request(
+            f"{base_url}/__proxyfor__/commerce/bootstrap/local",
+            method="POST",
+            headers={"Host": "evil.example", "x-outrider-client": "dashboard"},
+        )
+        assert c_rebind == 403, f"Expected 403 for DNS-rebind Host on /bootstrap/local, got {c_rebind}"
+
+        c_no_csrf, _, _ = http_request(
+            f"{base_url}/__proxyfor__/commerce/bootstrap/local",
+            method="POST",
+            headers={"Host": f"localhost:{port}"},
+        )
+        assert c_no_csrf == 403, f"Expected 403 when missing x-outrider-client on /bootstrap/local, got {c_no_csrf}"
+
+        c_local_ok, _, b_local_ok = http_request(
+            f"{base_url}/__proxyfor__/commerce/bootstrap/local",
+            method="POST",
+            headers={"Host": f"localhost:{port}", "x-outrider-client": "dashboard"},
+        )
+        assert c_local_ok == 200, f"Expected 200 on loopback /bootstrap/local, got {c_local_ok}"
+        assert json.loads(b_local_ok.decode("utf-8")).get("token") == admin_token, (
+            "Mismatch in /bootstrap/local token"
+        )
+
         auth_headers = {"Authorization": f"Bearer {admin_token}"}
         code_auth, _, snap_bytes = http_request(
             f"{base_url}/__proxyfor__/commerce/snapshot",
             headers=auth_headers,
         )
         assert code_auth == 200, f"Expected 200 for bearer-authenticated snapshot, got {code_auth}"
-        print("[smoke]   3/6 Admin bearer token enforcement (401/200) verified.")
+        initial_snap = json.loads(snap_bytes.decode("utf-8"))
+        assert initial_snap.get("fingerprint_observations") == [], (
+            f"Expected /__proxyfor__/ UI requests not to pollute fingerprint_observations: {initial_snap.get('fingerprint_observations')}"
+        )
+        print("[smoke]   3/6 Admin bearer token enforcement, /bootstrap/local, and zero UI fingerprinting verified.")
 
         # Check 4: Live MCP `2026-07-28` wire session (`server/discover` -> `tools/list` -> `tools/call`)
         mcp_secret = str(uuid.uuid4())
@@ -235,7 +266,25 @@ def run_six_live_checks(exe_path: pathlib.Path, work_dir: pathlib.Path, label: s
         assert c_call == 200, f"MCP tools/call outrider_catalog failed ({c_call}): {b_call.decode(errors='replace')}"
         call_rpc = parse_json_or_sse(b_call, h_call.get("Content-Type", ""))
         assert "result" in call_rpc and not call_rpc["result"].get("isError"), f"Unexpected tool result: {call_rpc}"
-        print("[smoke]   4/6 Live MCP 2026-07-28 session & outrider_catalog execution verified.")
+
+        c_traffics, _, b_traffics = http_request(f"{base_url}/__proxyfor__/traffics")
+        assert c_traffics == 200, f"Expected 200 on /__proxyfor__/traffics, got {c_traffics}"
+        traffics_list = json.loads(b_traffics.decode("utf-8"))
+        mcp_heads = [t for t in traffics_list if str(t.get("uri", "")).endswith("/mcp")]
+        assert len(mcp_heads) >= 3, f"Expected >=3 /mcp entries in /__proxyfor__/traffics, got {traffics_list}"
+        assert all(
+            isinstance(t.get("start_time_unix_ms"), int) and t["start_time_unix_ms"] > 0
+            for t in mcp_heads
+        ), f"Missing start_time_unix_ms on /mcp TrafficHead: {mcp_heads}"
+
+        sub_opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with sub_opener.open(f"{base_url}/__proxyfor__/subscribe/traffics", timeout=5.0) as sub_resp:
+            first_ndjson = sub_resp.readline().decode("utf-8").strip()
+        first_head = json.loads(first_ndjson)
+        assert str(first_head.get("uri", "")).endswith("/mcp") and isinstance(
+            first_head.get("start_time_unix_ms"), int
+        ), f"Unexpected /subscribe/traffics NDJSON frame: {first_head}"
+        print("[smoke]   4/6 Live MCP 2026-07-28 session & unified /traffics stream verified.")
 
         # Check 5: Cryptographic Commerce + TLS 1.3 Loopback `rmcp` Sortie + Ed25519 Receipt Verification
         c_sortie, _, b_sortie = http_request(
@@ -360,6 +409,10 @@ def smoke_test_artifact(artifact_path: pathlib.Path) -> None:
                 subprocess.run(["hdiutil", "detach", str(mnt_dir), "-force"], check=False)
 
             subprocess.run(["codesign", "--verify", "--deep", "--strict", str(copied_app)], check=True)
+            plist_data = plistlib.loads((copied_app / "Contents/Info.plist").read_bytes())
+            assert plist_data.get("LSUIElement") is True, (
+                f"Expected LSUIElement=True in Outrider.app Info.plist, got {plist_data.get('LSUIElement')}"
+            )
             app_exe = copied_app / "Contents/MacOS/outrider"
             if not app_exe.is_file():
                 sys.exit(f"Missing Contents/MacOS/outrider inside {copied_app}")

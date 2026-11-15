@@ -55,7 +55,12 @@ async fn bootstrap_exchange_single_use_loopback_only_and_sortie_records_tls_mcp_
     let base = format!("http://127.0.0.1:{port}{WEB_PREFIX}/commerce");
 
     // Public status now exposes listen_addr & mcp_endpoint
-    let status: Value = client.get(format!("{base}/status")).send().await?.json().await?;
+    let status: Value = client
+        .get(format!("{base}/status"))
+        .send()
+        .await?
+        .json()
+        .await?;
     assert_eq!(status["listen_addr"], format!("127.0.0.1:{port}"));
     assert_eq!(
         status["mcp_endpoint"],
@@ -88,6 +93,16 @@ async fn bootstrap_exchange_single_use_loopback_only_and_sortie_records_tls_mcp_
         .await?;
     assert_eq!(replay_resp.status(), 401);
 
+    // When allow_remote == true, /bootstrap/local MUST reject with 403 even from loopback + valid headers
+    let remote_mode_local_resp = client
+        .post(format!(
+            "http://localhost:{port}{WEB_PREFIX}/commerce/bootstrap/local"
+        ))
+        .header("x-outrider-client", "dashboard")
+        .send()
+        .await?;
+    assert_eq!(remote_mode_local_resp.status(), 403);
+
     // Execute the cross-browser in-process Rust TLS rmcp sortie
     let sortie_resp = client
         .post(format!("{base}/onboarding/run-sortie"))
@@ -98,7 +113,10 @@ async fn bootstrap_exchange_single_use_loopback_only_and_sortie_records_tls_mcp_
     let sortie_status = sortie_resp.status();
     let sortie: Value = sortie_resp.json().await?;
     assert_eq!(sortie_status, 200, "sortie failed: {sortie}");
-    let session_id = sortie["session_id"].as_str().expect("session_id").to_owned();
+    let session_id = sortie["session_id"]
+        .as_str()
+        .expect("session_id")
+        .to_owned();
     assert!(sortie["proxy_traffic_recorded"].as_bool().unwrap_or(false));
 
     // Verify snapshot contains genuine TLS ClientHello JA4, TLS cipher, HTTP header order,
@@ -129,13 +147,11 @@ async fn bootstrap_exchange_single_use_loopback_only_and_sortie_records_tls_mcp_
         obs.iter()
             .any(|o| o["session_id"] == session_id && o["kind"] == "negotiated_tls")
     );
-    assert!(
-        obs.iter().any(|o| {
-            o["session_id"] == session_id
-                && o["kind"] == "http_header_order"
-                && o["evidence"]["status"] == "Captured"
-        })
-    );
+    assert!(obs.iter().any(|o| {
+        o["session_id"] == session_id
+            && o["kind"] == "http_header_order"
+            && o["evidence"]["status"] == "Captured"
+    }));
 
     assert!(!snap["mcp_frames"].as_array().unwrap().is_empty());
     assert!(!snap["mrtr_quotes"].as_array().unwrap().is_empty());
@@ -178,7 +194,10 @@ async fn agent_scanner_backup_injection_consent_restart_and_desktop_port_fallbac
         use std::os::unix::fs::PermissionsExt;
         fs::write(
             &opener_script,
-            format!("#!/bin/sh\nprintf '%s' \"$1\" > '{}'\n", opener_log.display()),
+            format!(
+                "#!/bin/sh\nprintf '%s' \"$1\" > '{}'\n",
+                opener_log.display()
+            ),
         )?;
         fs::set_permissions(&opener_script, fs::Permissions::from_mode(0o755))?;
     }
@@ -236,7 +255,9 @@ async fn agent_scanner_backup_injection_consent_restart_and_desktop_port_fallbac
             tokio::time::timeout(Duration::from_secs(5), async {
                 loop {
                     if opener_log.is_file()
-                        && !fs::read_to_string(&opener_log).unwrap_or_default().is_empty()
+                        && !fs::read_to_string(&opener_log)
+                            .unwrap_or_default()
+                            .is_empty()
                     {
                         break;
                     }
@@ -247,9 +268,9 @@ async fn agent_scanner_backup_injection_consent_restart_and_desktop_port_fallbac
             let launched = fs::read_to_string(&opener_log)?;
             assert!(
                 launched.starts_with(&format!(
-                    "http://127.0.0.1:{base_port}/__proxyfor__/zim/#bootstrap="
+                    "http://localhost:{base_port}/__proxyfor__/#bootstrap="
                 )),
-                "Expected desktop first-run browser launch to /zim/#bootstrap=..., got {launched}"
+                "Expected desktop browser launch to http://localhost:{base_port}/__proxyfor__/#bootstrap=..., got {launched}"
             );
             let nonce = launched.split("#bootstrap=").nth(1).expect("nonce");
             let exchanged: Value = client
@@ -309,7 +330,11 @@ async fn agent_scanner_backup_injection_consent_restart_and_desktop_port_fallbac
         .await?;
     assert_eq!(cfg1["configured"], true);
     assert_eq!(cfg1["restarted"], false);
-    assert!(cfg1["backup_path"].as_str().is_some_and(|p| Path::new(p).is_file()));
+    assert!(
+        cfg1["backup_path"]
+            .as_str()
+            .is_some_and(|p| Path::new(p).is_file())
+    );
     assert!(!restart_log.exists());
 
     let merged_claude: Value = serde_json::from_str(&fs::read_to_string(
@@ -355,5 +380,246 @@ async fn agent_scanner_backup_injection_consent_restart_and_desktop_port_fallbac
     assert!(second.contains("http://127.0.0.1:8081/mcp"));
     assert!(!second.contains("http://127.0.0.1:8080/mcp"));
 
+    Ok(())
+}
+
+#[tokio::test]
+async fn mcp_traffic_unification_ui_fingerprint_exclusion_and_loopback_local_bootstrap()
+-> Result<()> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let _ = tokio_rustls::rustls::crypto::ring::default_provider().install_default();
+    let dir = tempfile::tempdir()?;
+    let db = Database::open(dir.path().join("outrider.db"))?;
+    let engine = ClefEngine::load(ClefConfig {
+        model: None,
+        backend: "cpu".into(),
+        threads: 1,
+        cache_dir: dir.path().join("clef-cache"),
+        workers: 1,
+    })
+    .await?;
+    let (commerce, token) = Commerce::new(db, engine, dir.path(), false)?;
+    let expected_token = token.expect("fresh admin token");
+    commerce.register_local_tools()?;
+
+    // Non-loopback peer must always be rejected on bootstrap_local_session
+    assert_eq!(
+        commerce.auth.bootstrap_local_session(
+            Some(IpAddr::V4(Ipv4Addr::new(192, 168, 1, 50))),
+            Some("localhost:8080"),
+            Some("dashboard"),
+            Some("same-origin"),
+        ),
+        Err(403)
+    );
+
+    let server = ServerBuilder::new(common::build_ca()?)
+        .commerce(commerce.clone())
+        .print_mode(PrintMode::Nothing)
+        .web(true)
+        .build();
+    let listener = tokio::net::TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await?;
+    let port = listener.local_addr()?.port();
+    let stop = server.run(listener).await?;
+
+    let client = common::build_client()?;
+
+    // (b) GET /__proxyfor__/ (HTTP and HTTPS) must NOT create fingerprint_observations rows or traffics rows
+    let http_ui = client
+        .get(format!("http://localhost:{port}{WEB_PREFIX}/"))
+        .send()
+        .await?;
+    assert_eq!(http_ui.status(), 200);
+
+    let https_ui = client
+        .get(format!("https://localhost:{port}{WEB_PREFIX}/"))
+        .send()
+        .await?;
+    assert_eq!(https_ui.status(), 200);
+
+    assert_eq!(
+        commerce
+            .db
+            .rows("fingerprint_observations")?
+            .as_array()
+            .unwrap()
+            .len(),
+        0,
+        "GET /__proxyfor__/ must not pollute fingerprint_observations"
+    );
+    let initial_traffics: Value = client
+        .get(format!("http://localhost:{port}{WEB_PREFIX}/traffics"))
+        .send()
+        .await?
+        .json()
+        .await?;
+    assert_eq!(
+        initial_traffics.as_array().unwrap().len(),
+        0,
+        "GET /__proxyfor__/ must not create traffics rows"
+    );
+
+    // (c) POST /__proxyfor__/commerce/bootstrap/local security gates
+    // Reject DNS-rebinding Host: evil.example over raw loopback TCP socket
+    {
+        let mut sock = tokio::net::TcpStream::connect(("127.0.0.1", port)).await?;
+        let req = format!(
+            "POST {WEB_PREFIX}/commerce/bootstrap/local HTTP/1.1\r\n\
+             Host: evil.example\r\n\
+             x-outrider-client: dashboard\r\n\
+             Content-Length: 0\r\n\
+             Connection: close\r\n\r\n"
+        );
+        sock.write_all(req.as_bytes()).await?;
+        let mut buf = String::new();
+        sock.read_to_string(&mut buf).await?;
+        assert!(
+            buf.starts_with("HTTP/1.1 403"),
+            "Expected 403 for DNS-rebind Host: evil.example, got {buf}"
+        );
+    }
+
+    // Reject missing x-outrider-client
+    let missing_client = client
+        .post(format!(
+            "http://localhost:{port}{WEB_PREFIX}/commerce/bootstrap/local"
+        ))
+        .send()
+        .await?;
+    assert_eq!(missing_client.status(), 403);
+
+    // Reject cross-site / same-site Sec-Fetch-Site
+    for forbidden_site in ["cross-site", "same-site"] {
+        let resp = client
+            .post(format!(
+                "http://localhost:{port}{WEB_PREFIX}/commerce/bootstrap/local"
+            ))
+            .header("x-outrider-client", "dashboard")
+            .header("sec-fetch-site", forbidden_site)
+            .send()
+            .await?;
+        assert_eq!(
+            resp.status(),
+            403,
+            "Expected 403 for Sec-Fetch-Site: {forbidden_site}"
+        );
+    }
+
+    // Succeed with loopback + Host: localhost + x-outrider-client: dashboard
+    let ok_local = client
+        .post(format!(
+            "http://localhost:{port}{WEB_PREFIX}/commerce/bootstrap/local"
+        ))
+        .header("x-outrider-client", "dashboard")
+        .header("sec-fetch-site", "same-origin")
+        .send()
+        .await?;
+    assert_eq!(ok_local.status(), 200);
+    let ok_body: Value = ok_local.json().await?;
+    assert_eq!(ok_body["token"], expected_token);
+
+    let audits = commerce.db.rows("admin_audit_log")?;
+    assert!(audits.as_array().unwrap().iter().any(|row| {
+        row["actor"] == "desktop:local"
+            && row["action"] == "auth.local_session"
+            && row["target"] == "gateway"
+            && row["details"]["loopback"] == true
+    }));
+
+    // (a) POST /mcp appears in GET /__proxyfor__/traffics and GET /__proxyfor__/subscribe/traffics with start_time_unix_ms
+    let mcp_secret = uuid::Uuid::new_v4().to_string();
+    let mcp_resp = client
+        .post(format!("http://localhost:{port}/mcp"))
+        .header("accept", "application/json, text/event-stream")
+        .header("content-type", "application/json")
+        .header("mcp-protocol-version", "2026-07-28")
+        .header("mcp-method", "server/discover")
+        .header("outrider-session-id", &mcp_secret)
+        .json(&json!({
+            "jsonrpc": "2.0",
+            "id": 1,
+            "method": "server/discover",
+            "params": {
+                "_meta": {
+                    "io.modelcontextprotocol/protocolVersion": "2026-07-28",
+                    "io.modelcontextprotocol/clientCapabilities": {},
+                    "io.modelcontextprotocol/clientInfo": {
+                        "name": "mcp-traffic-test",
+                        "version": "1.0.0"
+                    }
+                }
+            }
+        }))
+        .send()
+        .await?;
+    assert_eq!(mcp_resp.status(), 200);
+    let _ = mcp_resp.bytes().await?;
+
+    // Wait briefly for traffic_done_rx to finalize size/time
+    tokio::time::timeout(Duration::from_secs(3), async {
+        loop {
+            let traffics: Value = client
+                .get(format!("http://localhost:{port}{WEB_PREFIX}/traffics"))
+                .send()
+                .await
+                .unwrap()
+                .json()
+                .await
+                .unwrap();
+            if let Some(entry) = traffics.as_array().and_then(|a| a.first())
+                && entry["size"].is_u64()
+            {
+                break;
+            }
+            tokio::time::sleep(Duration::from_millis(20)).await;
+        }
+    })
+    .await?;
+
+    let traffics: Value = client
+        .get(format!("http://localhost:{port}{WEB_PREFIX}/traffics"))
+        .send()
+        .await?
+        .json()
+        .await?;
+    let arr = traffics.as_array().expect("traffics array");
+    assert_eq!(arr.len(), 1);
+    assert_eq!(arr[0]["method"], "POST");
+    assert_eq!(arr[0]["uri"], format!("http://localhost:{port}/mcp"));
+    assert_eq!(arr[0]["status"], 200);
+    assert!(
+        arr[0]["start_time_unix_ms"]
+            .as_i64()
+            .is_some_and(|ms| ms > 1_700_000_000_000),
+        "Expected start_time_unix_ms on TrafficHead, got {}",
+        arr[0]
+    );
+
+    // Verify GET /__proxyfor__/subscribe/traffics streams the MCP TrafficHead with start_time_unix_ms
+    let subscribed = common::fetch_subscribe(
+        &format!("http://localhost:{port}{WEB_PREFIX}/subscribe/traffics"),
+        Duration::from_millis(300),
+    )
+    .await?;
+    let first_line = subscribed.lines().next().expect("ndjson frame");
+    let sub_head: Value = serde_json::from_str(first_line)?;
+    assert_eq!(sub_head["uri"], format!("http://localhost:{port}/mcp"));
+    assert!(
+        sub_head["start_time_unix_ms"]
+            .as_i64()
+            .is_some_and(|ms| ms > 1_700_000_000_000)
+    );
+
+    // Verify client session secret is redacted in exported traffic detail
+    let detail_text = client
+        .get(format!("http://localhost:{port}{WEB_PREFIX}/traffic/1"))
+        .send()
+        .await?
+        .text()
+        .await?;
+    assert!(!detail_text.contains(&mcp_secret));
+
+    let _ = stop.send(());
     Ok(())
 }

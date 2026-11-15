@@ -64,6 +64,9 @@ type Request = hyper::Request<Incoming>;
 type Response = hyper::Response<BoxBody<Bytes, anyhow::Error>>;
 type TrafficDoneSender = mpsc::UnboundedSender<(usize, u64)>;
 
+#[derive(Clone, Copy, Debug)]
+struct DirectTls;
+
 pub struct ServerBuilder {
     ca: CertificateAuthority,
     reverse_proxy_url: Option<String>,
@@ -258,9 +261,11 @@ impl Server {
             if let Some(c) = &self.commerce {
                 crate::fingerprint::passive::record_tls(&c.db, &connection.connection_id, &stream)?;
             }
-            self.serve_observed(stream, peer, connection, tx).await
+            self.serve_observed(stream, peer, connection, true, tx)
+                .await
         } else {
-            self.serve_observed(socket, peer, connection, tx).await
+            self.serve_observed(socket, peer, connection, false, tx)
+                .await
         }
     }
     async fn serve_observed<I>(
@@ -268,6 +273,7 @@ impl Server {
         mut stream: I,
         peer: std::net::SocketAddr,
         connection: crate::fingerprint::passive::ConnectionEvidence,
+        is_tls: bool,
         tx: TrafficDoneSender,
     ) -> Result<()>
     where
@@ -285,6 +291,9 @@ impl Server {
             req.extensions_mut()
                 .insert(crate::commerce::http::PeerAddress(peer));
             req.extensions_mut().insert(connection.clone());
+            if is_tls {
+                req.extensions_mut().insert(DirectTls);
+            }
             self.clone().handle(req, tx.clone())
         });
         hyper_util::server::conn::auto::Builder::new(TokioExecutor::new())
@@ -307,13 +316,47 @@ impl Server {
         traffic_done_tx: TrafficDoneSender,
     ) -> Result<Response, hyper::Error> {
         if req.uri().authority().is_none() && req.uri().path() == "/mcp" {
-            use hyper::service::Service;
-            return Ok(match &self.mcp {
+            let req_version = req.version();
+            let scheme = if req.uri().scheme_str() == Some("https")
+                || req.extensions().get::<DirectTls>().is_some()
+            {
+                "https"
+            } else {
+                "http"
+            };
+            let host = req
+                .headers()
+                .get(HOST)
+                .and_then(|v| v.to_str().ok())
+                .filter(|s| !s.is_empty())
+                .unwrap_or("localhost");
+            let mcp_uri = format!("{scheme}://{host}{}", req.uri());
+
+            let mut traffic = Traffic::new(&mcp_uri, req.method().as_str());
+            traffic.check_match(is_match_title(
+                &self.title_filters,
+                &format!("{} {mcp_uri}", req.method()),
+            ));
+            let mut recorded_req_headers = req.headers().clone();
+            if recorded_req_headers.contains_key("outrider-session-id") {
+                recorded_req_headers.insert(
+                    "outrider-session-id",
+                    HeaderValue::from_static("[redacted]"),
+                );
+            }
+            traffic.set_req_headers(&recorded_req_headers);
+            traffic.set_start_time();
+
+            let req_body_file = if traffic.valid {
+                self.req_body_file(&mut traffic).ok()
+            } else {
+                None
+            };
+            let wrapped_req = req.map(|b| BodyWrapper::new(b, req_body_file, None));
+
+            let mcp_res: Response = match &self.mcp {
                 Some(service) => {
-                    let response = hyper_util::service::TowerToHyperService::new(service.clone())
-                        .call(req)
-                        .await
-                        .unwrap();
+                    let response = service.handle(wrapped_req).await;
                     let (parts, body) = response.into_parts();
                     Response::from_parts(parts, body.map_err(|never| match never {}).boxed())
                 }
@@ -321,11 +364,55 @@ impl Server {
                     503,
                     serde_json::json!({"error":"MCP gateway is not configured"}),
                 ),
-            });
+            };
+
+            if let Some(req_path) = &traffic.req_body_file {
+                redact_mcp_req_body_file(req_path);
+            }
+
+            let res_status = mcp_res.status();
+            let res_headers = mcp_res.headers().clone();
+            let content_type = res_headers
+                .get(CONTENT_TYPE)
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or_default();
+            traffic.check_match(is_match_type(&self.mime_filters, content_type));
+            let encoding = res_headers
+                .get(CONTENT_ENCODING)
+                .and_then(|v| v.to_str().ok())
+                .unwrap_or_default();
+
+            traffic
+                .set_res_status(res_status)
+                .set_http_version(&req_version)
+                .set_res_headers(&res_headers);
+
+            let res_body_file = if traffic.valid {
+                self.res_body_file(&mut traffic, encoding).ok()
+            } else {
+                None
+            };
+
+            let (parts, body) = mcp_res.into_parts();
+            let wrapped_res_body =
+                BodyWrapper::new(body, res_body_file, Some((traffic.gid, traffic_done_tx)));
+            let final_res = Response::from_parts(parts, BoxBody::new(wrapped_res_body));
+            self.state.add_traffic(traffic).await;
+            return Ok(final_res);
         }
         if req.uri().authority().is_none()
             && req.uri().path().starts_with("/__proxyfor__/commerce/")
         {
+            if let (Some(c), Some(conn)) = (
+                &self.commerce,
+                req.extensions()
+                    .get::<crate::fingerprint::passive::ConnectionEvidence>(),
+            ) {
+                let _ = crate::fingerprint::passive::clear_unclaimed_connection(
+                    &c.db,
+                    &conn.connection_id,
+                );
+            }
             return Ok(match &self.commerce {
                 Some(commerce) => crate::commerce::http::route(commerce.clone(), req).await,
                 None => crate::commerce::http::json_response(
@@ -361,6 +448,16 @@ impl Server {
             };
             return Ok(res);
         } else if let Some(path) = path.strip_prefix(WEB_PREFIX) {
+            if let (Some(c), Some(conn)) = (
+                &self.commerce,
+                req.extensions()
+                    .get::<crate::fingerprint::passive::ConnectionEvidence>(),
+            ) {
+                let _ = crate::fingerprint::passive::clear_unclaimed_connection(
+                    &c.db,
+                    &conn.connection_id,
+                );
+            }
             let mut res = Response::default();
             if !path.is_empty() && !path.starts_with('/') {
                 *res.status_mut() = StatusCode::NOT_FOUND;
@@ -1442,6 +1539,49 @@ fn ndjson_frame<T: Serialize>(head: &T) -> Frame<Bytes> {
         Err(_) => String::new(),
     };
     Frame::data(Bytes::from(data))
+}
+
+fn redact_mcp_session_secret_in_value(val: &mut serde_json::Value) -> bool {
+    let mut changed = false;
+    match val {
+        serde_json::Value::Object(map) => {
+            if let Some(v) = map.get_mut("outrider/session_id")
+                && v.as_str() != Some("[redacted]")
+            {
+                *v = serde_json::Value::String("[redacted]".into());
+                changed = true;
+            }
+            for v in map.values_mut() {
+                if redact_mcp_session_secret_in_value(v) {
+                    changed = true;
+                }
+            }
+        }
+        serde_json::Value::Array(arr) => {
+            for v in arr.iter_mut() {
+                if redact_mcp_session_secret_in_value(v) {
+                    changed = true;
+                }
+            }
+        }
+        _ => {}
+    }
+    changed
+}
+
+fn redact_mcp_req_body_file(path: &str) {
+    let Ok(bytes) = std::fs::read(path) else {
+        return;
+    };
+    if !std::str::from_utf8(&bytes).is_ok_and(|s| s.contains("outrider/session_id")) {
+        return;
+    }
+    if let Ok(mut val) = serde_json::from_slice::<serde_json::Value>(&bytes)
+        && redact_mcp_session_secret_in_value(&mut val)
+        && let Ok(serialized) = serde_json::to_vec(&val)
+    {
+        let _ = std::fs::write(path, serialized);
+    }
 }
 
 fn ignore_tungstenite_error(err: &tungstenite::Error) -> bool {

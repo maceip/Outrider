@@ -232,6 +232,9 @@ impl Traffic {
             time: self.time(),
             mime: extract_mime(&self.res_headers).to_string(),
             websocket_id: self.websocket_id,
+            start_time_unix_ms: self
+                .start_time
+                .map(|t| (t.unix_timestamp_nanos() / 1_000_000) as i64),
         }
     }
 
@@ -333,6 +336,8 @@ pub struct TrafficHead {
     pub mime: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub websocket_id: Option<usize>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub start_time_unix_ms: Option<i64>,
 }
 
 impl TrafficHead {

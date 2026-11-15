@@ -139,6 +139,15 @@ pub async fn http_prefix<I: tokio::io::AsyncRead + Unpin>(stream: &mut I) -> Vec
     }
     raw
 }
+pub fn clear_unclaimed_connection(db: &Database, connection: &str) -> Result<()> {
+    db.0.lock()
+        .map_err(|_| anyhow!("database lock poisoned"))?
+        .execute(
+            "DELETE FROM fingerprint_observations WHERE connection_id = ?1 AND session_id IS NULL",
+            params![connection],
+        )?;
+    Ok(())
+}
 pub fn record_header_order(db: &Database, connection: &str, raw: &[u8]) -> Result<()> {
     use sha2::{Digest, Sha256};
     if raw.starts_with(b"PRI * HTTP/2.0") {
@@ -156,6 +165,11 @@ pub fn record_header_order(db: &Database, connection: &str, raw: &[u8]) -> Resul
     let text = std::str::from_utf8(&raw[..end])?;
     let mut lines = text.split("\r\n");
     let request_line = lines.next().unwrap_or("");
+    if let Some(target) = request_line.split_whitespace().nth(1)
+        && (target.starts_with("/__proxyfor__") || target.starts_with("/__proxyfor__cert__"))
+    {
+        return clear_unclaimed_connection(db, connection);
+    }
     let names = lines
         .map(|s| s.split_once(':').map(|(name, _)| name.to_owned()))
         .collect::<Option<Vec<_>>>();

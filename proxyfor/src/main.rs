@@ -14,7 +14,7 @@ use simplelog::{ConfigBuilder, LevelFilter, WriteLogger, format_description};
 use std::{
     fs,
     io::{self, IsTerminal},
-    net::{IpAddr, Ipv4Addr, SocketAddr},
+    net::{IpAddr, SocketAddr},
     path::{Path, PathBuf},
 };
 use tokio::net::TcpListener;
@@ -164,18 +164,11 @@ async fn main() -> Result<()> {
     } else {
         PrintMode::Oneline
     };
-    let has_existing_sessions = commerce
-        .db
-        .rows("agent_sessions")
-        .ok()
-        .and_then(|v| v.as_array().map(|a| !a.is_empty()))
-        .unwrap_or(false);
-    let desktop_bootstrap_nonce =
-        if desktop_mode && !cli.no_open {
-            Some(commerce.auth.mint_bootstrap_nonce())
-        } else {
-            None
-        };
+    let desktop_bootstrap_nonce = if desktop_mode && !cli.no_open {
+        Some(commerce.auth.mint_bootstrap_nonce())
+    } else {
+        None
+    };
 
     let server = ServerBuilder::new(ca)
         .commerce(commerce)
@@ -193,25 +186,19 @@ async fn main() -> Result<()> {
         tui::run(state, &addr).await.context("Failed to run TUI")?;
     } else {
         eprintln!("HTTP(S) proxy listening at {addr}");
-        let browser_host = match ip {
-            IpAddr::V4(v4) if v4.is_unspecified() => IpAddr::V4(Ipv4Addr::LOCALHOST).to_string(),
-            IpAddr::V6(v6) if v6.is_unspecified() => "[::1]".to_owned(),
-            IpAddr::V6(v6) => format!("[{v6}]"),
-            other => other.to_string(),
+        let browser_host = if ip.is_loopback() || ip.is_unspecified() {
+            "localhost".to_owned()
+        } else if let IpAddr::V6(v6) = ip {
+            format!("[{v6}]")
+        } else {
+            ip.to_string()
         };
         if web_enabled {
-            eprintln!(
-                "Web interface accessible at http://{browser_host}:{port}{WEB_PREFIX}/"
-            );
+            eprintln!("Web interface accessible at http://{browser_host}:{port}{WEB_PREFIX}/");
         }
         if let Some(nonce) = desktop_bootstrap_nonce {
-            let entry_route = if has_existing_sessions {
-                format!("{WEB_PREFIX}/")
-            } else {
-                format!("{WEB_PREFIX}/zim/")
-            };
-            let launch_url =
-                format!("http://{browser_host}:{port}{entry_route}#bootstrap={nonce}");
+            let entry_route = format!("{WEB_PREFIX}/");
+            let launch_url = format!("http://{browser_host}:{port}{entry_route}#bootstrap={nonce}");
             if let Err(err) = open_browser_url(&launch_url) {
                 warn!("Failed to launch default browser ({launch_url}): {err:#}");
             } else {

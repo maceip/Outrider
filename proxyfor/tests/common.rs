@@ -224,6 +224,8 @@ pub fn mask_text(text: &str) -> String {
     let text = re.replace_all(&text, r#""gid":<GID>"#);
     let re = fancy_regex::Regex::new(r#""time": *\d+"#).unwrap();
     let text = re.replace_all(&text, r#""time":<TIME>"#);
+    let re = fancy_regex::Regex::new(r#""start_time_unix_ms": *\d+"#).unwrap();
+    let text = re.replace_all(&text, r#""start_time_unix_ms":<START_TIME_UNIX_MS>"#);
     let re = fancy_regex::Regex::new(r#""version": *"\S+""#).unwrap();
     let text = re.replace_all(&text, r#""version":"<VERSION>""#);
     let re = fancy_regex::Regex::new(r#"body_file": *"\S+""#).unwrap();

@@ -229,8 +229,10 @@ async fn real_rustls_configurations_store_independently_verified_client_hellos()
     let _ = rustls::crypto::ring::default_provider().install_default();
     let dir = tempfile::tempdir()?;
     let rt = runtime(dir.path()).await?;
+    let (upstream, stop_upstream) = common::start_http_server().await?;
     let server = proxyfor::server::ServerBuilder::new(common::build_ca()?)
         .commerce(rt.clone())
+        .reverse_proxy_url(Some(format!("http://{upstream}")))
         .build();
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await?;
     let addr = listener.local_addr()?;
@@ -244,6 +246,28 @@ async fn real_rustls_configurations_store_independently_verified_client_hellos()
         let mut config = rustls::ClientConfig::builder_with_protocol_versions(&[version])
             .with_root_certificates(roots)
             .with_no_client_auth();
+        config.alpn_protocols = vec![b"http/1.1".to_vec()];
+        let socket = tokio::net::TcpStream::connect(addr).await?;
+        let mut tls = TlsConnector::from(Arc::new(config))
+            .connect("localhost".try_into()?, socket)
+            .await?;
+        tls.write_all(b"GET /hello HTTP/1.1\r\nHost: localhost\r\nConnection: close\r\n\r\n")
+            .await?;
+        let mut response = String::new();
+        tls.read_to_string(&mut response).await?;
+        assert!(response.starts_with("HTTP/1.1 200"));
+    }
+    // Internal /__proxyfor__/* UI/commerce requests over TLS must NOT leave fingerprint_observations rows
+    {
+        let mut roots = rustls::RootCertStore::empty();
+        let cert = std::fs::read(common::resolve_fixture_path("proxyfor-ca-cert.cer"))?;
+        for cert in rustls_pemfile::certs(&mut cert.as_slice()) {
+            roots.add(cert?)?;
+        }
+        let mut config =
+            rustls::ClientConfig::builder_with_protocol_versions(&[&rustls::version::TLS13])
+                .with_root_certificates(roots)
+                .with_no_client_auth();
         config.alpn_protocols = vec![b"http/1.1".to_vec()];
         let socket = tokio::net::TcpStream::connect(addr).await?;
         let mut tls = TlsConnector::from(Arc::new(config))
@@ -279,6 +303,7 @@ async fn real_rustls_configurations_store_independently_verified_client_hellos()
             .count(),
         2
     );
+    let _ = stop_upstream.send(());
     let _ = stop.send(());
     Ok(())
 }

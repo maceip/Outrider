@@ -10,6 +10,7 @@ expression: output
     "status": 200,
     "size": 13,
     "time":<TIME>,
-    "mime": ""
+    "mime": "",
+    "start_time_unix_ms":<START_TIME_UNIX_MS>
   }
 ]

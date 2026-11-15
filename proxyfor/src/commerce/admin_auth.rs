@@ -151,4 +151,67 @@ impl AdminAuth {
             Err(401)
         }
     }
+
+    /// Issues the admin bearer token directly to the local loopback dashboard in local-only mode.
+    pub fn bootstrap_local_session(
+        &self,
+        peer: Option<IpAddr>,
+        host_header: Option<&str>,
+        client_header: Option<&str>,
+        sec_fetch_site: Option<&str>,
+    ) -> Result<String, u16> {
+        if self.allow_remote {
+            return Err(403);
+        }
+        if !peer.is_some_and(|ip| ip.is_loopback()) {
+            return Err(403);
+        }
+        let Some(raw_host) = host_header.map(str::trim).filter(|s| !s.is_empty()) else {
+            return Err(403);
+        };
+        if !is_allowed_loopback_host(raw_host) {
+            return Err(403);
+        }
+        if client_header.map(str::trim) != Some("dashboard") {
+            return Err(403);
+        }
+        if let Some(site) = sec_fetch_site.map(str::trim)
+            && site != "same-origin"
+            && site != "none"
+        {
+            return Err(403);
+        }
+        Ok((*self.token_secret).clone())
+    }
+}
+
+fn is_allowed_loopback_host(raw_host: &str) -> bool {
+    let host_part = if raw_host.starts_with('[') {
+        if raw_host.ends_with(']') {
+            raw_host
+        } else if let Some((bracketed, port)) = raw_host.rsplit_once(':')
+            && bracketed.ends_with(']')
+            && !port.is_empty()
+            && port.bytes().all(|b| b.is_ascii_digit())
+            && port.parse::<u16>().is_ok()
+        {
+            bracketed
+        } else {
+            return false;
+        }
+    } else if let Some((h, port)) = raw_host.split_once(':') {
+        if !port.is_empty()
+            && port.bytes().all(|b| b.is_ascii_digit())
+            && port.parse::<u16>().is_ok()
+        {
+            h
+        } else {
+            return false;
+        }
+    } else {
+        raw_host
+    };
+    host_part.eq_ignore_ascii_case("localhost")
+        || host_part == "127.0.0.1"
+        || host_part.eq_ignore_ascii_case("[::1]")
 }

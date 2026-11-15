@@ -12,7 +12,8 @@ expression: output
     "status": 200,
     "size": 13,
     "time":<TIME>,
-    "mime": ""
+    "mime": "",
+    "start_time_unix_ms":<START_TIME_UNIX_MS>
   },
   {
     "id": 2,
@@ -21,7 +22,8 @@ expression: output
     "status": 200,
     "size": 33,
     "time":<TIME>,
-    "mime": ""
+    "mime": "",
+    "start_time_unix_ms":<START_TIME_UNIX_MS>
   },
   {
     "id": 3,
@@ -30,7 +32,8 @@ expression: output
     "status": 200,
     "size": 13,
     "time":<TIME>,
-    "mime": "text/plain"
+    "mime": "text/plain",
+    "start_time_unix_ms":<START_TIME_UNIX_MS>
   }
 ]
 

@@ -77,6 +77,54 @@ pub async fn route(commerce: Arc<Commerce>, request: Request<Incoming>) -> HttpR
             Err(_) => json_response(401, json!({"error": "Invalid or expired bootstrap nonce"})),
         };
     }
+    if method == "POST" && path == "/bootstrap/local" {
+        let host_values: Vec<_> = request.headers().get_all("host").iter().collect();
+        let host_header = match host_values.as_slice() {
+            [single] => single.to_str().ok(),
+            [] => request.uri().authority().map(|a| a.as_str()),
+            _ => None,
+        };
+        let client_values: Vec<_> = request
+            .headers()
+            .get_all("x-outrider-client")
+            .iter()
+            .collect();
+        let client_header = match client_values.as_slice() {
+            [single] => single.to_str().ok(),
+            _ => None,
+        };
+        let sec_fetch_values: Vec<_> = request.headers().get_all("sec-fetch-site").iter().collect();
+        let sec_fetch_site = match sec_fetch_values.as_slice() {
+            [] => None,
+            [single] => match single.to_str() {
+                Ok(s) => Some(s),
+                Err(_) => Some("__invalid__"),
+            },
+            _ => Some("__invalid__"),
+        };
+        let auth_res =
+            commerce
+                .auth
+                .bootstrap_local_session(peer, host_header, client_header, sec_fetch_site);
+        if let Err(e) = Limited::new(request.into_body(), 8 * 1024).collect().await {
+            return json_response(413, json!({"error": e.to_string()}));
+        }
+        return match auth_res {
+            Ok(token) => {
+                let _ = commerce.db.admin_audit(
+                    "desktop:local",
+                    "auth.local_session",
+                    "gateway",
+                    &json!({"loopback": true}),
+                );
+                json_response(200, json!({"token": token}))
+            }
+            Err(_) => json_response(
+                403,
+                json!({"error": "Local desktop bootstrap requires local-only loopback dashboard origin"}),
+            ),
+        };
+    }
     let authorization = request
         .headers()
         .get("authorization")
@@ -274,9 +322,7 @@ pub async fn mutate(
         "/inspector/roots" => commerce.inspector.set_roots(&body).await,
         "/inspector/listen" => commerce.inspector.listen(&body).await,
         "/inspector/answer" => commerce.inspector.answer(&body),
-        "/onboarding/configure-agent" => {
-            crate::onboarding::configure_agent(commerce, &body, actor)
-        }
+        "/onboarding/configure-agent" => crate::onboarding::configure_agent(commerce, &body, actor),
         "/onboarding/run-sortie" => crate::onboarding::run_sortie(commerce, &body, actor).await,
         _ => anyhow::bail!("Unknown admin action"),
     }
