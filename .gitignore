@@ -1,4 +1,8 @@
 .DS_Store
+.npmrc
+dashboard/.npmrc
+.mcp.json
+.claude/
 *.zip
 **/target/
 *.litertlm
