@@ -3,11 +3,10 @@
 import type {DashboardPeriod, DashboardTab} from "../lib/types";
 import type {Selection} from "@heroui/react";
 
-import {ArrowsRotateLeft, Calendar, ChevronDown} from "@gravity-ui/icons";
-import {Button, ButtonGroup, Dropdown, Label, Tabs} from "@heroui/react";
+import {Calendar, ChevronDown} from "@gravity-ui/icons";
+import {Button, ButtonGroup, Dropdown, Label, Tabs, Tooltip} from "@heroui/react";
 import {useMemo, useState} from "react";
 
-import {IconButton} from "../components/icon-button";
 import {useCoreStore} from "../lib/core-store";
 
 const PERIOD_LABELS: Record<DashboardPeriod, string> = {
@@ -18,14 +17,7 @@ const PERIOD_LABELS: Record<DashboardPeriod, string> = {
 };
 
 export function DashboardToolbar() {
-  const {
-    dashboardPeriod,
-    dashboardTab,
-    exportHar,
-    refresh,
-    setDashboardPeriod,
-    setDashboardTab,
-  } = useCoreStore();
+  const {dashboardPeriod, dashboardTab, setDashboardPeriod, setDashboardTab} = useCoreStore();
   const [periodOpen, setPeriodOpen] = useState(false);
 
   const selectedPeriodKeys = useMemo<Selection>(
@@ -66,18 +58,18 @@ export function DashboardToolbar() {
         </Tabs.ListContainer>
       </Tabs>
       <div className="flex flex-wrap items-center gap-2">
-        <IconButton label="Refresh" size="sm" variant="tertiary" onPress={() => void refresh()}>
-          <ArrowsRotateLeft className="size-4" />
-        </IconButton>
         <ButtonGroup size="sm" variant="tertiary">
           <Button onPress={() => setPeriodOpen((prev) => !prev)}>
             <Calendar className="size-4" />
             {PERIOD_LABELS[dashboardPeriod]}
           </Button>
           <Dropdown isOpen={periodOpen} onOpenChange={setPeriodOpen}>
-            <Button isIconOnly aria-label="Change period" size="sm" variant="tertiary">
-              <ChevronDown className="size-4" />
-            </Button>
+            <Tooltip delay={0}>
+              <Button isIconOnly aria-label="Change period" size="sm" variant="tertiary">
+                <ChevronDown className="size-4" />
+              </Button>
+              <Tooltip.Content>Change period</Tooltip.Content>
+            </Tooltip>
             <Dropdown.Popover placement="bottom end">
               <Dropdown.Menu
                 disallowEmptySelection
@@ -106,9 +98,6 @@ export function DashboardToolbar() {
             </Dropdown.Popover>
           </Dropdown>
         </ButtonGroup>
-        <Button size="sm" variant="secondary" onPress={exportHar}>
-          Export HAR
-        </Button>
       </div>
     </div>
   );

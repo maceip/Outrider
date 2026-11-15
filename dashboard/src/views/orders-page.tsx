@@ -10,6 +10,7 @@ import {
   Chip,
   Drawer,
   Dropdown,
+  Form,
   Input,
   Label,
   SearchField,
@@ -286,8 +287,6 @@ export function OrdersPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-10 pt-8">
-      <p className="text-muted text-sm">Manage issued receipts and bundle access.</p>
-
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-3">
           <div className="flex flex-wrap items-center justify-between gap-2.5">
@@ -311,12 +310,9 @@ export function OrdersPage() {
                       <Drawer.Heading className="text-foreground text-base font-semibold">
                         Issue Receipt
                       </Drawer.Heading>
-                      <p className="text-muted text-xs leading-relaxed">
-                        Grant scoped bundle quota to a client or session.
-                      </p>
                     </Drawer.Header>
                     <Drawer.Body>
-                      <form
+                      <Form
                         className="flex flex-col gap-4"
                         id="issue-receipt-form"
                         onSubmit={(event) => {
@@ -391,7 +387,7 @@ export function OrdersPage() {
                             />
                           </TextField>
                         </div>
-                      </form>
+                      </Form>
                     </Drawer.Body>
                     <Drawer.Footer className="justify-end gap-2">
                       <Button isDisabled={busy} slot="close" type="button" variant="ghost">

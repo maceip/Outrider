@@ -570,7 +570,6 @@ export function CoreProvider({children}: {children: ReactNode}) {
         if (bearer) {
           await fetchSnapshotWithToken(bearer);
         }
-        toast.success("Saved changes");
 
         return result;
       } catch (error) {

@@ -6,6 +6,7 @@ import type {ReactNode} from "react";
 import {
   Button,
   Card,
+  Form,
   Input,
   Label,
   ListBox,
@@ -14,6 +15,7 @@ import {
   TextField,
   toast,
 } from "@heroui/react";
+import {ItemCard, ItemCardGroup} from "@heroui-pro/react";
 import {useState} from "react";
 
 import {useCoreStore} from "../lib/core-store";
@@ -96,7 +98,7 @@ export function SettingsPage() {
   };
 
   return (
-    <form
+    <Form
       className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-10 pt-8"
       onReset={(event) => {
         event.preventDefault();
@@ -107,10 +109,6 @@ export function SettingsPage() {
         void handleSave();
       }}
     >
-      <p className="text-muted text-sm">
-        Configure local gateway endpoints, capability probing, skills, and upstream servers.
-      </p>
-
       <Card className="gap-8 p-6">
         <SettingsRow
           description="Local HTTP proxy listener and MCP server URLs."
@@ -249,21 +247,18 @@ export function SettingsPage() {
           </div>
 
           {upstreamServers.length > 0 ? (
-            <div className="flex flex-col gap-2">
+            <ItemCardGroup variant="secondary">
               {upstreamServers.map((server) => (
-                <div
-                  key={server.name}
-                  className="bg-surface-secondary flex min-w-0 items-center justify-between gap-3 rounded-lg p-3 text-xs"
-                >
-                  <span className="text-foreground shrink-0 font-mono font-medium">
-                    {server.name}
-                  </span>
-                  <span className="text-muted min-w-0 truncate font-mono tabular-nums">
-                    {server.endpoint}
-                  </span>
-                </div>
+                <ItemCard key={server.name} variant="secondary">
+                  <ItemCard.Content>
+                    <ItemCard.Title className="font-mono text-xs">{server.name}</ItemCard.Title>
+                    <ItemCard.Description className="truncate font-mono text-xs tabular-nums">
+                      {server.endpoint}
+                    </ItemCard.Description>
+                  </ItemCard.Content>
+                </ItemCard>
               ))}
-            </div>
+            </ItemCardGroup>
           ) : null}
         </SettingsRow>
 
@@ -278,7 +273,7 @@ export function SettingsPage() {
           </Button>
         </Card.Footer>
       </Card>
-    </form>
+    </Form>
   );
 }
 

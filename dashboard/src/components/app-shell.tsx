@@ -11,10 +11,13 @@ import {FOOTER_ITEMS, NAV_ITEMS} from "../nav-items";
 import {DashboardNavbar} from "./dashboard-navbar";
 import {DashboardSidebar} from "./dashboard-sidebar";
 
-const HOME_TITLE = "Dashboard";
+const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
+const HOME_TITLE = IS_WWW ? "Outrider" : "Dashboard";
 
 const ROUTE_LABELS = new Map<string, string>(
-  [...NAV_ITEMS, ...FOOTER_ITEMS].map((item) => [item.href, item.label]),
+  [...NAV_ITEMS, ...FOOTER_ITEMS]
+    .filter((item) => !item.external)
+    .map((item) => [item.href, item.label]),
 );
 
 export interface AppShellProps {
@@ -32,6 +35,25 @@ export function AppShell({basePath = "", children}: AppShellProps) {
 
   const navigate = useCallback(
     (href: string) => {
+      if (href.startsWith("http://") || href.startsWith("https://")) {
+        window.open(href, "_blank", "noopener,noreferrer");
+
+        return;
+      }
+
+      if (href.startsWith("#")) {
+        const targetId = href.slice(1);
+        const element = document.getElementById(targetId);
+
+        if (element) {
+          element.scrollIntoView({behavior: "smooth", block: "start"});
+        }
+        window.history.replaceState(null, "", href);
+        window.dispatchEvent(new HashChangeEvent("hashchange"));
+
+        return;
+      }
+
       const prefixed = basePath + href;
       const route = prefixed.startsWith("/__proxyfor__")
         ? prefixed.slice("/__proxyfor__".length) || "/"
@@ -43,6 +65,7 @@ export function AppShell({basePath = "", children}: AppShellProps) {
   );
 
   const title = useMemo(() => {
+    if (IS_WWW) return "Outrider";
     const sliced = pathname.slice(basePath.length) || "/";
     const relative = sliced.length > 1 ? sliced.replace(/\/+$/, "") : sliced;
 

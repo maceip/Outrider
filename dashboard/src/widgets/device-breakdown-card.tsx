@@ -8,6 +8,7 @@ import {ChartTooltip} from "@heroui-pro/react";
 import {PieChart} from "@heroui-pro/react/pie-chart";
 import {useMemo} from "react";
 
+import {useThemeMode} from "../components/theme-toggle";
 import {useCoreStore} from "../lib/core-store";
 
 import {filterAnalyticsTraffics} from "./analytics-kpi-row";
@@ -18,13 +19,6 @@ type ProtocolDatum = {
   name: TrafficProtocol;
   value: number;
 };
-
-const PROTOCOL_ORDER: readonly {color: string; name: TrafficProtocol}[] = [
-  {color: "var(--chart-3)", name: "HTTP"},
-  {color: "var(--chart-2)", name: "HTTPS"},
-  {color: "var(--chart-1)", name: "MCP"},
-  {color: "var(--chart-4)", name: "WebSocket"},
-];
 
 function formatCount(value: number): string {
   return value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toString();
@@ -59,6 +53,7 @@ function ProtocolTooltip({active, payload}: ProtocolTooltipProps) {
 
 export function DeviceBreakdownCard() {
   const {timeRange, traffics} = useCoreStore();
+  const mode = useThemeMode();
   const nowMs = useEffectiveNowMs(traffics);
 
   const rangeTraffics = useMemo(
@@ -78,12 +73,20 @@ export function DeviceBreakdownCard() {
       counts[getTrafficProtocol(item)] += 1;
     }
 
-    return PROTOCOL_ORDER.map((entry) => ({
+    const wsColor = mode === "brutalism-light" ? "var(--muted)" : "var(--chart-4)";
+    const protocolOrder: readonly {color: string; name: TrafficProtocol}[] = [
+      {color: "var(--chart-3)", name: "HTTP"},
+      {color: "var(--chart-2)", name: "HTTPS"},
+      {color: "var(--chart-1)", name: "MCP"},
+      {color: wsColor, name: "WebSocket"},
+    ];
+
+    return protocolOrder.map((entry) => ({
       color: entry.color,
       name: entry.name,
       value: counts[entry.name],
     }));
-  }, [rangeTraffics]);
+  }, [mode, rangeTraffics]);
 
   const activeSlices = useMemo(
     () => breakdown.filter((entry) => entry.value > 0),
@@ -96,8 +99,7 @@ export function DeviceBreakdownCard() {
   return (
     <Card className="h-full">
       <Card.Header>
-        <Card.Title className="min-w-0 truncate text-base">Traffic by protocol</Card.Title>
-        <Card.Description>Observed requests by transport protocol.</Card.Description>
+        <Card.Title className="min-w-0 truncate text-base">Traffic by Protocol</Card.Title>
       </Card.Header>
       <Card.Content className="flex flex-1 flex-col items-center justify-center gap-6">
         <div className="relative flex size-[240px] items-center justify-center">

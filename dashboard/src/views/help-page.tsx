@@ -67,10 +67,6 @@ const FAQS: readonly FaqItem[] = [
 export function HelpPage() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-10 pt-8">
-      <p className="text-muted text-sm">
-        Download local gateway certificates, export captured traffic, or review common setup steps.
-      </p>
-
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {HELP_LINKS.map((link) => (
           <HelpLinkCard key={link.title} link={link} />
@@ -97,18 +93,6 @@ export function HelpPage() {
           ))}
         </Accordion>
       </section>
-
-      <footer className="text-muted text-xs">
-        Source and issue tracker on{" "}
-        <Link
-          className="text-accent-soft-foreground no-underline hover:underline"
-          href="https://github.com/maceip/Outrider"
-          rel="noreferrer"
-          target="_blank"
-        >
-          GitHub
-        </Link>
-      </footer>
     </div>
   );
 }

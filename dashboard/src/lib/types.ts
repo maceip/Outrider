@@ -418,18 +418,6 @@ export interface ConfigureAgentResponse {
   note: string;
 }
 
-export interface RunSortieResponse {
-  session_id: string;
-  subject: string;
-  bundle_id: string;
-  receipt_id: string;
-  tls_mcp_uri: string;
-  probe_ran: boolean;
-  proxy_traffic_recorded: boolean;
-  fingerprint_observations: unknown;
-  redeemed_output: unknown;
-}
-
 export function formatClefState(clef: ClefEngineStatus | null | undefined): string {
   if (!clef) return "Unconfigured";
   if (clef.status === "Ready") return `Ready (${clef.backend})`;

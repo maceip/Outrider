@@ -407,7 +407,7 @@ async function main() {
 
     const toolsPanel = page.getByRole("tabpanel", { name: "Tools" });
     await toolsPanel.getByRole("button", { name: "Run Tool", exact: true }).click();
-    await page.getByRole("button", { name: /<-\s*tools\/call/ }).first().waitFor({ state: "visible" });
+    await page.getByRole("option", { name: /<-\s*tools\/call/ }).first().waitFor({ state: "visible" });
     await page.waitForTimeout(1150);
 
     const toolSelectTrigger = toolsPanel.locator('[data-slot="select-trigger"]');
@@ -428,9 +428,9 @@ async function main() {
     await toolsPanel.getByRole("button", { name: "Run Tool", exact: true }).click();
     await page.waitForTimeout(1150);
 
-    await page.getByRole("button", { name: /->\s*tools\/call/ }).last().click();
+    await page.getByRole("option", { name: /->\s*tools\/call/ }).last().click();
     await page.waitForTimeout(950);
-    await page.getByRole("button", { name: /<-\s*tools\/call/ }).last().click();
+    await page.getByRole("option", { name: /<-\s*tools\/call/ }).last().click();
     await page.waitForTimeout(1150);
 
     // 4. Navigate to Traffic (/traffic) -> unified Wireshark DataGrid -> MCP / All -> Request / Response / WS -> Copy cURL
@@ -464,9 +464,9 @@ async function main() {
     await detailTabs.getByRole("tab", { name: "WebSocket", exact: true }).click();
     await page.waitForTimeout(1150);
 
-    // 5. Navigate to Orders (/orders) -> open Issue Receipt drawer -> mint real receipt -> Active in DataGrid
-    await clickSidebarLink(page, "Orders");
-    await page.getByRole("heading", { level: 1, name: "Orders" }).waitFor({ state: "visible" });
+    // 5. Navigate to Receipts (/orders) -> open Issue Receipt drawer -> mint real receipt -> Active in DataGrid
+    await clickSidebarLink(page, "Receipts");
+    await page.getByRole("heading", { level: 1, name: "Receipts" }).waitFor({ state: "visible" });
     await page.waitForTimeout(950);
 
     await page.getByRole("button", { name: "Issue Receipt" }).click();

@@ -1,12 +1,10 @@
 "use client";
 
-import {ArrowsRotateLeft} from "@gravity-ui/icons";
 import {Card} from "@heroui/react";
 import {NumberValue} from "@heroui-pro/react";
 import {LineChart} from "@heroui-pro/react/line-chart";
 import {useMemo} from "react";
 
-import {IconButton} from "../components/icon-button";
 import {useCoreStore} from "../lib/core-store";
 
 import {buildDashboardBuckets, filterDashboardTraffics, useEffectiveNowMs} from "./kpi-row";
@@ -16,7 +14,7 @@ function formatYTick(value: number): string {
 }
 
 export function TrafficSourceCard() {
-  const {dashboardPeriod, dashboardTab, refresh, traffics} = useCoreStore();
+  const {dashboardPeriod, dashboardTab, traffics} = useCoreStore();
   const nowMs = useEffectiveNowMs(traffics);
 
   const filteredTraffics = useMemo(
@@ -33,19 +31,9 @@ export function TrafficSourceCard() {
     <Card className="h-full">
       <Card.Header className="flex-row flex-wrap items-center justify-between gap-3">
         <Card.Title className="min-w-0 truncate text-base">Traffic by Type</Card.Title>
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <LegendDot color="var(--chart-1)" label="HTTP / WS" />
-            <LegendDot color="var(--chart-3)" label="MCP" />
-          </div>
-          <IconButton
-            label="Refresh"
-            size="sm"
-            variant="tertiary"
-            onPress={() => void refresh()}
-          >
-            <ArrowsRotateLeft className="size-4" />
-          </IconButton>
+        <div className="flex items-center gap-3">
+          <LegendDot color="var(--chart-1)" label="HTTP / WS" />
+          <LegendDot color="var(--chart-3)" label="MCP" />
         </div>
       </Card.Header>
       <Card.Content className="flex flex-col gap-4">

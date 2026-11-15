@@ -8,6 +8,7 @@ import {
   Card,
   Chip,
   Description,
+  Form,
   Input,
   Label,
   ListBox,
@@ -207,10 +208,10 @@ export function InspectorPage() {
     selectedConnectionId === NEW_CONNECTION_KEY ? NEW_CONNECTION_KEY : activeConnectionId;
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-7xl flex-col gap-4 px-6 pb-6 pt-5">
+    <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-7xl flex-col gap-4 px-6 pb-6 pt-6">
       <Card className="shrink-0 p-3">
-        <form
-          className="flex flex-wrap items-center gap-2 lg:flex-nowrap"
+        <Form
+          className="flex flex-row flex-wrap items-center gap-2 lg:flex-nowrap"
           onSubmit={(event) => {
             event.preventDefault();
             if (isLive) {
@@ -353,7 +354,7 @@ export function InspectorPage() {
               Connect
             </Button>
           )}
-        </form>
+        </Form>
       </Card>
 
       <Card className="min-h-0 flex-1 overflow-hidden p-0">

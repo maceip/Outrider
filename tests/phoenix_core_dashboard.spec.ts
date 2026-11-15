@@ -29,6 +29,10 @@ const FORBIDDEN_STRINGS = [
   "SQLite",
   "RFC 8785",
   "MRTR",
+  "SLSA",
+  "SPDX",
+  "sha256:",
+  "playwright-walkthrough.mp4",
   "Kate Moore",
   "Alice Johnson",
   "Failed to fetch",
@@ -296,8 +300,21 @@ async function clickSidebarLink(page: Page, label: string) {
   await nav.getByRole("row", { name: label, exact: true }).click();
 }
 
-async function assertCleanCopyAndZeroJargon(page: Page, routeName: string) {
-  const text = await page.locator("body").innerText();
+async function assertCleanCopyAndZeroJargon(
+  page: Page,
+  routeName: string,
+  options: { excludeCodeBlocks?: boolean } = {},
+) {
+  const text = await page.evaluate((excludePre) => {
+    if (!excludePre) {
+      return document.body.innerText;
+    }
+    const clone = document.body.cloneNode(true) as HTMLElement;
+    for (const el of clone.querySelectorAll("pre, [data-slot='code-block']")) {
+      el.remove();
+    }
+    return clone.innerText;
+  }, Boolean(options.excludeCodeBlocks));
   for (const forbidden of FORBIDDEN_STRINGS) {
     expect(
       text.toLowerCase(),
@@ -417,16 +434,16 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
     ).toBeVisible();
     await assertCleanCopyAndZeroJargon(page, "Analytics");
 
-    // 3. Orders (/orders/)
-    await clickSidebarLink(page, "Orders");
+    // 5. Receipts (/orders/)
+    await clickSidebarLink(page, "Receipts");
     await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
     await expect(
-      page.getByRole("heading", { level: 1, name: "Orders" }),
+      page.getByRole("heading", { level: 1, name: "Receipts" }),
     ).toBeVisible();
     await expect(
       page.getByText("No receipts found", { exact: true }),
     ).toBeVisible();
-    await assertCleanCopyAndZeroJargon(page, "Orders");
+    await assertCleanCopyAndZeroJargon(page, "Receipts");
 
     // 4. Settings (/settings/)
     await clickSidebarLink(page, "Settings");
@@ -599,13 +616,8 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
     await expect(kpiCard(page, "Events")).toContainText("2");
 
     const protocolCard = page
-      .locator("div")
-      .filter({ has: page.getByText("Traffic by protocol", { exact: true }) })
-      .filter({
-        has: page.getByText("Observed requests by transport protocol.", {
-          exact: true,
-        }),
-      })
+      .locator('[data-slot="card"]')
+      .filter({ has: page.getByText("Traffic by Protocol", { exact: true }) })
       .first();
     const httpRow = protocolCard
       .locator("div")
@@ -695,8 +707,8 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
     const receiptId = issuedPayload.signed_receipt.receipt.receipt_id;
     expect(receiptId.length).toBeGreaterThan(8);
 
-    // Visit Orders (/orders/), verify receipt row, filter via SearchField, Status & Date range, then Revoke
-    await clickSidebarLink(page, "Orders");
+    // Visit Receipts (/orders/), verify receipt row, filter via SearchField, Status & Date range, then Revoke
+    await clickSidebarLink(page, "Receipts");
     await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
 
     const receiptsGrid = page.getByRole("grid", { name: "Receipts" });
@@ -1008,7 +1020,7 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
       { path: "/traffic/", heading: "Traffic" },
       { path: "/inspector/", heading: "Inspector" },
       { path: "/analytics/", heading: "Analytics" },
-      { path: "/orders/", heading: "Orders" },
+      { path: "/orders/", heading: "Receipts" },
       { path: "/settings/", heading: "Settings" },
       { path: "/help/", heading: "Help" },
     ];
@@ -1153,7 +1165,7 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
 
     // Assert Wire Log right pane records handshake frame & displays handshake payload in CodeBlock
     await expect(page.getByText("Wire Log", { exact: true })).toBeVisible();
-    const handshakeFrameBtn = page.getByRole("button", {
+    const handshakeFrameBtn = page.getByRole("option", {
       name: /<-\s*handshake/,
     });
     await expect(handshakeFrameBtn).toBeVisible();
@@ -1166,10 +1178,10 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
     await toolsPanel
       .getByRole("button", { name: "Run Tool", exact: true })
       .click();
-    const toolCallReqBtn = page.getByRole("button", {
+    const toolCallReqBtn = page.getByRole("option", {
       name: /->\s*tools\/call/,
     });
-    const toolCallResBtn = page.getByRole("button", {
+    const toolCallResBtn = page.getByRole("option", {
       name: /<-\s*tools\/call/,
     });
     await expect(toolCallReqBtn).toBeVisible();
@@ -1196,8 +1208,8 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
       .getByRole("button", { name: "Send Request", exact: true })
       .click();
 
-    const pingReqBtn = page.getByRole("button", { name: /->\s*ping/ });
-    const pingResBtn = page.getByRole("button", { name: /<-\s*ping/ });
+    const pingReqBtn = page.getByRole("option", { name: /->\s*ping/ });
+    const pingResBtn = page.getByRole("option", { name: /<-\s*ping/ });
     await expect(pingReqBtn).toBeVisible();
     await expect(pingResBtn).toBeVisible();
     await pingReqBtn.click();
@@ -1465,8 +1477,8 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
       0,
     );
 
-    // Exercise Orders (/orders/) Issue Receipt Drawer end-to-end against real SQLite backend
-    await clickSidebarLink(page, "Orders");
+    // Exercise Receipts (/orders/) Issue Receipt Drawer end-to-end against real SQLite backend
+    await clickSidebarLink(page, "Receipts");
     await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
     await page.getByRole("button", { name: "Issue Receipt" }).click();
     await expect(
@@ -1484,7 +1496,7 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
     await expect(drawerReceiptsGrid).toContainText("agent:drawer-e2e");
     await expect(drawerReceiptsGrid).toContainText("15 / 15");
     await expect(drawerReceiptsGrid).toContainText("Active");
-    await assertCleanCopyAndZeroJargon(page, "Orders (after drawer issue)");
+    await assertCleanCopyAndZeroJargon(page, "Receipts (after drawer issue)");
 
     const drawerSnapRes = await fetch(
       `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
@@ -1689,6 +1701,70 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
       page.getByRole("heading", { level: 1, name: "Outrider" }),
     ).toBeVisible();
 
+    // 0. Unified <AppShell> (<DashboardSidebar> + <DashboardNavbar>), official brand icons, zero hand-rolled leaks, zero jargon
+    await expect(
+      page.locator('[data-sidebar="label"]:visible').first(),
+    ).toContainText("Interactive Demo");
+
+    const wwwNav = page.getByRole("treegrid", { name: "Dashboard navigation" });
+    for (const navLabel of [
+      "Overview",
+      "Traffic & MCP",
+      "Receipt Lab",
+      "Downloads",
+    ]) {
+      await expect(
+        wwwNav.getByRole("row", { name: navLabel, exact: true }),
+      ).toBeVisible();
+    }
+
+    const wwwBrandAndLayout = await page.evaluate(() => {
+      const sidebarLogo = document.querySelector(
+        'img[alt="Outrider"]',
+      ) as HTMLImageElement | null;
+      const heroLogo = document.querySelector(
+        'img[alt="Outrider mark"]',
+      ) as HTMLImageElement | null;
+      const unbackedControls = Array.from(
+        document.querySelectorAll("button, input, textarea, select"),
+      )
+        .filter((el) => {
+          const hasSlot =
+            el.hasAttribute("data-slot") || el.closest("[data-slot]") !== null;
+          const isHeroButton = el.classList.contains("button");
+          return !hasSlot && !isHeroButton;
+        })
+        .map((el) => `${el.tagName.toLowerCase()}.${el.className}`);
+
+      return {
+        noHorizontalOverflow:
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+        sidebarLogoLoaded: Boolean(
+          sidebarLogo && sidebarLogo.complete && sidebarLogo.naturalWidth > 0,
+        ),
+        heroLogoLoaded: Boolean(
+          heroLogo && heroLogo.complete && heroLogo.naturalWidth > 0,
+        ),
+        footerCount: document.querySelectorAll("footer").length,
+        rawCodeCount: document.querySelectorAll("code:not(pre code)").length,
+        unbackedControls,
+      };
+    });
+    expect(wwwBrandAndLayout.noHorizontalOverflow).toBe(true);
+    expect(wwwBrandAndLayout.sidebarLogoLoaded).toBe(true);
+    expect(wwwBrandAndLayout.heroLogoLoaded).toBe(true);
+    expect(wwwBrandAndLayout.footerCount).toBe(0);
+    expect(wwwBrandAndLayout.rawCodeCount).toBe(0);
+    expect(wwwBrandAndLayout.unbackedControls).toEqual([]);
+    await expect(
+      page.locator('input[type="file"]:not([data-slot="drop-zone-input"])'),
+    ).toHaveCount(0);
+
+    await assertCleanCopyAndZeroJargon(page, "www (initial load)", {
+      excludeCodeBlocks: true,
+    });
+
     // 1. Live Walkthrough <video> loads real 1080p H.264 metadata
     await expect
       .poll(async () =>
@@ -1738,12 +1814,12 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
     await protoSegment.getByText("All", { exact: true }).click();
     await expect(demoRows).toHaveCount(9);
 
-    // 3. MCP 2026-07-28 & CLEF Trace tab renders recorded wire frames + CLEF evaluations
+    // 3. MCP & CLEF tab renders recorded ListBox wire frames + Card CLEF evaluations
     const workbenchTabs = page.getByRole("tablist", {
       name: "Workbench surfaces",
     });
     await workbenchTabs
-      .getByRole("tab", { name: /MCP 2026-07-28 & CLEF Trace/ })
+      .getByRole("tab", { name: "MCP & CLEF", exact: true })
       .click();
     await expect(
       page.getByText("Recorded MCP Inspector Wire Frames", { exact: true }),
@@ -1752,13 +1828,16 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
       page.getByText("Recorded On-Device CLEF Evaluations", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /<-\s*handshake/ }),
+      page.getByRole("option", { name: /<-\s*handshake/ }),
     ).toBeVisible();
     await expect(page.getByText('pick: "http"', { exact: true })).toBeVisible();
     await expect(page.getByText("pick: true", { exact: true })).toBeVisible();
 
-    // 4. WebCrypto Ed25519 Receipt Lab verifies recorded receipt, mints fresh receipt, and detects tampering
+    // 4. Receipt Lab verifies recorded receipt, mints fresh receipt, and surfaces tampering/errors cleanly
     const receiptSection = page.locator("#receipt-lab");
+    await expect(
+      receiptSection.getByRole("heading", { level: 2, name: "Receipt Lab" }),
+    ).toBeVisible();
     await expect(
       receiptSection.getByText("Valid", { exact: true }),
     ).toBeVisible();
@@ -1767,9 +1846,7 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
       .getByRole("button", { name: "Mint Signed Receipt", exact: true })
       .click();
     await expect(
-      page.getByText("Minted Ed25519 receipt signature via WebCrypto", {
-        exact: true,
-      }),
+      page.getByText("Minted signed receipt", { exact: true }),
     ).toBeVisible();
     await expect(
       receiptSection.getByText("Valid", { exact: true }),
@@ -1784,6 +1861,10 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
     await expect(
       receiptSection.getByText("Invalid Signature", { exact: true }),
     ).toBeVisible();
+
+    await assertCleanCopyAndZeroJargon(page, "www (post-interaction)", {
+      excludeCodeBlocks: true,
+    });
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);

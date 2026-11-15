@@ -2,7 +2,7 @@
 
 import type {CapabilityReceiptPayload} from "../lib/types";
 
-import {Button, Card, Chip, Label, TextArea, toast} from "@heroui/react";
+import {Button, Card, Chip, Input, Label, TextArea, TextField, toast} from "@heroui/react";
 import {CodeBlock} from "@heroui-pro/react/code-block";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 
@@ -28,13 +28,12 @@ function createFreshBrowserPayload(): CapabilityReceiptPayload {
     item_digests: [],
     max_calls: 10,
     receipt_id: randomId,
-    subject: `webcrypto:${randomId}`,
+    subject: `browser:${randomId}`,
   };
 }
 
 /**
- * RFC 8785 JSON Canonicalization Scheme (JCS).
- * Matches `serde_jcs::to_vec` in `proxyfor/src/commerce/receipt.rs`.
+ * Deterministic JSON canonicalization matching `serde_jcs::to_vec` in `proxyfor/src/commerce/receipt.rs`.
  */
 export function canonicalizeJcs(value: unknown): string {
   if (value === null || typeof value === "boolean") {
@@ -43,7 +42,7 @@ export function canonicalizeJcs(value: unknown): string {
 
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
-      throw new TypeError("RFC 8785 JCS forbids NaN and Infinity");
+      throw new TypeError("Canonical JSON forbids NaN and Infinity");
     }
     if (Object.is(value, -0)) {
       return "0";
@@ -114,7 +113,7 @@ function toArrayBufferBytes(input: Uint8Array): Uint8Array<ArrayBuffer> {
   return copy;
 }
 
-async function verifyEd25519Jcs(
+async function verifySignatureBytes(
   payloadJsonText: string,
   publicKeyB64Url: string,
   signatureB64Url: string,
@@ -178,6 +177,7 @@ export function WwwReceiptLab({
   const [payloadText, setPayloadText] = useState<string>(() =>
     initialPayload ? JSON.stringify(initialPayload, null, 2) : "",
   );
+  const [lastValidPayload, setLastValidPayload] = useState<unknown>(() => initialPayload ?? null);
   const [publicKeyB64, setPublicKeyB64] = useState<string>(initialPublicKey ?? "");
   const [signatureB64, setSignatureB64] = useState<string>(initialSignature ?? "");
   const [keySource, setKeySource] = useState<KeySource>(
@@ -189,40 +189,35 @@ export function WwwReceiptLab({
   const keyPairRef = useRef<CryptoKeyPair | null>(null);
   const hydratedRecordedRef = useRef(false);
 
-  const jcsPreview = useMemo(() => {
-    try {
-      const parsed: unknown = JSON.parse(payloadText);
-
-      return {canonical: canonicalizeJcs(parsed), parseError: null};
-    } catch (error) {
-      return {
-        canonical: "",
-        parseError: error instanceof Error ? error.message : "Invalid JSON payload",
-      };
-    }
-  }, [payloadText]);
-
-  const encodedEnvelope = useMemo(() => {
-    if (!signatureB64 || jcsPreview.parseError) {
+  const canonicalText = useMemo(() => {
+    if (lastValidPayload === null || lastValidPayload === undefined) {
       return "";
     }
     try {
-      const parsed: unknown = JSON.parse(payloadText);
-      const envelope = JSON.stringify(
+      return canonicalizeJcs(lastValidPayload);
+    } catch {
+      return "";
+    }
+  }, [lastValidPayload]);
+
+  const encodedEnvelope = useMemo(() => {
+    if (!signatureB64 || lastValidPayload === null || lastValidPayload === undefined) {
+      return "";
+    }
+    try {
+      return JSON.stringify(
         {
           public_key: publicKeyB64,
-          receipt: parsed,
+          receipt: lastValidPayload,
           signature: signatureB64,
         },
         null,
         2,
       );
-
-      return envelope;
     } catch {
       return "";
     }
-  }, [jcsPreview.parseError, payloadText, publicKeyB64, signatureB64]);
+  }, [lastValidPayload, publicKeyB64, signatureB64]);
 
   const generateBrowserKeyPair = useCallback(async (): Promise<{
     pair: CryptoKeyPair;
@@ -241,7 +236,6 @@ export function WwwReceiptLab({
     return {pair: generated, pubKeyB64};
   }, []);
 
-  // Hydrate recorded gateway receipt when bundle loads
   useEffect(() => {
     let cancelled = false;
 
@@ -254,10 +248,11 @@ export function WwwReceiptLab({
       ) {
         hydratedRecordedRef.current = true;
         const pretty = JSON.stringify(initialPayload, null, 2);
-        const result = await verifyEd25519Jcs(pretty, initialPublicKey, initialSignature);
+        const result = await verifySignatureBytes(pretty, initialPublicKey, initialSignature);
 
         if (!cancelled) {
           setPayloadText(pretty);
+          setLastValidPayload(initialPayload);
           setPublicKeyB64(initialPublicKey);
           setSignatureB64(initialSignature);
           setKeySource("recorded-gateway");
@@ -274,10 +269,19 @@ export function WwwReceiptLab({
   const handlePayloadChange = useCallback(
     (nextText: string) => {
       setPayloadText(nextText);
+      if (!nextText.trim()) {
+        setLastValidPayload(null);
+      } else {
+        try {
+          setLastValidPayload(JSON.parse(nextText));
+        } catch {
+          // Keep last valid payload for canonical preview while user types.
+        }
+      }
       if (!publicKeyB64 || !signatureB64) {
         return;
       }
-      void verifyEd25519Jcs(nextText, publicKeyB64, signatureB64).then((state) => {
+      void verifySignatureBytes(nextText, publicKeyB64, signatureB64).then((state) => {
         setVerification(state);
       });
     },
@@ -287,7 +291,7 @@ export function WwwReceiptLab({
   const handleMintReceipt = useCallback(async () => {
     if (typeof window === "undefined" || !window.crypto?.subtle) {
       setVerification("unsupported");
-      toast.danger("WebCrypto Ed25519 is unavailable in this browser");
+      toast.danger("Browser cryptography is unavailable");
 
       return;
     }
@@ -300,13 +304,15 @@ export function WwwReceiptLab({
 
       effectiveText = JSON.stringify(generatedPayload, null, 2);
       setPayloadText(effectiveText);
+      setLastValidPayload(generatedPayload);
       parsed = generatedPayload;
     } else {
       try {
         parsed = JSON.parse(effectiveText);
+        setLastValidPayload(parsed);
       } catch {
         setVerification("invalid");
-        toast.danger("Enter valid JSON before minting a receipt signature");
+        toast.danger("Enter valid receipt JSON before minting");
 
         return;
       }
@@ -332,13 +338,13 @@ export function WwwReceiptLab({
         messageBytes,
       );
       const nextSig = encodeBase64Url(new Uint8Array(sigBuffer));
-      const state = await verifyEd25519Jcs(effectiveText, activePub, nextSig);
+      const state = await verifySignatureBytes(effectiveText, activePub, nextSig);
 
       setPublicKeyB64(activePub);
       setSignatureB64(nextSig);
       setKeySource("webcrypto-ephemeral");
       setVerification(state);
-      toast.success("Minted Ed25519 receipt signature via WebCrypto");
+      toast.success("Minted signed receipt");
     } catch (error) {
       const msg = error instanceof Error ? error.message : "Failed to sign receipt";
 
@@ -351,7 +357,7 @@ export function WwwReceiptLab({
   const handleRotateKeypair = useCallback(async () => {
     if (typeof window === "undefined" || !window.crypto?.subtle) {
       setVerification("unsupported");
-      toast.danger("WebCrypto Ed25519 is unavailable in this browser");
+      toast.danger("Browser cryptography is unavailable");
 
       return;
     }
@@ -360,15 +366,15 @@ export function WwwReceiptLab({
     try {
       const {pubKeyB64} = await generateBrowserKeyPair();
       const state = signatureB64
-        ? await verifyEd25519Jcs(payloadText, pubKeyB64, signatureB64)
+        ? await verifySignatureBytes(payloadText, pubKeyB64, signatureB64)
         : "invalid";
 
       setPublicKeyB64(pubKeyB64);
       setKeySource("webcrypto-ephemeral");
       setVerification(state);
-      toast.success("Generated fresh Ed25519 keypair in browser");
+      toast.success("Generated fresh browser keypair");
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Failed to generate Ed25519 keypair";
+      const msg = error instanceof Error ? error.message : "Failed to generate keypair";
 
       toast.danger(msg);
     } finally {
@@ -377,17 +383,26 @@ export function WwwReceiptLab({
   }, [generateBrowserKeyPair, payloadText, signatureB64]);
 
   const handleVerifySignature = useCallback(async () => {
+    try {
+      JSON.parse(payloadText);
+    } catch {
+      setVerification("invalid");
+      toast.danger("Invalid receipt JSON");
+
+      return;
+    }
+
     setBusy(true);
     try {
-      const state = await verifyEd25519Jcs(payloadText, publicKeyB64, signatureB64);
+      const state = await verifySignatureBytes(payloadText, publicKeyB64, signatureB64);
 
       setVerification(state);
       if (state === "valid") {
-        toast.success("Ed25519 signature verified against RFC 8785 JCS bytes");
+        toast.success("Receipt signature verified");
       } else if (state === "unsupported") {
-        toast.danger("WebCrypto Ed25519 is unavailable in this browser");
+        toast.danger("Browser cryptography is unavailable");
       } else {
-        toast.danger("Invalid Ed25519 signature for current payload and public key");
+        toast.danger("Signature verification failed");
       }
     } finally {
       setBusy(false);
@@ -426,17 +441,10 @@ export function WwwReceiptLab({
 
   return (
     <Card className="gap-6 p-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-foreground text-lg font-semibold">Capability Receipt Lab</h2>
-            {statusChip}
-          </div>
-          <p className="text-muted max-w-3xl text-sm leading-relaxed">
-            Inspect RFC 8785 JSON Canonicalization (JCS) and verify or mint Ed25519 capability
-            receipts directly in your browser using{" "}
-            <code className="text-foreground font-mono text-xs">window.crypto.subtle</code>.
-          </p>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h2 className="text-foreground text-base font-semibold">Receipt Lab</h2>
+          {statusChip}
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
@@ -471,12 +479,10 @@ export function WwwReceiptLab({
         <div className="flex min-w-0 flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
             <Label className="text-xs font-medium" htmlFor="www-receipt-payload">
-              Editable Receipt Payload (JSON)
+              Receipt Payload
             </Label>
             <span className="text-muted font-mono text-xs tabular-nums">
-              {keySource === "recorded-gateway"
-                ? "Authority: Recorded Gateway Key"
-                : "Authority: Browser WebCrypto Key"}
+              {keySource === "recorded-gateway" ? "Gateway Key" : "Browser Key"}
             </span>
           </div>
 
@@ -491,59 +497,56 @@ export function WwwReceiptLab({
             onChange={(event) => handlePayloadChange(event.target.value)}
           />
 
-          <div className="bg-surface-secondary flex flex-col gap-2 rounded-lg p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-muted text-xs font-medium">Ed25519 Public Key (base64url)</span>
-              <span className="text-muted font-mono text-xs tabular-nums">32 B</span>
-            </div>
-            <p className="text-foreground font-mono text-xs break-all tabular-nums">
-              {publicKeyB64 || "—"}
-            </p>
-          </div>
+          <TextField
+            fullWidth
+            isReadOnly
+            name="receipt-public-key"
+            value={publicKeyB64 || "—"}
+            variant="secondary"
+          >
+            <Label className="text-xs">Public Key</Label>
+            <Input fullWidth className="font-mono text-xs tabular-nums" />
+          </TextField>
 
-          <div className="bg-surface-secondary flex flex-col gap-2 rounded-lg p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-muted text-xs font-medium">Ed25519 Signature (base64url)</span>
-              <span className="text-muted font-mono text-xs tabular-nums">64 B</span>
-            </div>
-            <p className="text-foreground font-mono text-xs break-all tabular-nums">
-              {signatureB64 || "—"}
-            </p>
-          </div>
+          <TextField
+            fullWidth
+            isReadOnly
+            name="receipt-signature"
+            value={signatureB64 || "—"}
+            variant="secondary"
+          >
+            <Label className="text-xs">Signature</Label>
+            <Input fullWidth className="font-mono text-xs tabular-nums" />
+          </TextField>
         </div>
 
         <div className="flex min-w-0 flex-col gap-4">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-foreground text-xs font-medium">
-                RFC 8785 JCS Canonical Signing Input
-              </span>
+              <span className="text-foreground text-xs font-medium">Canonical Payload</span>
               <span className="text-muted font-mono text-xs tabular-nums">
-                {jcsPreview.canonical
-                  ? `${new TextEncoder().encode(jcsPreview.canonical).byteLength} B`
-                  : "Invalid JSON"}
+                {canonicalText ? `${new TextEncoder().encode(canonicalText).byteLength} B` : "0 B"}
               </span>
             </div>
             <CodeBlock className="my-0 rounded-lg">
               <CodeBlock.Header>
-                <span className="text-muted font-mono text-xs">rfc8785-jcs</span>
+                <span className="text-muted font-mono text-xs">canonical.json</span>
                 <CodeBlock.CopyButton
-                  aria-label="Copy JCS canonical bytes"
-                  code={jcsPreview.canonical || jcsPreview.parseError || ""}
+                  aria-label="Copy canonical payload"
+                  code={canonicalText}
                 />
               </CodeBlock.Header>
               <CodeBlock.Code
                 className="max-h-36 overflow-auto"
-                code={jcsPreview.canonical || jcsPreview.parseError || ""}
-                language={jcsPreview.parseError ? "plaintext" : "json"}
+                code={canonicalText}
+                language="json"
               />
             </CodeBlock>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center justify-between gap-2">
-              <span className="text-foreground text-xs font-medium">Signed Receipt Envelope</span>
-              <span className="text-muted font-mono text-xs tabular-nums">Ed25519 + JCS</span>
+              <span className="text-foreground text-xs font-medium">Signed Receipt</span>
             </div>
             <CodeBlock className="my-0 rounded-lg">
               <CodeBlock.Header>
@@ -555,8 +558,8 @@ export function WwwReceiptLab({
               </CodeBlock.Header>
               <CodeBlock.Code
                 className="max-h-64 overflow-auto"
-                code={encodedEnvelope || "// Fix JSON syntax to serialize signed envelope"}
-                language={encodedEnvelope ? "json" : "plaintext"}
+                code={encodedEnvelope}
+                language="json"
               />
             </CodeBlock>
           </div>

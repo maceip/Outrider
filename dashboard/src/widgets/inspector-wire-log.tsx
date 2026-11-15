@@ -1,13 +1,14 @@
 "use client";
 
 import type {InspectorMessage} from "../lib/types";
+import type {Selection} from "@heroui/react";
 
 import {Terminal} from "@gravity-ui/icons";
-import {Chip} from "@heroui/react";
+import {Chip, Label, ListBox, ScrollShadow} from "@heroui/react";
 import {EmptyState} from "@heroui-pro/react";
 import {CodeBlock} from "@heroui-pro/react/code-block";
 import {Resizable} from "@heroui-pro/react/resizable";
-import {useEffect, useMemo, useRef, useState} from "react";
+import {useCallback, useEffect, useMemo, useRef, useState} from "react";
 
 export interface InspectorWireLogProps {
   messages: InspectorMessage[];
@@ -70,6 +71,32 @@ export function InspectorWireLog({messages}: InspectorWireLogProps) {
     return newestMessage;
   }, [messages, newestMessage, pinnedSelection]);
 
+  const selectedKeys = useMemo<Selection>(
+    () => (activeMessage ? new Set([String(activeMessage.message_id)]) : new Set()),
+    [activeMessage],
+  );
+
+  const handleSelectionChange = useCallback(
+    (keys: Selection) => {
+      if (keys === "all") return;
+      const first = Array.from(keys)[0];
+
+      if (first === undefined) return;
+      const parsedId = Number(first);
+
+      if (!Number.isFinite(parsedId)) return;
+      if (newestId !== null && parsedId !== newestId) {
+        setPinnedSelection({
+          atLatestId: newestId,
+          selectedId: parsedId,
+        });
+      } else {
+        setPinnedSelection(null);
+      }
+    },
+    [newestId],
+  );
+
   const formattedBody = useMemo(
     () => (activeMessage ? formatJsonPayload(activeMessage.body) : ""),
     [activeMessage],
@@ -103,53 +130,49 @@ export function InspectorWireLog({messages}: InspectorWireLogProps) {
         <div className="min-h-0 flex-1">
           <Resizable orientation="vertical">
             <Resizable.Panel defaultSize={42} minSize={20}>
-              <div ref={listRef} className="flex h-full flex-col gap-0.5 overflow-y-auto p-2">
-                {messages.map((msg) => {
-                  const isSelected = activeMessage?.message_id === msg.message_id;
-                  const arrow = formatMessageArrow(msg.direction);
+              <ScrollShadow ref={listRef} className="h-full overflow-y-auto p-2">
+                <ListBox
+                  disallowEmptySelection
+                  aria-label="Wire messages"
+                  className="gap-0.5 p-0"
+                  selectedKeys={selectedKeys}
+                  selectionMode="single"
+                  onSelectionChange={handleSelectionChange}
+                >
+                  {messages.map((msg) => {
+                    const arrow = formatMessageArrow(msg.direction);
+                    const labelText = `${arrow} ${msg.method}`;
 
-                  return (
-                    <button
-                      key={msg.message_id}
-                      className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-lg px-3 py-1.5 text-left ${
-                        isSelected
-                          ? "bg-accent-soft text-foreground"
-                          : "hover:bg-surface-secondary"
-                      }`}
-                      type="button"
-                      onClick={() => {
-                        if (newestId !== null && msg.message_id !== newestId) {
-                          setPinnedSelection({
-                            atLatestId: newestId,
-                            selectedId: msg.message_id,
-                          });
-                        } else {
-                          setPinnedSelection(null);
-                        }
-                      }}
-                    >
-                      <span className="text-foreground min-w-0 truncate font-mono text-xs font-medium tabular-nums">
-                        {`${arrow} ${msg.method}`}
-                      </span>
-                      <span className="flex shrink-0 items-center gap-2">
-                        {msg.latency_ms !== null ? (
-                          <span className="text-muted font-mono text-xs tabular-nums">
-                            {`${msg.latency_ms} ms`}
-                          </span>
-                        ) : null}
-                        <Chip
-                          className="font-mono"
-                          color={getKindColor(msg.kind)}
-                          size="sm"
-                          variant="soft"
-                        >
-                          {msg.kind}
-                        </Chip>
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+                    return (
+                      <ListBox.Item
+                        key={msg.message_id}
+                        className="items-center justify-between gap-3 rounded-lg px-3 py-1.5 normal-case data-[selected=true]:bg-accent-soft"
+                        id={String(msg.message_id)}
+                        textValue={labelText}
+                      >
+                        <Label className="text-foreground min-w-0 flex-1 truncate font-mono text-xs font-medium tabular-nums normal-case">
+                          {labelText}
+                        </Label>
+                        <span className="flex shrink-0 items-center gap-2">
+                          {msg.latency_ms !== null ? (
+                            <span className="text-muted font-mono text-xs tabular-nums">
+                              {`${msg.latency_ms} ms`}
+                            </span>
+                          ) : null}
+                          <Chip
+                            className="font-mono"
+                            color={getKindColor(msg.kind)}
+                            size="sm"
+                            variant="soft"
+                          >
+                            {msg.kind}
+                          </Chip>
+                        </span>
+                      </ListBox.Item>
+                    );
+                  })}
+                </ListBox>
+              </ScrollShadow>
             </Resizable.Panel>
 
             <Resizable.Handle aria-label="Resize wire log panels" type="drag" variant="secondary" />

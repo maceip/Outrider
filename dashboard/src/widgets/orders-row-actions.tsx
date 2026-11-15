@@ -1,7 +1,7 @@
 "use client";
 
 import {Ban, Copy, EllipsisVertical} from "@gravity-ui/icons";
-import {Button, Dropdown, Label, toast} from "@heroui/react";
+import {Button, Dropdown, Label, Tooltip, toast} from "@heroui/react";
 
 import {useCoreStore} from "../lib/core-store";
 
@@ -16,9 +16,12 @@ export function OrdersRowActions({isRevoked, receiptId}: OrdersRowActionsProps) 
   return (
     <div className="flex items-center justify-end" data-receipt-id={receiptId}>
       <Dropdown>
-        <Button isIconOnly aria-label="Receipt actions" size="sm" variant="ghost">
-          <EllipsisVertical className="size-4" />
-        </Button>
+        <Tooltip delay={0}>
+          <Button isIconOnly aria-label="Receipt actions" size="sm" variant="ghost">
+            <EllipsisVertical className="size-4" />
+          </Button>
+          <Tooltip.Content>Receipt actions</Tooltip.Content>
+        </Tooltip>
         <Dropdown.Popover className="min-w-44" placement="bottom end">
           <Dropdown.Menu
             disabledKeys={isRevoked || busy ? ["revoke"] : []}

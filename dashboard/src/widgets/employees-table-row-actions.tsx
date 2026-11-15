@@ -4,7 +4,7 @@ import type {TrafficHead} from "../lib/types";
 import type {Key} from "react";
 
 import {ArrowRightFromSquare, Copy, EllipsisVertical, Terminal} from "@gravity-ui/icons";
-import {Button, Dropdown, Label, toast} from "@heroui/react";
+import {Button, Dropdown, Label, Tooltip, toast} from "@heroui/react";
 
 import {PROXYFOR_BASE, useCoreStore} from "../lib/core-store";
 
@@ -14,6 +14,7 @@ export interface RowActionsProps {
 
 export function RowActions({item}: RowActionsProps) {
   const {copyTrafficCurl} = useCoreStore();
+  const actionLabel = `Actions for request #${item.id}`;
 
   const handleAction = (key: Key) => {
     const action = String(key);
@@ -45,19 +46,14 @@ export function RowActions({item}: RowActionsProps) {
   return (
     <div className="flex items-center justify-end">
       <Dropdown>
-        <Button
-          isIconOnly
-          aria-label={`Actions for request #${item.id}`}
-          size="sm"
-          variant="ghost"
-        >
-          <EllipsisVertical className="size-4" />
-        </Button>
+        <Tooltip delay={0}>
+          <Button isIconOnly aria-label={actionLabel} size="sm" variant="ghost">
+            <EllipsisVertical className="size-4" />
+          </Button>
+          <Tooltip.Content>{actionLabel}</Tooltip.Content>
+        </Tooltip>
         <Dropdown.Popover className="min-w-44" placement="bottom end">
-          <Dropdown.Menu
-            aria-label={`Actions for request #${item.id}`}
-            onAction={handleAction}
-          >
+          <Dropdown.Menu aria-label={actionLabel} onAction={handleAction}>
             <Dropdown.Item id="copy-url" textValue="Copy URL">
               <Copy className="text-muted size-4" />
               <Label>Copy URL</Label>

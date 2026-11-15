@@ -81,7 +81,7 @@ function matchesStatusFilter(status: number | null, filter: StatusFilter): boole
 }
 
 export function TrafficPage() {
-  const {exportHar, traffics} = useCoreStore();
+  const {traffics} = useCoreStore();
 
   const [search, setSearch] = useState("");
   const [protocolFilter, setProtocolFilter] = useState<ProtocolFilter>("all");
@@ -293,7 +293,7 @@ export function TrafficPage() {
   );
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-7xl flex-col gap-4 px-6 pb-6 pt-5">
+    <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-7xl flex-col gap-4 px-6 pb-6 pt-6">
       <div className="flex flex-wrap items-center justify-between gap-2 lg:flex-nowrap">
         <div className="flex min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
           <SearchField
@@ -351,10 +351,6 @@ export function TrafficPage() {
             </Dropdown.Popover>
           </Dropdown>
         </div>
-
-        <Button className="shrink-0" size="sm" variant="secondary" onPress={exportHar}>
-          Export HAR
-        </Button>
       </div>
 
       <Card className="min-h-0 flex-1 overflow-hidden p-0">

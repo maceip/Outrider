@@ -13,17 +13,23 @@ Rust 1.99.0. Other native platforms need their own verified library installation
 ## Build and run
 
 ```sh
-python3 scripts/install_native.py
-cargo build -p proxyfor --bins --example commerce_live_client
-./target/debug/outrider --web --clef-model ~/.avery/redteam-models/gemma-4-e2b-it.litertlm
+python3 -B scripts/install_native.py
+cargo build --release -p proxyfor --bin outrider --example commerce_live_client
+./target/release/outrider --web --clef-model ~/.avery/redteam-models/gemma-4-e2b-it.litertlm
 ```
 
-Open `http://127.0.0.1:8080/__proxyfor__/`. Loopback browsers authenticate
-automatically through the local bootstrap endpoint (desktop launches exchange a
-single-use `#bootstrap=<nonce>` token; the private operator token remains at
-`~/.proxyfor/outrider-admin-token`). The proxy and `/mcp` share the listener and
-also accept direct TLS using the proxy CA. A static showcase and browser-side
-capture/receipt workbench is published at `https://maceip.github.io/Outrider/`.
+Launch `Outrider.app` on macOS or run `./target/release/outrider --web` and open
+`http://127.0.0.1:8080/__proxyfor__/`. Loopback browsers authenticate automatically
+through the local bootstrap endpoint (desktop launches exchange a single-use
+`#bootstrap=<nonce>` token; the private operator token remains at
+`~/.proxyfor/outrider-admin-token`). On an initial interactive launch with an empty
+database, Outrider runs a real loopback wire sequence automatically (`--demo` forces
+it on any launch; `--no-demo` disables it) so the dashboard opens populated with live
+HTTP, MCP, and receipt records.
+
+The proxy and `/mcp` share the listener and also accept direct TLS using the proxy
+CA. A static showcase and browser-side capture/receipt workbench extending the same
+`Silvector` dashboard shell is published at `https://maceip.github.io/Outrider/`.
 The original `proxyfor` executable remains available; `--tui` selects the terminal
 workbench and `--stdio` serves MCP without an HTTP listener.
 
@@ -33,21 +39,17 @@ or option distributions are supplied in that state. `--clef-backend cpu|gpu`,
 The native installation is explicit and checks archive hashes; every macOS arm64
 build also checks the installed library hashes. Cargo never downloads native code.
 
-## Traffic Monitor and MCP Inspector
+## Silvector Workbench Surfaces
 
-`http://127.0.0.1:8080/__proxyfor__/traffic` streams unified HTTP(S), WebSocket and
-`/mcp` packets in a live split-pane inspector with protocol/status filtering, HAR
-export and cURL copy. `http://127.0.0.1:8080/__proxyfor__/inspector` is the
-embedded MCP 2026-07-28 Inspector (`dashboard/src/views/inspector-page.tsx`),
-served from the built-in `dashboard/out` export or `OUTRIDER_DASHBOARD_DIR`. It connects to any
-MCP server over Streamable HTTP or a stdio command, or to this gateway's own `/mcp`
-to see exactly what agents see. It lists and calls tools through forms generated from
-their schemas, reads resources and templates, gets prompts with completions, fetches
-skills, sends raw JSON-RPC requests and notifications, sets roots, opens
-`subscriptions/listen` streams and answers sampling, elicitation and MRTR
-`input_required` rounds by hand. Every message, with latency and server stderr, is
-stored in `inspector_messages`; header and environment values are never stored.
-OAuth sign-in and the legacy HTTP+SSE transport are not supported.
+Embedded under `/__proxyfor__` from `dashboard/out` (or overridden via `OUTRIDER_DASHBOARD_DIR`):
+
+- `/` (**Dashboard**) — Live KPI summary, volume & throughput charts, and recent traffic stream.
+- `/traffic` (**Traffic**) — Unified HTTP(S), WebSocket, and `/mcp` split-pane packet inspector with protocol/status filtering, HAR export, and cURL copy.
+- `/inspector` (**Inspector**) — Embedded MCP 2026-07-28 Inspector connecting over Streamable HTTP or stdio to list/call schema-driven tools, read resources/templates, fetch skills, send raw JSON-RPC frames, open `subscriptions/listen` streams, and answer sampling, elicitation, and `input_required` rounds. Every message and latency is persisted in `inspector_messages`; header and environment values are never stored. OAuth sign-in and legacy HTTP+SSE are not supported.
+- `/analytics` (**Analytics**) — Time-windowed event metrics, protocol breakdown, and live event grid.
+- `/orders` (**Receipts**) — Operator receipt issuance, quota tracking, filtering, and revocation.
+- `/settings` (**Settings**) — Listener/MCP endpoints, capability probe policy, and connected upstreams.
+- `/help` (**Help**) — Proxy setup guide, HTTPS CA certificates (`.pem`/`.cer`), and full HAR export.
 
 ## Sessions, probes and bundles
 

@@ -5,12 +5,15 @@ import type {InspectorMessage, InspectorServerRequest} from "../lib/types";
 import {Terminal} from "@gravity-ui/icons";
 import {
   Button,
+  Card,
   Chip,
   Description,
   Input,
   Label,
   ListBox,
+  ScrollShadow,
   Select,
+  Surface,
   Switch,
   Tabs,
   TextArea,
@@ -782,31 +785,29 @@ export function InspectorExplorer({
             ) : null}
 
             {toolSchemaFields.length > 0 ? (
-              <div className="bg-surface-secondary flex flex-col gap-2.5 rounded-lg p-3">
+              <Surface className="flex flex-col gap-2.5 rounded-lg p-3" variant="secondary">
                 {toolSchemaFields.map((field) => {
                   if (field.fieldType === "boolean") {
                     return (
-                      <div key={field.name} className="flex items-center justify-between gap-3">
-                        <div className="flex min-w-0 flex-col">
-                          <span className="text-foreground font-mono text-xs">{field.name}</span>
-                          {field.description ? (
-                            <span className="text-muted truncate text-xs">{field.description}</span>
-                          ) : null}
-                        </div>
-                        <Switch
-                          aria-label={field.name}
-                          isDisabled={busy}
-                          isSelected={Boolean(parsedToolArgs[field.name])}
-                          size="sm"
-                          onChange={(checked) => updateToolSchemaField(field, checked)}
-                        >
-                          <Switch.Content>
-                            <Switch.Control>
-                              <Switch.Thumb />
-                            </Switch.Control>
-                          </Switch.Content>
-                        </Switch>
-                      </div>
+                      <Switch
+                        key={field.name}
+                        aria-label={field.name}
+                        className="w-full"
+                        isDisabled={busy}
+                        isSelected={Boolean(parsedToolArgs[field.name])}
+                        size="sm"
+                        onChange={(checked) => updateToolSchemaField(field, checked)}
+                      >
+                        <Switch.Content className="w-full justify-between">
+                          <Label className="font-mono text-xs normal-case">{field.name}</Label>
+                          <Switch.Control>
+                            <Switch.Thumb />
+                          </Switch.Control>
+                        </Switch.Content>
+                        {field.description ? (
+                          <Description className="truncate text-xs">{field.description}</Description>
+                        ) : null}
+                      </Switch>
                     );
                   }
 
@@ -843,7 +844,7 @@ export function InspectorExplorer({
                     </TextField>
                   );
                 })}
-              </div>
+              </Surface>
             ) : null}
 
             <div className="flex flex-col gap-1.5">
@@ -900,10 +901,7 @@ export function InspectorExplorer({
         className="mt-0 flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-4"
         id="resources"
       >
-        <div className="flex items-center justify-between gap-2">
-          <span className="text-muted text-xs">
-            Discover exposed resources and templates, or read any URI directly.
-          </span>
+        <div className="flex items-center justify-end gap-2">
           <Button
             className="shrink-0"
             isDisabled={busy}
@@ -918,44 +916,54 @@ export function InspectorExplorer({
         </div>
 
         {resources.length > 0 || resourceTemplates.length > 0 ? (
-          <div className="bg-surface-secondary flex max-h-44 flex-col gap-1 overflow-y-auto rounded-lg p-2">
-            {resources.map((item) => (
-              <button
-                key={`res:${item.uri}`}
-                className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left ${
-                  resourceUri === item.uri ? "bg-accent-soft text-foreground" : "hover:bg-surface/60"
-                }`}
-                type="button"
-                onClick={() => setResourceUri(item.uri)}
+          <Surface className="rounded-lg p-1.5" variant="secondary">
+            <ScrollShadow className="max-h-44 overflow-y-auto">
+              <ListBox
+                aria-label="Discovered resources"
+                className="gap-0.5 p-0"
+                selectedKeys={resourceUri ? new Set([resourceUri]) : new Set()}
+                selectionMode="single"
+                onSelectionChange={(keys) => {
+                  if (keys !== "all") {
+                    const first = Array.from(keys)[0];
+
+                    if (typeof first === "string") {
+                      setResourceUri(first);
+                    }
+                  }
+                }}
               >
-                <span className="text-foreground shrink-0 font-mono text-xs font-medium">
-                  {item.name}
-                </span>
-                <span className="text-muted min-w-0 truncate font-mono text-xs tabular-nums">
-                  {item.uri}
-                </span>
-              </button>
-            ))}
-            {resourceTemplates.map((tpl) => (
-              <button
-                key={`tpl:${tpl.uriTemplate}`}
-                className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-3 rounded-lg px-2.5 py-1.5 text-left ${
-                  resourceUri === tpl.uriTemplate
-                    ? "bg-accent-soft text-foreground"
-                    : "hover:bg-surface/60"
-                }`}
-                type="button"
-                onClick={() => setResourceUri(tpl.uriTemplate)}
-              >
-                <span className="text-foreground shrink-0 font-mono text-xs font-medium">
-                  {tpl.name}
-                </span>
-                <span className="text-muted min-w-0 truncate font-mono text-xs tabular-nums">
-                  {tpl.uriTemplate}
-                </span>
-              </button>
-            ))}
-          </div>
+                {resources.map((item) => (
+                  <ListBox.Item
+                    key={`res:${item.uri}`}
+                    className="normal-case data-[selected=true]:bg-accent-soft"
+                    id={item.uri}
+                    textValue={item.name}
+                  >
+                    <Label className="font-mono text-xs normal-case">{item.name}</Label>
+                    <Description className="truncate font-mono text-xs tabular-nums">
+                      {item.uri}
+                    </Description>
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+                {resourceTemplates.map((tpl) => (
+                  <ListBox.Item
+                    key={`tpl:${tpl.uriTemplate}`}
+                    className="normal-case data-[selected=true]:bg-accent-soft"
+                    id={tpl.uriTemplate}
+                    textValue={tpl.name}
+                  >
+                    <Label className="font-mono text-xs normal-case">{tpl.name}</Label>
+                    <Description className="truncate font-mono text-xs tabular-nums">
+                      {tpl.uriTemplate}
+                    </Description>
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </ScrollShadow>
+          </Surface>
         ) : null}
 
         <div className="flex items-end gap-2">
@@ -1136,9 +1144,10 @@ export function InspectorExplorer({
                 : null;
 
             return (
-              <div
+              <Card
                 key={req.request_id}
-                className="border-border flex flex-col gap-2.5 rounded-lg border p-3"
+                className="gap-2.5 p-3"
+                variant="secondary"
               >
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-foreground truncate font-mono text-xs font-medium">
@@ -1223,7 +1232,7 @@ export function InspectorExplorer({
                     />
                   </CodeBlock>
                 ) : null}
-              </div>
+              </Card>
             );
           })
         )}

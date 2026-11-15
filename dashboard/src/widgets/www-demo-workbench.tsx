@@ -12,13 +12,23 @@ import type {
 } from "../lib/types";
 import type {Selection} from "@heroui/react";
 import type {DataGridColumn, DataGridSortDescriptor} from "@heroui-pro/react";
-import type {ChangeEvent} from "react";
 
-import {Button, Card, Chip, SearchField, Table, Tabs, toast} from "@heroui/react";
-import {DataGrid, EmptyState, Segment} from "@heroui-pro/react";
+import {
+  Button,
+  Card,
+  Chip,
+  Label,
+  ListBox,
+  ScrollShadow,
+  SearchField,
+  Table,
+  Tabs,
+  toast,
+} from "@heroui/react";
+import {DataGrid, DropZone, EmptyState, Segment, useDropZonePickerContext} from "@heroui-pro/react";
 import {CodeBlock} from "@heroui-pro/react/code-block";
 import {Resizable} from "@heroui-pro/react/resizable";
-import {useCallback, useMemo, useRef, useState} from "react";
+import {useCallback, useMemo, useState} from "react";
 
 import {withWwwBasePath} from "../lib/www-base-path";
 
@@ -46,12 +56,21 @@ interface CustomHarState {
   detailsById: Record<string, TrafficDetail>;
   fileName: string;
   rawText: string;
-  sha256Hex: string;
   traffics: TrafficHead[];
 }
 
 const SHIKI_HIGHLIGHT_CHAR_LIMIT = 64_000;
 const BASE64_PREVIEW_LIMIT = 2_048;
+
+function HarPickerTrigger() {
+  const {openFilePicker} = useDropZonePickerContext();
+
+  return (
+    <Button size="sm" variant="secondary" onPress={openFilePicker}>
+      Load .har
+    </Button>
+  );
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -251,7 +270,7 @@ export function parseHar12Archive(rawText: string): {
   const parsed: unknown = JSON.parse(rawText);
 
   if (!isRecord(parsed) || !isRecord(parsed.log) || !Array.isArray(parsed.log.entries)) {
-    throw new Error("Invalid HAR 1.2 file: missing log.entries array");
+    throw new Error("Invalid HAR file: missing log.entries array");
   }
 
   const traffics: TrafficHead[] = [];
@@ -351,21 +370,6 @@ export function parseHar12Archive(rawText: string): {
   return {detailsById, traffics};
 }
 
-async function computeSha256Hex(text: string): Promise<string> {
-  if (typeof window === "undefined" || !window.crypto?.subtle) {
-    return "";
-  }
-  const bytes = new TextEncoder().encode(text);
-  const copy = new Uint8Array(new ArrayBuffer(bytes.byteLength));
-
-  copy.set(bytes);
-  const digest = await window.crypto.subtle.digest("SHA-256", copy);
-
-  return Array.from(new Uint8Array(digest))
-    .map((b) => b.toString(16).padStart(2, "0"))
-    .join("");
-}
-
 function getKindColor(kind: string): "accent" | "danger" | "default" | "success" | "warning" {
   switch (kind) {
     case "error":
@@ -432,8 +436,6 @@ function HeadersTable({
 }
 
 export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProps) {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-
   const [workbenchTab, setWorkbenchTab] = useState<WorkbenchTab>("traffic");
   const [detailTab, setDetailTab] = useState<DetailTab>("response");
   const [search, setSearch] = useState("");
@@ -569,6 +571,23 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
     return inspectorMessages[inspectorMessages.length - 1];
   }, [inspectorMessages, selectedMessageId]);
 
+  const selectedMessageKeys = useMemo<Selection>(
+    () => (activeMessage ? new Set([String(activeMessage.message_id)]) : new Set()),
+    [activeMessage],
+  );
+
+  const handleMessageSelectionChange = useCallback((keys: Selection) => {
+    if (keys === "all") return;
+    const first = Array.from(keys)[0];
+
+    if (first === undefined) return;
+    const parsed = Number(first);
+
+    if (Number.isFinite(parsed)) {
+      setSelectedMessageId(parsed);
+    }
+  }, []);
+
   const formattedMessageJson = useMemo(() => {
     if (!activeMessage) return "";
     try {
@@ -632,10 +651,9 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
     }
   }, [customHar]);
 
-  const handleLoadHarFile = useCallback(async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleLoadHarFiles = useCallback(async (files: FileList) => {
+    const file = files[0];
 
-    event.target.value = "";
     if (!file) return;
 
     try {
@@ -647,20 +665,18 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
 
         return;
       }
-      const sha256Hex = await computeSha256Hex(rawText);
 
       setCustomHar({
         detailsById: parsed.detailsById,
         fileName: file.name,
         rawText,
-        sha256Hex,
         traffics: parsed.traffics,
       });
       setSelectedPacketId(parsed.traffics[0]?.id ?? null);
       setWorkbenchTab("traffic");
       toast.success(`Loaded ${parsed.traffics.length} packets from ${file.name}`);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : "Failed to parse HAR 1.2 archive";
+      const msg = error instanceof Error ? error.message : "Failed to parse HAR file";
 
       toast.danger(msg);
     }
@@ -776,10 +792,6 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
     [],
   );
 
-  const activeShaPrefix = customHar
-    ? customHar.sha256Hex.slice(0, 12)
-    : (bundle?.harSha256.slice(0, 12) ?? "");
-
   const reqHeaders = useMemo<TrafficHeader[]>(
     () => effectiveSelectedDetail?.req_headers?.items ?? [],
     [effectiveSelectedDetail],
@@ -809,40 +821,22 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div className="flex min-w-0 flex-col gap-1">
-          <div className="flex flex-wrap items-center gap-2.5">
-            <h2 className="text-foreground text-lg font-semibold">Interactive Gateway Workbench</h2>
-            <Chip color={customHar ? "accent" : "default"} size="sm" variant="soft">
-              {customHar ? "Custom HAR" : "Recorded Capture"}
-            </Chip>
-          </div>
-          <p className="text-muted truncate font-mono text-xs tabular-nums">
-            {customHar
-              ? `${customHar.fileName}${activeShaPrefix ? ` · sha256:${activeShaPrefix}` : ""}`
-              : activeShaPrefix
-                ? `sha256:${activeShaPrefix} · ${bundle?.binaryVersion ?? "outrider"} · ${bundle?.capturedAtIso ?? ""}`
-                : loading
-                  ? "Loading recorded wire session…"
-                  : "Recorded wire capture"}
-          </p>
+        <div className="flex flex-wrap items-center gap-2.5">
+          <h2 className="text-foreground text-base font-semibold">Interactive Gateway Workbench</h2>
+          <Chip color={customHar ? "accent" : "default"} size="sm" variant="soft">
+            {customHar ? "Custom HAR" : "Recorded Capture"}
+          </Chip>
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <input
-            ref={fileInputRef}
-            accept=".har,application/json"
-            aria-label="Upload HAR file"
-            className="hidden"
-            type="file"
-            onChange={(event) => void handleLoadHarFile(event)}
-          />
-          <Button
-            size="sm"
-            variant="secondary"
-            onPress={() => fileInputRef.current?.click()}
-          >
-            Load .har
-          </Button>
+          <DropZone className="w-auto">
+            <DropZone.Input
+              accept=".har,application/json"
+              aria-label="Upload HAR file"
+              onSelect={(files) => void handleLoadHarFiles(files)}
+            />
+            <HarPickerTrigger />
+          </DropZone>
           {customHar ? (
             <Button size="sm" variant="tertiary" onPress={handleResetCapture}>
               Reset Capture
@@ -872,7 +866,7 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
                 <Tabs.Indicator />
               </Tabs.Tab>
               <Tabs.Tab className="w-auto px-2 text-xs" id="mcp-clef">
-                MCP 2026-07-28 &amp; CLEF Trace
+                MCP &amp; CLEF
                 <Tabs.Indicator />
               </Tabs.Tab>
             </Tabs.List>
@@ -936,7 +930,7 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
                           </EmptyState.Title>
                           <EmptyState.Description>
                             {loading
-                              ? "Hydrating recorded HAR 1.2 packets from bundle."
+                              ? "Loading recorded traffic..."
                               : "Adjust your search query or protocol filter."}
                           </EmptyState.Description>
                         </EmptyState.Header>
@@ -1114,7 +1108,7 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
             <div className="h-[560px] min-h-0">
               <Resizable orientation="horizontal">
                 <Resizable.Panel className="flex flex-col" defaultSize={44} minSize={28}>
-                  <div className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-4">
+                  <ScrollShadow className="flex h-full min-h-0 flex-col gap-4 overflow-y-auto p-4">
                     <div className="flex flex-col gap-2">
                       <div className="flex items-center justify-between gap-2">
                         <span className="text-foreground text-xs font-semibold">
@@ -1128,25 +1122,28 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
                       {inspectorMessages.length === 0 ? (
                         <p className="text-muted text-xs">No recorded MCP messages.</p>
                       ) : (
-                        <div className="flex flex-col gap-1">
+                        <ListBox
+                          disallowEmptySelection
+                          aria-label="Recorded MCP messages"
+                          className="gap-1 p-0"
+                          selectedKeys={selectedMessageKeys}
+                          selectionMode="single"
+                          onSelectionChange={handleMessageSelectionChange}
+                        >
                           {inspectorMessages.map((msg) => {
-                            const isSelected = activeMessage?.message_id === msg.message_id;
                             const arrow = msg.direction === "client_to_server" ? "->" : "<-";
+                            const labelText = `${arrow} ${msg.method}`;
 
                             return (
-                              <button
+                              <ListBox.Item
                                 key={msg.message_id}
-                                className={`flex w-full cursor-[var(--cursor-interactive)] items-center justify-between gap-2 rounded-lg px-3 py-2 text-left ${
-                                  isSelected
-                                    ? "bg-accent-soft text-foreground"
-                                    : "bg-surface-secondary/60 hover:bg-surface-secondary"
-                                }`}
-                                type="button"
-                                onClick={() => setSelectedMessageId(msg.message_id)}
+                                className="bg-surface-secondary/60 items-center justify-between gap-2 rounded-lg px-3 py-2 normal-case data-[selected=true]:bg-accent-soft"
+                                id={String(msg.message_id)}
+                                textValue={labelText}
                               >
-                                <span className="text-foreground min-w-0 truncate font-mono text-xs font-medium tabular-nums">
-                                  {`${arrow} ${msg.method}`}
-                                </span>
+                                <Label className="text-foreground min-w-0 flex-1 truncate font-mono text-xs font-medium tabular-nums normal-case">
+                                  {labelText}
+                                </Label>
                                 <span className="flex shrink-0 items-center gap-2">
                                   {msg.latency_ms !== null ? (
                                     <span className="text-muted font-mono text-xs tabular-nums">
@@ -1157,10 +1154,10 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
                                     {msg.kind}
                                   </Chip>
                                 </span>
-                              </button>
+                              </ListBox.Item>
                             );
                           })}
-                        </div>
+                        </ListBox>
                       )}
                     </div>
 
@@ -1179,38 +1176,37 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
                       ) : (
                         <div className="flex flex-col gap-2">
                           {clefEvaluations.map((ev) => (
-                            <div
+                            <Card
                               key={ev.evaluation_id}
-                              className="bg-surface-secondary flex flex-col gap-2 rounded-lg p-3"
+                              className="gap-2 p-3"
+                              variant="secondary"
                             >
                               <div className="flex items-center justify-between gap-2">
                                 <span className="text-foreground font-mono text-xs font-semibold tabular-nums">
                                   pick: {JSON.stringify(ev.pick)}
                                 </span>
-                                <Chip
-                                  color={ev.status === "Verified" ? "success" : "default"}
-                                  size="sm"
-                                  variant="soft"
-                                >
-                                  {ev.status}
-                                </Chip>
+                                <div className="flex shrink-0 items-center gap-2">
+                                  <span className="text-muted font-mono text-xs tabular-nums">
+                                    {ev.latency_ms !== null ? `${ev.latency_ms} ms` : "—"}
+                                  </span>
+                                  <Chip
+                                    color={ev.status === "Verified" ? "success" : "default"}
+                                    size="sm"
+                                    variant="soft"
+                                  >
+                                    {ev.status}
+                                  </Chip>
+                                </div>
                               </div>
                               <p className="text-muted text-xs leading-relaxed">
                                 {formatClefQuestion(ev.question)}
                               </p>
-                              <div className="text-muted flex flex-wrap items-center gap-3 font-mono text-xs tabular-nums">
-                                <span>in: {ev.input_tokens ?? 0} tok</span>
-                                <span>out: {ev.output_tokens ?? 0} tok</span>
-                                <span>
-                                  {ev.latency_ms !== null ? `${ev.latency_ms} ms` : "—"}
-                                </span>
-                              </div>
-                            </div>
+                            </Card>
                           ))}
                         </div>
                       )}
                     </div>
-                  </div>
+                  </ScrollShadow>
                 </Resizable.Panel>
 
                 <Resizable.Handle
@@ -1225,7 +1221,7 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
                       <CodeBlock className="my-0 flex h-full min-h-0 flex-col rounded-lg">
                         <CodeBlock.Header className="shrink-0">
                           <span className="text-muted min-w-0 truncate font-mono text-xs tabular-nums">
-                            {`${activeMessage.direction === "client_to_server" ? "->" : "<-"} ${activeMessage.method} (${activeMessage.direction})`}
+                            {`${activeMessage.direction === "client_to_server" ? "->" : "<-"} ${activeMessage.method}`}
                           </span>
                           <CodeBlock.CopyButton
                             aria-label="Copy JSON-RPC wire payload"

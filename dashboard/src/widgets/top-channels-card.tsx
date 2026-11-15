@@ -52,7 +52,6 @@ export function TopChannelsCard() {
     <Card className="h-full">
       <Card.Header>
         <Card.Title className="min-w-0 truncate text-base">Top Hosts</Card.Title>
-        <Card.Description>Requests by destination host.</Card.Description>
       </Card.Header>
       <Card.Content className="relative">
         <BarChart className="font-mono tabular-nums" data={topHosts} height={360} layout="vertical">

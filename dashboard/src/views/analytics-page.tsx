@@ -18,10 +18,7 @@ export function AnalyticsPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-6 pb-10 pt-8">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-muted min-w-0 text-sm">
-          Live gateway telemetry and protocol breakdown.
-        </p>
+      <div className="flex items-center justify-end">
         <Segment
           aria-label="Time range"
           className="shrink-0 font-mono tabular-nums"

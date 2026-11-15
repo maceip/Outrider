@@ -300,6 +300,9 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
         const nextDetail = await fetchTrafficDetail(selectedId);
 
         if (!cancelled) {
+          if (nextDetail?.error) {
+            toast.danger(nextDetail.error);
+          }
           setDetailState({detail: nextDetail, id: selectedId, loaded: true});
         }
       } catch {
@@ -361,8 +364,12 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
             try {
               const msg = JSON.parse(trimmed) as WebsocketFrameMessage;
 
-              if (msg && typeof msg === "object" && ("data" in msg || "error" in msg)) {
-                parsedFrames.push(msg);
+              if (msg && typeof msg === "object") {
+                if ("error" in msg) {
+                  toast.danger(msg.error);
+                } else if ("data" in msg) {
+                  parsedFrames.push(msg);
+                }
               }
             } catch {
               // Ignore malformed stream line fragments.
@@ -537,19 +544,6 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
                 </div>
               </div>
 
-              {activeDetail?.error ? (
-                <div className="flex flex-col gap-2">
-                  <span className="text-danger text-xs font-medium">Connection Error</span>
-                  <CodeBlock className="my-0 rounded-lg">
-                    <CodeBlock.Header>
-                      <span className="text-muted font-mono text-xs">Upstream error</span>
-                      <CodeBlock.CopyButton code={activeDetail.error} />
-                    </CodeBlock.Header>
-                    <CodeBlock.Code code={activeDetail.error} language="plaintext" />
-                  </CodeBlock>
-                </div>
-              ) : null}
-
               <HeadersSection ariaLabel="Response headers" headers={resHeaders} />
 
               <BodySection
@@ -571,7 +565,7 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
             <div className="flex h-full items-center justify-center py-4">
               <EmptyState size="sm">
                 <EmptyState.Header>
-                  <EmptyState.Title>Not a WebSocket connection.</EmptyState.Title>
+                  <EmptyState.Title>Not a WebSocket Connection</EmptyState.Title>
                   <EmptyState.Description>
                     Select an upgraded WebSocket request to stream frames in real time.
                   </EmptyState.Description>
@@ -593,18 +587,7 @@ export function TrafficDetailPane({selectedHead, selectedId}: TrafficDetailPaneP
             <div className="flex flex-col gap-3">
               {wsFrames.map((frame, index) => {
                 if ("error" in frame) {
-                  return (
-                    <div key={`err-${index}`} className="flex flex-col gap-1.5">
-                      <span className="text-danger text-xs font-medium">Stream Error</span>
-                      <CodeBlock className="my-0 rounded-lg">
-                        <CodeBlock.Header>
-                          <span className="text-muted font-mono text-xs">Error</span>
-                          <CodeBlock.CopyButton code={frame.error} />
-                        </CodeBlock.Header>
-                        <CodeBlock.Code code={frame.error} language="plaintext" />
-                      </CodeBlock>
-                    </div>
-                  );
+                  return null;
                 }
 
                 const formattedPayload = formatBodyForDisplay(frame.data.body);

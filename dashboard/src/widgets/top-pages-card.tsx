@@ -125,14 +125,11 @@ export function TopPagesCard() {
 
   return (
     <section className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <div className="flex flex-wrap items-center gap-2.5">
-          <h2 className="text-foreground text-base font-semibold">Live events</h2>
-          <Chip className="tabular-nums" size="sm" variant="soft">
-            {sortedRows.length}
-          </Chip>
-        </div>
-        <p className="text-muted text-xs">Captured requests over the selected time range.</p>
+      <div className="flex flex-wrap items-center gap-2.5">
+        <h2 className="text-foreground text-base font-semibold">Live Events</h2>
+        <Chip className="tabular-nums" size="sm" variant="soft">
+          {sortedRows.length}
+        </Chip>
       </div>
       <DataGrid
         aria-label="Live events"
