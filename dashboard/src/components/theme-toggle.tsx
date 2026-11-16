@@ -9,7 +9,7 @@ import {IconButton} from "./icon-button";
 export type SilvectorTheme = "brutalism-dark" | "brutalism-light";
 export type ThemeMode = SilvectorTheme;
 
-const THEME_STORAGE_KEY = "outrider.theme";
+const THEME_STORAGE_KEY = "conduit.theme";
 const themeListeners = new Set<() => void>();
 
 function notifyThemeListeners() {

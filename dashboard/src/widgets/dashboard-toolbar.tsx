@@ -170,7 +170,7 @@ export function DashboardToolbar() {
   };
 
   const walkthroughSrc = `${WWW_BASE_PATH}/demo/playwright-walkthrough.mp4`;
-  const posterSrc = `${WWW_BASE_PATH}/brand/dark/outrider-logo-512.png`;
+  const posterSrc = `${WWW_BASE_PATH}/brand/dark/conduit-logo-512.png`;
 
   return (
     <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -350,7 +350,7 @@ export function DashboardToolbar() {
                 Download
               </Button>
               <Dropdown.Popover placement="bottom end">
-                <Dropdown.Menu aria-label="Download Outrider">
+                <Dropdown.Menu aria-label="Download Conduit">
                   <Dropdown.Item
                     id="dmg"
                     textValue="macOS (.dmg)"

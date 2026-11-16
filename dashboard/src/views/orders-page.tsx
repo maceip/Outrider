@@ -72,7 +72,7 @@ function getSubjectInitials(subject: string): string {
     .split(/[\s:._/-]+/)
     .filter(Boolean);
 
-  if (parts.length === 0) return "OR";
+  if (parts.length === 0) return "CD";
   if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
 
   return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
@@ -97,7 +97,7 @@ export function OrdersPage() {
   const [issueTtlHours, setIssueTtlHours] = useState("24");
 
   const receipts = useMemo(() => snapshot?.capability_receipts ?? [], [snapshot]);
-  const defaultBundleId = snapshot?.bundles[0]?.bundle_id ?? "outrider_session_evidence";
+  const defaultBundleId = snapshot?.bundles[0]?.bundle_id ?? "conduit_session_evidence";
   const effectiveBundleId = issueBundleOverride ?? defaultBundleId;
 
   const handleIssueReceipt = async () => {
@@ -136,7 +136,7 @@ export function OrdersPage() {
         const matchedCatalogItem =
           catalogItems.find((item) => item.item_id === trimmedBundleId)?.item_id ??
           catalogItems[0]?.item_id ??
-          "outrider_session_evidence";
+          "conduit_session_evidence";
 
         await mutate("/bundles/put", {
           bundle_id: trimmedBundleId,
@@ -348,7 +348,7 @@ export function OrdersPage() {
                           <Input
                             fullWidth
                             className="font-mono text-xs tabular-nums"
-                            placeholder="outrider_session_evidence"
+                            placeholder="conduit_session_evidence"
                           />
                         </TextField>
 

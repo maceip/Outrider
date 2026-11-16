@@ -398,7 +398,7 @@ export class WwwDemoEngine {
       const serverInfo = existing?.server_info ?? {
         capabilities: {prompts: {}, resources: {}, tools: {listChanged: true}},
         protocolVersion: "2026-07-28",
-        serverInfo: {name: "outrider", version: "0.5.13"},
+        serverInfo: {name: "conduit", version: "0.5.14"},
       };
 
       const updatedConn: InspectorConnection = {
@@ -611,7 +611,7 @@ export class WwwDemoEngine {
     const link = document.createElement("a");
 
     link.href = url;
-    link.download = "outrider-capture.har";
+    link.download = "conduit-capture.har";
     document.body.appendChild(link);
     link.click();
     link.remove();
@@ -623,7 +623,7 @@ export class WwwDemoEngine {
     const detail = await this.fetchTrafficDetail(id);
     const harObj = {
       log: {
-        creator: {name: "Outrider", version: "0.5.13"},
+        creator: {name: "Conduit", version: "0.5.14"},
         entries: [
           {
             request: {

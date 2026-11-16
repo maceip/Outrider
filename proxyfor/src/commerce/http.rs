@@ -84,12 +84,22 @@ pub async fn route(commerce: Arc<Commerce>, request: Request<Incoming>) -> HttpR
             [] => request.uri().authority().map(|a| a.as_str()),
             _ => None,
         };
-        let client_values: Vec<_> = request
+        let conduit_values: Vec<_> = request
+            .headers()
+            .get_all("x-conduit-client")
+            .iter()
+            .collect();
+        let legacy_values: Vec<_> = request
             .headers()
             .get_all("x-outrider-client")
             .iter()
             .collect();
-        let client_header = match client_values.as_slice() {
+        let active_values = if !conduit_values.is_empty() {
+            &conduit_values
+        } else {
+            &legacy_values
+        };
+        let client_header = match active_values.as_slice() {
             [single] => single.to_str().ok(),
             _ => None,
         };

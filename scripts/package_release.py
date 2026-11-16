@@ -18,16 +18,16 @@ import zipfile
 
 
 MACOS_ICONSET_SOURCES: dict[str, str] = {
-    "icon_16x16.png": "outrider-icon-16.png",
-    "icon_16x16@2x.png": "outrider-icon-32.png",
-    "icon_32x32.png": "outrider-icon-32.png",
-    "icon_32x32@2x.png": "outrider-logo-64.png",
-    "icon_128x128.png": "outrider-logo-128.png",
-    "icon_128x128@2x.png": "outrider-logo-256.png",
-    "icon_256x256.png": "outrider-logo-256.png",
-    "icon_256x256@2x.png": "outrider-logo-512.png",
-    "icon_512x512.png": "outrider-logo-512.png",
-    "icon_512x512@2x.png": "outrider-logo-1024.png",
+    "icon_16x16.png": "conduit-icon-16.png",
+    "icon_16x16@2x.png": "conduit-icon-32.png",
+    "icon_32x32.png": "conduit-icon-32.png",
+    "icon_32x32@2x.png": "conduit-logo-64.png",
+    "icon_128x128.png": "conduit-logo-128.png",
+    "icon_128x128@2x.png": "conduit-logo-256.png",
+    "icon_256x256.png": "conduit-logo-256.png",
+    "icon_256x256@2x.png": "conduit-logo-512.png",
+    "icon_512x512.png": "conduit-logo-512.png",
+    "icon_512x512@2x.png": "conduit-logo-1024.png",
 }
 
 

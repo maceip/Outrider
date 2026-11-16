@@ -63,13 +63,13 @@ function SidebarContents({
         <div className="flex items-center gap-3 px-1 py-1">
           {/* eslint-disable-next-line @next/next/no-img-element -- static export served under basePath */}
           <img
-            alt="Outrider"
+            alt="Conduit"
             className="size-8 shrink-0 rounded-md object-contain"
             height={32}
             src={
               mode === "brutalism-light"
-                ? withWwwBasePath("/brand/light/outrider-icon-64.png")
-                : withWwwBasePath("/brand/dark/outrider-icon-64.png")
+                ? withWwwBasePath("/brand/light/conduit-icon-64.png")
+                : withWwwBasePath("/brand/dark/conduit-icon-64.png")
             }
             width={32}
           />
@@ -77,7 +77,7 @@ function SidebarContents({
             className="text-foreground truncate text-base font-semibold leading-tight tracking-[-0.02em]"
             data-sidebar="label"
           >
-            Outrider
+            Conduit
           </span>
         </div>
       </Sidebar.Header>

@@ -27,7 +27,7 @@ import {WwwDemoEngine} from "./www-demo-engine";
 
 export const PROXYFOR_BASE = "/__proxyfor__";
 export const COMMERCE_API_BASE = "/__proxyfor__/commerce";
-export const TOKEN_STORAGE_KEY = "outrider_admin_token";
+export const TOKEN_STORAGE_KEY = "conduit_admin_token";
 const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
 
 export interface CoreStoreValue {
@@ -373,7 +373,7 @@ export function CoreProvider({children}: {children: ReactNode}) {
             body: "{}",
             headers: {
               "Content-Type": "application/json",
-              "x-outrider-client": "dashboard",
+              "x-conduit-client": "dashboard",
             },
             method: "POST",
             signal,
@@ -669,7 +669,7 @@ export function CoreProvider({children}: {children: ReactNode}) {
         const stamp = new Date().toISOString().slice(0, 19).replace(/[:T]/g, "-");
 
         link.href = url;
-        link.download = `outrider-${stamp}.har`;
+        link.download = `conduit-${stamp}.har`;
         document.body.appendChild(link);
         link.click();
         link.remove();
@@ -927,7 +927,7 @@ export function CoreProvider({children}: {children: ReactNode}) {
 
     try {
       modelContext?.registerTool?.({
-        description: "Return live Outrider local HTTP and MCP gateway status and counters.",
+        description: "Return live Conduit local HTTP and MCP gateway status and counters.",
         execute: async () => ({
           active_sessions: snapshotRef.current?.agent_sessions.length ?? 0,
           clef: statusRef.current?.clef ?? snapshotRef.current?.clef ?? null,
@@ -941,7 +941,7 @@ export function CoreProvider({children}: {children: ReactNode}) {
           properties: {},
           type: "object",
         },
-        name: "outrider_gateway_status",
+        name: "conduit_gateway_status",
       });
     } catch {
       // Silent WebMCP registration.
@@ -949,7 +949,7 @@ export function CoreProvider({children}: {children: ReactNode}) {
 
     return () => {
       try {
-        modelContext?.unregisterTool?.("outrider_gateway_status");
+        modelContext?.unregisterTool?.("conduit_gateway_status");
       } catch {
         // Silent cleanup.
       }

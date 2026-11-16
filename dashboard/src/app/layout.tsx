@@ -33,16 +33,16 @@ const jetbrainsMono = JetBrains_Mono({
 const WEBMCP_ORIGIN_TRIAL_TOKEN =
   "A/h8mpmc7Ym1LKQeIQMQ2NG8Tosq469/Pk04jVBhwrEMKVjNKhqeNZz1Js6I61E9vLmF8wRkQguqkCYtFatiJggAAABbeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTgwNjM2NDgwMCwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==";
 
-const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("outrider.theme");var d=document.documentElement;if(t==="brutalism-light"){d.dataset.theme="brutalism-light";d.classList.remove("dark","brutalism-dark");d.classList.add("light","brutalism-light");}else{d.dataset.theme="brutalism-dark";d.classList.remove("light","brutalism-light");d.classList.add("dark","brutalism-dark");}}catch(e){}})();`;
+const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("conduit.theme");var d=document.documentElement;if(t==="brutalism-light"){d.dataset.theme="brutalism-light";d.classList.remove("dark","brutalism-dark");d.classList.add("light","brutalism-light");}else{d.dataset.theme="brutalism-dark";d.classList.remove("light","brutalism-light");d.classList.add("dark","brutalism-dark");}}catch(e){}})();`;
 
 export const metadata: Metadata = {
-  description: "Local HTTP & MCP Gateway",
+  description: "Agentic Commerce Testflight",
   icons: {
     apple: [
       {
         sizes: "256x256",
         type: "image/png",
-        url: `${WWW_BASE_PATH}/brand/dark/outrider-logo-256.png`,
+        url: `${WWW_BASE_PATH}/brand/dark/conduit-logo-256.png`,
       },
     ],
     icon: [
@@ -60,30 +60,30 @@ export const metadata: Metadata = {
         media: "(prefers-color-scheme: dark)",
         sizes: "32x32",
         type: "image/png",
-        url: `${WWW_BASE_PATH}/brand/dark/outrider-icon-32.png`,
+        url: `${WWW_BASE_PATH}/brand/dark/conduit-icon-32.png`,
       },
       {
         media: "(prefers-color-scheme: light)",
         sizes: "32x32",
         type: "image/png",
-        url: `${WWW_BASE_PATH}/brand/light/outrider-icon-32.png`,
+        url: `${WWW_BASE_PATH}/brand/light/conduit-icon-32.png`,
       },
       {
         media: "(prefers-color-scheme: dark)",
         sizes: "64x64",
         type: "image/png",
-        url: `${WWW_BASE_PATH}/brand/dark/outrider-icon-64.png`,
+        url: `${WWW_BASE_PATH}/brand/dark/conduit-icon-64.png`,
       },
       {
         media: "(prefers-color-scheme: light)",
         sizes: "64x64",
         type: "image/png",
-        url: `${WWW_BASE_PATH}/brand/light/outrider-icon-64.png`,
+        url: `${WWW_BASE_PATH}/brand/light/conduit-icon-64.png`,
       },
     ],
     shortcut: `${WWW_BASE_PATH}/brand/favicon-dark.ico`,
   },
-  title: "Outrider",
+  title: "Conduit",
 };
 
 export default function RootLayout({children}: {children: ReactNode}) {

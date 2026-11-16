@@ -43,7 +43,7 @@ const FAQS: readonly FaqItem[] = [
   {
     answer:
       "Set your application or shell HTTP_PROXY and HTTPS_PROXY environment variables to the proxy address listed in Settings. Forwarded requests and responses stream into the Dashboard automatically.",
-    question: "How do I route HTTP and HTTPS traffic through Outrider?",
+    question: "How do I route HTTP and HTTPS traffic through Conduit?",
   },
   {
     answer:

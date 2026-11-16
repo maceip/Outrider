@@ -357,7 +357,7 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
     // (a) Clean Boot & WebMCP Origin Trial
     // =========================================================================
     await page.goto(`${gateway.baseUrl}/__proxyfor__/`);
-    await expect(page).toHaveTitle("Outrider");
+    await expect(page).toHaveTitle("Conduit");
 
     const originTrialContent = await page
       .locator('meta[http-equiv="origin-trial"]')
@@ -366,7 +366,7 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
 
     await expect(
       page.locator('[data-sidebar="label"]:visible').first(),
-    ).toHaveText("Outrider");
+    ).toHaveText("Conduit");
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
@@ -607,7 +607,7 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export HAR" }).first().click();
     const harDownload = await downloadPromise;
-    expect(harDownload.suggestedFilename()).toMatch(/^outrider-.*\.har$/);
+    expect(harDownload.suggestedFilename()).toMatch(/^conduit-.*\.har$/);
 
     // Navigate to Analytics (/analytics/) and assert KPIs, protocol breakdown, Live events, and Segment
     await clickSidebarLink(page, "Analytics");
@@ -855,7 +855,7 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
 
     await page
       .getByRole("button", {
-        name: "How do I route HTTP and HTTPS traffic through Outrider?",
+        name: "How do I route HTTP and HTTPS traffic through Conduit?",
       })
       .click();
     await expect(
@@ -947,7 +947,7 @@ test("Desktop mode launches http://localhost:<port>/__proxyfor__/#bootstrap=<non
     );
 
     await page.goto(launchedUrl);
-    await expect(page).toHaveTitle("Outrider");
+    await expect(page).toHaveTitle("Conduit");
     await expect(
       page.getByRole("heading", { level: 1, name: "Dashboard" }),
     ).toBeVisible();
@@ -1059,7 +1059,7 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
       const btn = document.querySelector(".button");
       const btnFont = btn ? getComputedStyle(btn).fontFamily : "";
       const logo = document.querySelector(
-        'img[alt="Outrider"]',
+        'img[alt="Conduit"]',
       ) as HTMLImageElement | null;
       return {
         rootTheme,
@@ -1079,7 +1079,7 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
     expect(silvectorTokens.h1Transform).toBe("none");
     expect(silvectorTokens.btnFont).toMatch(/space grotesk/i);
     expect(silvectorTokens.logoLoaded).toBe(true);
-    expect(silvectorTokens.logoSrc).toContain("/brand/dark/outrider-icon-64.png");
+    expect(silvectorTokens.logoSrc).toContain("/brand/dark/conduit-icon-64.png");
 
     await page.locator('[aria-label="Switch to light mode"]:visible').first().click();
     await expect
@@ -1095,7 +1095,7 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
     expect(
       await page.evaluate(() => {
         const logo = document.querySelector(
-          'img[alt="Outrider"]',
+          'img[alt="Conduit"]',
         ) as HTMLImageElement | null;
         return Boolean(
           logo &&
@@ -1709,9 +1709,10 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
     ).toBeVisible();
 
     // 0. Exact @heroui-pro/template-dashboard rails on www: all 7 routes, zero custom scroll-page slop
+    await expect(page).toHaveTitle("Conduit");
     await expect(
       page.locator('[data-sidebar="label"]:visible').first(),
-    ).toHaveText("Outrider");
+    ).toHaveText("Conduit");
 
     const wwwNav = page.getByRole("treegrid", { name: "Dashboard navigation" });
     for (const navLabel of [
@@ -1729,7 +1730,7 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
 
     const wwwBrandAndLayout = await page.evaluate(() => {
       const sidebarLogo = document.querySelector(
-        'img[alt="Outrider"]',
+        'img[alt="Conduit"]',
       ) as HTMLImageElement | null;
       const unbackedControls = Array.from(
         document.querySelectorAll("button, input, textarea, select"),
