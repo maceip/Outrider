@@ -1,0 +1,58 @@
+[
+  {
+    "master": "outrider-light-full.png",
+    "node_id": "463745938780240",
+    "transparent": {
+      "code": 0,
+      "message": "ok",
+      "node_id": "463745836785773",
+      "file_name": "b68f2a26-b50e-4544-a588-9ce0021c54e3-no-bg.png",
+      "mime_type": "image/png",
+      "width": 4096,
+      "height": 4096,
+      "size_bytes": 20220904
+    }
+  },
+  {
+    "master": "outrider-dark-full.png",
+    "node_id": "463745456787706",
+    "transparent": {
+      "code": 0,
+      "message": "ok",
+      "node_id": "463746234237100",
+      "file_name": "edf45827-08a8-4be2-a682-3c93e41029aa-no-bg.png",
+      "mime_type": "image/png",
+      "width": 4096,
+      "height": 4096,
+      "size_bytes": 21024093
+    }
+  },
+  {
+    "master": "outrider-light-flat.png",
+    "node_id": "463745938780238",
+    "transparent": {
+      "code": 0,
+      "message": "ok",
+      "node_id": "463746696532114",
+      "file_name": "c50444ed-27bc-4802-9e3c-13ed2ce02945-no-bg.png",
+      "mime_type": "image/png",
+      "width": 2048,
+      "height": 2048,
+      "size_bytes": 4027132
+    }
+  },
+  {
+    "master": "outrider-dark-flat.png",
+    "node_id": "463745938780242",
+    "transparent": {
+      "code": 0,
+      "message": "ok",
+      "node_id": "463746670850137",
+      "file_name": "4e2d24d0-9212-4e7a-b87b-1569c3614299-no-bg.png",
+      "mime_type": "image/png",
+      "width": 2048,
+      "height": 2048,
+      "size_bytes": 4564854
+    }
+  }
+]

@@ -1,0 +1,1 @@
+{"code":0,"message":"ok","summary":"Batch processing completed: 2/2 succeeded","total_requested":2,"total_success":2,"total_failed":0,"success_items":[{"node_id":"463749294907823","file_name":"outrider-light-flat.png"},{"node_id":"463749597135069","file_name":"outrider-dark-flat.png"}],"failed_items":[]}

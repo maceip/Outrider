@@ -1,0 +1,32 @@
+{
+  "requests": [
+    {
+      "prompt": "Edit Picture 1 (\u56fe1). Render the emblem as a flat 2D vector silhouette icon with exactly the same geometry: the segmented circular C-shaped ring of four arc segments divided by thin crosshair gaps, and the small four-pointed sparkle star at the exact center. Keep the original proportions, segment gap widths, corner radii, and the star's proportions. Do not restyle, redraw, or alter the silhouette.\n\nAbsolutely uniform flat color: every single pixel of the emblem is one identical color. There is no gradient anywhere, no shading, no lighting variation, no tonal variation across the surface, no highlight, no shadow, no depth, no texture, no carbon fiber weave, no sheen, no specular reflection, no metallic or foil quality, no bevel, no 3D, no outline or stroke that changes the silhouette. It is a single-color vector shape, like a flat app icon.\n\nThe color is punchy, vivid and highly saturated so it reads brightly at very small sizes: a clear bright chartreuse yellow-green, rich and energetic, not pastel, not washed out, not pale, not a dull olive, not muted, not dark.\n\nHard, crisp, precisely cut edges with clean anti-aliased boundaries.\n\nBackground: completely flat, uniform pure white (#FFFFFF) from edge to edge, with no gradient, no vignette, no texture, no falloff, and no shadow of any kind.\n\nExclude: gradients, shading, highlights, shadows, textures, weave, 3D, bevels, metallic or foil quality, glows, outlines or strokes, text, extra shapes, people, props, watermarks.",
+      "reference_images": [
+        {
+          "url": "https://matrix-internal.oss-us-east-1.aliyuncs.com/user_file_upload_tmp%2F2026-11-15%2Fb41e4443-c4ae-422d-88ec-d4f05b762283.png?x-oss-credential=LTAI5t9dXq2sLrMZ8f1XfiFZ%2F20261115%2Fus-east-1%2Foss%2Faliyun_v4_request&x-oss-date=20261115T200315Z&x-oss-expires=3600&x-oss-signature=da29980a8c6b6246445d75c827e82a9aab891d60fee65d28d8bca7e7d360223c&x-oss-signature-version=OSS4-HMAC-SHA256",
+          "mime_type": "image/png"
+        }
+      ],
+      "aspect_ratio": "1:1",
+      "area": "2K",
+      "n": 1,
+      "output_format": "png",
+      "output_file": "outrider-light-flat"
+    },
+    {
+      "prompt": "Edit Picture 1 (\u56fe1). Render the emblem as a flat 2D vector silhouette icon with exactly the same geometry: the segmented circular C-shaped ring of four arc segments divided by thin crosshair gaps, and the small four-pointed sparkle star at the exact center. Keep the original proportions, segment gap widths, corner radii, and the star's proportions. Do not restyle, redraw, or alter the silhouette.\n\nAbsolutely uniform flat color: every single pixel of the emblem is one identical color. There is no gradient anywhere, no shading, no lighting variation, no tonal variation across the surface, no highlight, no shadow, no depth, no texture, no carbon fiber weave, no sheen, no specular reflection, no metallic or foil quality, no bevel, no 3D, no outline or stroke that changes the silhouette. It is a single-color vector shape, like a flat app icon.\n\nThe color is punchy, vivid and highly saturated so it reads brightly at very small sizes: a clear bright chartreuse yellow-green, one step more luminous than the light version so it holds vividly against charcoal and near-black, rich and energetic, not pastel, not washed out, not pale, not a dull olive, not muted.\n\nHard, crisp, precisely cut edges with clean anti-aliased boundaries.\n\nBackground: completely flat, uniform pure white (#FFFFFF) from edge to edge, with no gradient, no vignette, no texture, no falloff, and no shadow of any kind.\n\nExclude: gradients, shading, highlights, shadows, textures, weave, 3D, bevels, metallic or foil quality, glows, outlines or strokes, text, extra shapes, people, props, watermarks.",
+      "reference_images": [
+        {
+          "url": "https://matrix-internal.oss-us-east-1.aliyuncs.com/user_file_upload_tmp%2F2026-11-15%2Fb41e4443-c4ae-422d-88ec-d4f05b762283.png?x-oss-credential=LTAI5t9dXq2sLrMZ8f1XfiFZ%2F20261115%2Fus-east-1%2Foss%2Faliyun_v4_request&x-oss-date=20261115T200315Z&x-oss-expires=3600&x-oss-signature=da29980a8c6b6246445d75c827e82a9aab891d60fee65d28d8bca7e7d360223c&x-oss-signature-version=OSS4-HMAC-SHA256",
+          "mime_type": "image/png"
+        }
+      ],
+      "aspect_ratio": "1:1",
+      "area": "2K",
+      "n": 1,
+      "output_format": "png",
+      "output_file": "outrider-dark-flat"
+    }
+  ]
+}

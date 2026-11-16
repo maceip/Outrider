@@ -1,0 +1,17 @@
+{
+  "requests": [
+    {
+      "prompt": "Edit Picture 1 (\u56fe1). Keep the emblem's exact geometry: the segmented circular C-shaped ring of four arc segments divided by thin crosshair gaps, and the small four-pointed sparkle star at the exact center. Keep the original flat proportions, segment gap widths, corner radii, and the star's proportions. Do not redraw, restyle, or alter the silhouette.\n\nKeep the emblem's yellow-green color family, but make it far more vibrant: a vivid, luminous, highly saturated chartreuse-yellow green, punchy and confident, much brighter and more energetic than the original muted olive. The color stays flat and even across the shape with clean edges \u2014 vivid and saturated, but still natural and tasteful, never neon or clipped.\n\nAdd a subtle carbon fiber surface treatment to the emblem:\n- A very fine carbon fiber twill weave pattern laid across the surface of the whole shape, visible on close inspection but low contrast \u2014 roughly a whisper of texture.\n- The weave catches light along the upper-left like a real composite surface under a colored matte coat, so it reads as a genuine material rather than a printed pattern.\n- Crucially this is NOT a full carbon fiber wrap: the vibrant yellow-green must remain the dominant read of the mark. The weave is a subtle surface texture within that color, never black, never grey, never a checkerboard, never a bold pattern.\n\nKeep the other restrained touches:\n- A soft wide satin sheen sweeping across the upper-left, lifting the color only slightly where it catches the light.\n- A thin, crisp, subtly brighter hairline of lighter yellow-green along the upper-left contour of each segment and the upper-left edge of the central sparkle.\n- A soft contact shadow just beneath and slightly to the right of the emblem, lifting it gently off the backdrop.\n- A whisper of ambient darkening inside the gaps between the segments and around the central star.\n\nPlace it on a deep charcoal graphite backdrop with a smooth soft vignette, slightly lighter behind the emblem and falling off to near-black at the corners.\n\nExclude: a full carbon fiber wrap or a bold black/grey weave pattern; glossy clear-coat or plastic varnish; heavy 3D bevels, chamfers, extruded edges, or embossing; metal, chrome, aluminum, silver, or gold surfaces; lens flare, bloom, glow, chromatic aberration, film grain, noise, color banding; any text or lettering, extra shapes, people, props, or watermarks.",
+      "reference_images": [
+        {
+          "url": "https://matrix-internal.oss-us-east-1.aliyuncs.com/user_file_upload_tmp%2F2026-11-15%2F5c5ec4f2-89eb-4a8f-811a-09b7551734bd.png?x-oss-credential=LTAI5t9dXq2sLrMZ8f1XfiFZ%2F20261115%2Fus-east-1%2Foss%2Faliyun_v4_request&x-oss-date=20261115T194331Z&x-oss-expires=3600&x-oss-signature=79a6944c9f3ba63ec743da7e52d9698b2760f64c966879333af6c668cc34760e&x-oss-signature-version=OSS4-HMAC-SHA256",
+          "mime_type": "image/png"
+        }
+      ],
+      "aspect_ratio": "1:1",
+      "area": "4K",
+      "n": 1,
+      "output_file": "outrider-logo-vibrant-carbon"
+    }
+  ]
+}

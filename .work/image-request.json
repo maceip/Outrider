@@ -1,0 +1,17 @@
+{
+  "requests": [
+    {
+      "prompt": "Edit Picture 1 (\u56fe1). Keep the emblem's exact geometry: the segmented circular C-shaped ring of four arc segments divided by thin crosshair gaps, and the small four-pointed sparkle star at the exact center. Do not redraw, restyle, or alter the silhouette, proportions, segment gap widths, corner radii, or the star's proportions.\n\nChange only the material and the lighting treatment:\n- Replace the flat olive-green fill with machined brushed aluminum: a fine anisotropic brushed-metal grain running consistently along the arcs, silver-gray body with a faint warm champagne tint in the highlights.\n- Give the emblem a crisp precision-machined bevel: a narrow chamfer on every edge catching a bright specular highlight on the upper-left and a darker edge on the lower-right, so it reads as a solid raised metal piece.\n- Add a broad soft specular sheen sweeping across the upper-left quadrant of the metal, with fine bright glints where the bevels turn.\n- Add subtle depth: a soft contact shadow directly beneath the emblem, faint ambient occlusion in the recessed gaps between the segments and around the central star, and a very slight reflection of the metal on the surface below.\n\nPlace it on a deep charcoal graphite backdrop with a smooth soft vignette, slightly lighter behind the emblem and falling off to near-black at the corners. Soft key light from the upper left, a cool faint rim light on the lower-right edge.\n\nOverall impression: restrained, expensive, professional elite product photography \u2014 precise, confident, premium. Understated rather than flashy.\n\nExclude: any text or lettering, extra symbols or shapes, people, props, watermarks, lens flare, heavy bloom, chromatic aberration, neon or oversaturated colors, any remaining olive or yellow-green color, plastic, rubber, glass, or chrome-mirror looks, cartoon or flat vector styling, busy or noisy backgrounds, film grain, and color banding.",
+      "reference_images": [
+        {
+          "url": "https://matrix-internal.oss-us-east-1.aliyuncs.com/user_file_upload_tmp%2F2026-11-15%2Fcf0d922b-9e2d-48d1-aeeb-96f4645a3e45.png?x-oss-credential=LTAI5t9dXq2sLrMZ8f1XfiFZ%2F20261115%2Fus-east-1%2Foss%2Faliyun_v4_request&x-oss-date=20261115T194039Z&x-oss-expires=3600&x-oss-signature=27c0c883007f942fd94261abb87ebd5e091e5194f01b5f3bddece53fa13cfe84&x-oss-signature-version=OSS4-HMAC-SHA256",
+          "mime_type": "image/png"
+        }
+      ],
+      "aspect_ratio": "auto",
+      "area": "4K",
+      "n": 1,
+      "output_file": "outrider-logo-brushed-aluminum"
+    }
+  ]
+}

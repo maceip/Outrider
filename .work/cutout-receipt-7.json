@@ -1,0 +1,30 @@
+[
+  {
+    "master": "outrider-light-flat.png",
+    "node_id": "463750242775196",
+    "transparent": {
+      "code": 0,
+      "message": "ok",
+      "node_id": "463750534201547",
+      "file_name": "388ef6e4-43b3-4f94-b063-8fc869a963e4-no-bg.png",
+      "mime_type": "image/png",
+      "width": 2048,
+      "height": 2048,
+      "size_bytes": 5518947
+    }
+  },
+  {
+    "master": "outrider-dark-flat.png",
+    "node_id": "463750031298653",
+    "transparent": {
+      "code": 0,
+      "message": "ok",
+      "node_id": "463749977846003",
+      "file_name": "8d78499f-4b1b-4bf2-a1be-0f1b8f202840-no-bg.png",
+      "mime_type": "image/png",
+      "width": 2048,
+      "height": 2048,
+      "size_bytes": 4097001
+    }
+  }
+]

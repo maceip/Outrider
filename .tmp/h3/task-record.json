@@ -1,0 +1,13 @@
+{
+  "provider_task_id": "463744967627066",
+  "submitted_model": "MiniMax-H3",
+  "output_file_path": "videos/outrider-logo-mask-assembly.mp4",
+  "submitted_at_ms": 1794773148364,
+  "last_query_at_ms": null,
+  "poller_task_id": null,
+  "terminal_status": "succeeded",
+  "submission_attempted": true,
+  "request_fingerprint": "896e961ac0c6541a306fb64a9472601f1d8db98604083895f360c2182babadbc",
+  "media": "prepared-media/outrider-logo-16x9-firstframe.jpg",
+  "node_id": "463750778634478"
+}

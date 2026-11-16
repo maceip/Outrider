@@ -1,0 +1,32 @@
+{
+  "requests": [
+    {
+      "prompt": "Edit Picture 1 (\u56fe1). Render the emblem as a compact small-scale icon that carries the SAME premium design language as the full-size logo: the segmented circular C-shaped ring of four arc segments divided by thin crosshair gaps, and the small four-pointed sparkle star at the exact center, with the original proportions, segment gap widths, corner radii and star proportions unchanged.\n\nSurface material: the same hard carbon fiber composite in a clearly defined 2x2 twill weave \u2014 distinct legible tow bundles running diagonally across every segment and across the sparkle, crisp defined weave edges, the tows a shade lighter and a shade darker than the base color so the weave reads as structure within the color and never as gold, silver or any other metal. Matte and non-reflective, never foil, never chrome, never a specular sheen or glossy highlight, never a bold black or grey checkerboard.\n\nOutline: a crisp, clearly visible darker edge line along the entire silhouette \u2014 a fine, precise dark contour around every segment and around the central sparkle, so the logo's outline stays clearly readable even at 16 pixels. Not a heavy stroke, a precise hairline of a deeper chartreuse, never black.\n\nTone: keep the tonal depth of the full logo \u2014 bright chartreuse where the light strikes the upper-left, falling to a richer chartreuse in the lower-right \u2014 but compress the range so that even the darkest tone remains a vivid, clearly yellow-green chartreuse, never a dull dark olive, never a muddy brown-olive, never washed out or pastel. The overall average must read as a bright, punchy yellow-green, not a muted mid-tone.\n\nHard, crisp, precisely cut edges.\n\nThe emblem floats isolated, with no cast shadow, no drop shadow, no contact shadow, no floor, no reflection and no glow.\n\nBackground: completely flat, uniform pure white (#FFFFFF) from edge to edge, with no gradient, no vignette, no texture, no falloff and no shadow of any kind.\n\nExclude: metallic leaf, gold foil, chrome, aluminum, silver, polished metal, mirror surfaces, glossy varnish, plastic sheen, specular highlights, lens flare, bloom; any shadow, floor, reflection or glow beneath the emblem; 3D bevels, chamfers, extruded edges or embossing; flat pastel or washed-out lemon yellow; dull dark olive or muddy brown tones; film grain, noise, color banding; text, lettering, extra shapes, people, props, watermarks.",
+      "reference_images": [
+        {
+          "url": "https://matrix-internal.oss-us-east-1.aliyuncs.com/user_file_upload_tmp%2F2026-11-15%2Fce0a5ebf-aa56-48f0-89a6-1765507064ba.png?x-oss-credential=LTAI5t9dXq2sLrMZ8f1XfiFZ%2F20261115%2Fus-east-1%2Foss%2Faliyun_v4_request&x-oss-date=20261115T200621Z&x-oss-expires=3600&x-oss-signature=292c1b0822d5f647ca6c71b73db087d6147c6cb149f7e57039ba3b18a1adb4d9&x-oss-signature-version=OSS4-HMAC-SHA256",
+          "mime_type": "image/png"
+        }
+      ],
+      "aspect_ratio": "1:1",
+      "area": "2K",
+      "n": 1,
+      "output_format": "png",
+      "output_file": "outrider-light-flat"
+    },
+    {
+      "prompt": "Edit Picture 1 (\u56fe1). Render the emblem as a compact small-scale icon that carries the SAME premium design language as the full-size logo: the segmented circular C-shaped ring of four arc segments divided by thin crosshair gaps, and the small four-pointed sparkle star at the exact center, with the original proportions, segment gap widths, corner radii and star proportions unchanged.\n\nSurface material: the same hard carbon fiber composite in a clearly defined 2x2 twill weave \u2014 distinct legible tow bundles running diagonally across every segment and across the sparkle, crisp defined weave edges, the tows a shade lighter and a shade darker than the base color so the weave reads as structure within the color and never as gold, silver or any other metal. Matte and non-reflective, never foil, never chrome, never a specular sheen or glossy highlight, never a bold black or grey checkerboard.\n\nOutline: a crisp, clearly visible darker edge line along the entire silhouette \u2014 a fine, precise dark contour around every segment and around the central sparkle, so the logo's outline stays clearly readable even at 16 pixels. Not a heavy stroke, a precise hairline of a deeper chartreuse, never black.\n\nTone: keep the tonal depth of the full logo \u2014 bright chartreuse where the light strikes the upper-left, falling to a richer chartreuse in the lower-right \u2014 but compress the range so that even the darkest tone remains a vivid, clearly yellow-green chartreuse that still reads against charcoal and near-black and never sinks into the background, never a dull dark olive, never a muddy brown-olive, never washed out or pastel. The overall average must read as a bright, punchy yellow-green, not a muted mid-tone.\n\nHard, crisp, precisely cut edges.\n\nThe emblem floats isolated, with no cast shadow, no drop shadow, no contact shadow, no floor, no reflection and no glow.\n\nBackground: completely flat, uniform pure white (#FFFFFF) from edge to edge, with no gradient, no vignette, no texture, no falloff and no shadow of any kind.\n\nExclude: metallic leaf, gold foil, chrome, aluminum, silver, polished metal, mirror surfaces, glossy varnish, plastic sheen, specular highlights, lens flare, bloom; any shadow, floor, reflection or glow beneath the emblem; 3D bevels, chamfers, extruded edges or embossing; flat pastel or washed-out lemon yellow; dull dark olive or muddy brown tones; film grain, noise, color banding; text, lettering, extra shapes, people, props, watermarks.",
+      "reference_images": [
+        {
+          "url": "https://matrix-internal.oss-us-east-1.aliyuncs.com/user_file_upload_tmp%2F2026-11-15%2Fce0a5ebf-aa56-48f0-89a6-1765507064ba.png?x-oss-credential=LTAI5t9dXq2sLrMZ8f1XfiFZ%2F20261115%2Fus-east-1%2Foss%2Faliyun_v4_request&x-oss-date=20261115T200621Z&x-oss-expires=3600&x-oss-signature=292c1b0822d5f647ca6c71b73db087d6147c6cb149f7e57039ba3b18a1adb4d9&x-oss-signature-version=OSS4-HMAC-SHA256",
+          "mime_type": "image/png"
+        }
+      ],
+      "aspect_ratio": "1:1",
+      "area": "2K",
+      "n": 1,
+      "output_format": "png",
+      "output_file": "outrider-dark-flat"
+    }
+  ]
+}

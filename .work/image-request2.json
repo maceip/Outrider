@@ -1,0 +1,17 @@
+{
+  "requests": [
+    {
+      "prompt": "Edit Picture 1 (\u56fe1). Keep the emblem's exact geometry: the segmented circular C-shaped ring of four arc segments divided by thin crosshair gaps, and the small four-pointed sparkle star at the exact center. Keep the original flat proportions, segment gap widths, corner radii, and the star's proportions. Do not redraw, restyle, or alter the silhouette.\n\nKeep the emblem's original dark yellow-green (olive / mustard-chartreuse) color exactly as it is. It is the dominant color of the mark and must remain a flat, clean, even olive green across the whole shape.\n\nAdd only subtle, restrained touches of shine:\n- A very soft, wide satin sheen sweeping diagonally across the upper-left of the shape, lifting the color only slightly toward a lighter, warmer yellow-green where it catches the light, and returning to the base olive everywhere else.\n- A thin, crisp, subtly brighter edge highlight running along the upper-left contour of each segment and along the upper-left edge of the central sparkle \u2014 a single hairline of lighter olive, like a soft studio rim light on flat ink, not a metal bevel.\n- A subtle, soft contact shadow just beneath and slightly to the right of the emblem, lifting it gently off the backdrop.\n- A whisper of ambient darkening inside the gaps between the segments and around the central star.\n\nKeep it flat and modern: this is a crisp contemporary vector logo with a light kiss of light on it, not a physical object. Minimal, confident, modern and restrained.\n\nPlace it on a deep charcoal graphite backdrop with a smooth soft vignette, slightly lighter behind the emblem and falling off to near-black at the corners.\n\nExclude: metallic, aluminum, chrome, silver, gold, bronze, or any metal surface; brushed or grain texture; bevels, chamfers, extruded 3D edges, embossing, engraving; chunky 3D block effects; heavy shadows, strong gradients, gloss varnish, glass, plastic; neon or oversaturated color; any change to the base olive hue; any text or lettering, extra shapes, people, props, watermarks, lens flare, bloom, chromatic aberration, film grain, noise, and color banding.",
+      "reference_images": [
+        {
+          "url": "https://matrix-internal.oss-us-east-1.aliyuncs.com/user_file_upload_tmp%2F2026-11-15%2F553ec92d-b48a-465b-9f5e-b6d83b4fc289.png?x-oss-credential=LTAI5t9dXq2sLrMZ8f1XfiFZ%2F20261115%2Fus-east-1%2Foss%2Faliyun_v4_request&x-oss-date=20261115T194234Z&x-oss-expires=3600&x-oss-signature=02a62f177d781f0335a9243a0f036f721805a31eae5b4c8ad4d1cb7a3e590bce&x-oss-signature-version=OSS4-HMAC-SHA256",
+          "mime_type": "image/png"
+        }
+      ],
+      "aspect_ratio": "1:1",
+      "area": "4K",
+      "n": 1,
+      "output_file": "outrider-logo-olive-subtle-shine"
+    }
+  ]
+}

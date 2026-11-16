@@ -1,0 +1,35 @@
+{
+  "source_glb_triangles": 281790,
+  "new_triangles": 12700,
+  "new_vertices": 7481,
+  "parts": [
+    "body_shell",
+    "btn_chatgpt",
+    "btn_cloud",
+    "btn_database",
+    "btn_gear",
+    "btn_git",
+    "btn_logo",
+    "btn_starburst",
+    "btn_terminal",
+    "btn_waveform",
+    "button_bezels",
+    "face_plate",
+    "led_status"
+  ],
+  "bounds": [
+    [
+      -0.15903881987577645,
+      -0.5016,
+      -0.096
+    ],
+    [
+      0.15903881987577645,
+      0.5016,
+      0.05
+    ]
+  ],
+  "atlas": "/Users/mac/Outrider/assets/remote-future/button_face_atlas.png",
+  "glb": "/Users/mac/Outrider/assets/remote-future/futuristic_neon_remote_v2.glb",
+  "stl": "/Users/mac/Outrider/assets/remote-future/futuristic_neon_remote_v2.stl"
+}

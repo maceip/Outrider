@@ -1,0 +1,14 @@
+{
+  "provider_task_id": "463749945381170",
+  "submitted_model": "MiniMax-H3",
+  "output_file_path": "videos/outrider-app-icon-spin.mp4",
+  "submitted_at_ms": 1794774479850,
+  "last_query_at_ms": null,
+  "poller_task_id": null,
+  "terminal_status": "succeeded",
+  "submission_attempted": true,
+  "request_fingerprint": "79341beed3cf4e664618479530caf03c0af22623a8ee03e88c74954dcf6ebc58",
+  "media": "prepared-media/outrider-logo-1x1-white-plate.jpg",
+  "postprocess": "white-key to alpha, downscale to 512x512, VP9 WebM with alpha + muted copy",
+  "node_id": "463756396200070"
+}

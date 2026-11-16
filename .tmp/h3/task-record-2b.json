@@ -1,0 +1,15 @@
+{
+  "provider_task_id": "463759150797044",
+  "submitted_model": "MiniMax-H3",
+  "output_file_path": "videos/outrider-app-icon-spin-3d.mp4",
+  "submitted_at_ms": 1794776615087,
+  "last_query_at_ms": null,
+  "poller_task_id": null,
+  "terminal_status": "succeeded",
+  "submission_attempted": true,
+  "request_fingerprint": "6eb22266b506d5936b0bb92e14d1a1ee87e858a28b14dd01b307accd2b4c7d0c",
+  "media": "prepared-media/outrider-emblem-3d-icon-plate.jpg",
+  "supersedes": "463749945381170",
+  "postprocess": "white-key to alpha, downscale to 512x512, VP9 WebM with alpha + muted copy",
+  "node_id": "463764638556387"
+}

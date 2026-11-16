@@ -1,0 +1,13 @@
+{
+  "provider_task_id": "463754371531104",
+  "submitted_model": "MiniMax-H3",
+  "output_file_path": "videos/outrider-rising-star-3d.mp4",
+  "submitted_at_ms": 1794775024805,
+  "last_query_at_ms": null,
+  "poller_task_id": null,
+  "terminal_status": "succeeded",
+  "submission_attempted": true,
+  "request_fingerprint": "9df81a92c5c951b683fdfdc37d689ae3a17384e1ff339e51f7b5d1c970906dad",
+  "media": "prepared-media/outrider-emblem-3d-firstframe.jpg",
+  "node_id": "463758559437050"
+}
