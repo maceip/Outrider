@@ -1,6 +1,6 @@
 [package]
 name = "proxyfor"
-version = "0.5.15"
+version = "0.5.16"
 default-run = "outrider"
 edition = "2024"
 rust-version = "1.88"
