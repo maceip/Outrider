@@ -110,10 +110,7 @@ export function SettingsPage() {
       }}
     >
       <Card className="gap-8 p-6">
-        <SettingsRow
-          description="Local HTTP proxy listener and MCP server URLs."
-          label="Gateway Endpoints"
-        >
+        <SettingsRow label="Gateway Endpoints">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-2">
             <TextField
               fullWidth
@@ -161,10 +158,7 @@ export function SettingsPage() {
           </div>
         </SettingsRow>
 
-        <SettingsRow
-          description="Controls when connected MCP clients are probed for session capabilities."
-          label="Capability Probe"
-        >
+        <SettingsRow label="Capability Probe">
           <Select
             className="w-full sm:w-64"
             isDisabled={busy}
@@ -195,10 +189,7 @@ export function SettingsPage() {
           </Select>
         </SettingsRow>
 
-        <SettingsRow
-          description="Load skill definitions from a local folder into the gateway catalog."
-          label="Skills Directory"
-        >
+        <SettingsRow label="Skills Directory">
           <TextField
             fullWidth
             isDisabled={busy}
@@ -212,10 +203,7 @@ export function SettingsPage() {
           </TextField>
         </SettingsRow>
 
-        <SettingsRow
-          description="Connect an external MCP server to expose its tools through the gateway."
-          label="Upstream MCP Server"
-        >
+        <SettingsRow label="Upstream Server">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-[minmax(180px,220px)_minmax(0,1fr)]">
             <TextField
               fullWidth
@@ -278,18 +266,14 @@ export function SettingsPage() {
 }
 
 interface SettingsRowProps {
-  description: string;
   label: string;
   children: ReactNode;
 }
 
-function SettingsRow({children, description, label}: SettingsRowProps) {
+function SettingsRow({children, label}: SettingsRowProps) {
   return (
-    <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-10">
-      <div className="flex min-w-0 flex-col gap-1">
-        <h2 className="text-foreground text-sm font-semibold">{label}</h2>
-        <p className="text-muted text-xs leading-relaxed">{description}</p>
-      </div>
+    <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)] md:gap-10">
+      <h2 className="text-foreground pt-1 text-sm font-semibold">{label}</h2>
       <div className="flex min-w-0 flex-col gap-3">{children}</div>
     </div>
   );

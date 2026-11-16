@@ -1,8 +1,9 @@
-:HL["/__proxyfor__/_next/static/chunks/0mqkbccd478k4.css","style"]
-:HL["/__proxyfor__/_next/static/chunks/3osmwlquv0r2q.css","style"]
+:HL["/__proxyfor__/_next/static/chunks/2acn86m_c6peq.css","style"]
+:HL["/__proxyfor__/_next/static/chunks/22s-fln0apkh2.css","style"]
 :HL["/__proxyfor__/_next/static/media/051742360c26797e-s.p.1bkzbscqrt8rl.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
-:HL["/__proxyfor__/_next/static/media/b59689b1142d37ce-s.p.1bk8_xp319hr4.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/__proxyfor__/_next/static/media/0c89a48fa5027cee-s.p.2cyn07wtgehh0.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
+:HL["/__proxyfor__/_next/static/media/83afe278b6a6bb3c-s.p.2bn3s6zvc0dyp.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 3:[["children",{"s":"__PAGE__","h":160}]]
 2:[["children",{"s":"orders","h":96,"c":"$Q3"}]]
 1:[["children",{"s":"(app)","h":96,"c":"$Q2"}]]
-0:{"b":"p7Eal8rHrKwuZeXo7EB6l","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"FbZcw3aE4mNxogO8eRUPj","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

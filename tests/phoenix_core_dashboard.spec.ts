@@ -364,10 +364,9 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
       .getAttribute("content");
     expect(originTrialContent).toBe(WEBMCP_ORIGIN_TRIAL_TOKEN);
 
-    // Wait for status + seamless local bootstrap auth to hydrate sidebar subtitle
     await expect(
       page.locator('[data-sidebar="label"]:visible').first(),
-    ).toContainText(`127.0.0.1:${gateway.port}`);
+    ).toHaveText("Outrider");
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
@@ -466,13 +465,13 @@ test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live
       page.getByRole("heading", { level: 1, name: "Help" }),
     ).toBeVisible();
     await expect(
-      page.getByText("HTTPS Certificate (.pem)", { exact: true }),
+      page.getByText("Root Certificate (.pem)", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText("HTTPS Certificate (.cer)", { exact: true }),
+      page.getByText("Root Certificate (.cer)", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText("Export Traffic (HAR)", { exact: true }),
+      page.getByText("Export Traffic (.har)", { exact: true }),
     ).toBeVisible();
     await assertCleanCopyAndZeroJargon(page, "Help");
 
@@ -1056,25 +1055,33 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
       const rootTheme = document.documentElement.dataset.theme ?? "";
       const bodyFont = getComputedStyle(document.body).fontFamily;
       const h1 = document.querySelector("h1");
-      const h1Font = h1 ? getComputedStyle(h1).fontFamily : "";
+      const h1Style = h1 ? getComputedStyle(h1) : null;
+      const btn = document.querySelector(".button");
+      const btnFont = btn ? getComputedStyle(btn).fontFamily : "";
       const logo = document.querySelector(
         'img[alt="Outrider"]',
       ) as HTMLImageElement | null;
       return {
         rootTheme,
         bodyFont,
-        h1Font,
+        h1Font: h1Style?.fontFamily ?? "",
+        h1Weight: h1Style?.fontWeight ?? "",
+        h1Transform: h1Style?.textTransform ?? "",
+        btnFont,
         logoLoaded: Boolean(logo && logo.complete && logo.naturalWidth > 0),
         logoSrc: logo?.getAttribute("src") ?? "",
       };
     });
     expect(silvectorTokens.rootTheme).toBe("brutalism-dark");
-    expect(silvectorTokens.bodyFont).toMatch(/unbounded/i);
-    expect(silvectorTokens.h1Font).toMatch(/jetbrains/i);
+    expect(silvectorTokens.bodyFont).toMatch(/inter/i);
+    expect(silvectorTokens.h1Font).toMatch(/space grotesk/i);
+    expect(silvectorTokens.h1Weight).toBe("600");
+    expect(silvectorTokens.h1Transform).toBe("none");
+    expect(silvectorTokens.btnFont).toMatch(/space grotesk/i);
     expect(silvectorTokens.logoLoaded).toBe(true);
     expect(silvectorTokens.logoSrc).toContain("/brand/dark/outrider-icon-64.png");
 
-    await page.getByRole("button", { name: "Switch to light mode" }).click();
+    await page.locator('[aria-label="Switch to light mode"]:visible').first().click();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
       .toBe("brutalism-light");
@@ -1098,7 +1105,7 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
         );
       }),
     ).toBe(true);
-    await page.getByRole("button", { name: "Switch to dark mode" }).click();
+    await page.locator('[aria-label="Switch to dark mode"]:visible').first().click();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
       .toBe("brutalism-dark");
@@ -1701,16 +1708,28 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
       page.getByRole("heading", { level: 1, name: "Outrider" }),
     ).toBeVisible();
 
-    // 0. Unified <AppShell> (<DashboardSidebar> + <DashboardNavbar>), official brand icons, zero hand-rolled leaks, zero jargon
+    // 0. Unified <AppShell>, Agentic Commerce Testflight hero, bottom theme switcher, zero top-bar clutter, zero jargon
     await expect(
       page.locator('[data-sidebar="label"]:visible').first(),
-    ).toContainText("Interactive Demo");
+    ).toHaveText("Outrider");
+
+    await expect(
+      page.getByRole("heading", { level: 2, name: "Agentic Commerce Testflight" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Start", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Verify a Pass", exact: true }),
+    ).toBeVisible();
+    await expect(page.getByText("Open Local (:8080)")).toHaveCount(0);
+    await expect(page.locator("#overview").getByText("Silvector")).toHaveCount(0);
 
     const wwwNav = page.getByRole("treegrid", { name: "Dashboard navigation" });
     for (const navLabel of [
       "Overview",
-      "Traffic & MCP",
-      "Receipt Lab",
+      "Live Traffic",
+      "Access Passes",
       "Downloads",
     ]) {
       await expect(
@@ -1787,7 +1806,23 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
       };
     });
     expect(videoMeta.width).toBeGreaterThan(0);
-    expect(videoMeta.duration).toBeGreaterThan(5);
+    expect(videoMeta.duration).toBeGreaterThan(50);
+
+    // 1b. On-brand HeroUI Popover scene pill crisply describes active video scene and jumps chapters
+    const scenePill = page.getByRole("button", { name: /^Scene 1 of / });
+    await expect(scenePill).toBeVisible();
+    await scenePill.click();
+    const sceneDialog = page.getByRole("dialog");
+    await expect(sceneDialog).toBeVisible();
+    await expect(
+      sceneDialog.getByRole("listbox", { name: "Walkthrough scenes" }),
+    ).toBeVisible();
+    await sceneDialog
+      .getByRole("option", { name: /Wire Stream Inspection/ })
+      .click();
+    await expect(
+      page.getByRole("button", { name: /Wire Stream Inspection/ }),
+    ).toBeVisible();
 
     // 2. Traffic Monitor workbench renders 9 recorded packets, filters by MCP, and copies cURL
     const demoGrid = page.getByRole("grid", { name: "Recorded packet stream" });
@@ -1833,10 +1868,13 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
     await expect(page.getByText('pick: "http"', { exact: true })).toBeVisible();
     await expect(page.getByText("pick: true", { exact: true })).toBeVisible();
 
-    // 4. Receipt Lab verifies recorded receipt, mints fresh receipt, and surfaces tampering/errors cleanly
+    // 4. Access Pass Verification verifies recorded receipt, mints fresh receipt, and surfaces tampering/errors cleanly
     const receiptSection = page.locator("#receipt-lab");
     await expect(
-      receiptSection.getByRole("heading", { level: 2, name: "Receipt Lab" }),
+      receiptSection.getByRole("heading", {
+        level: 2,
+        name: "Access Pass Verification",
+      }),
     ).toBeVisible();
     await expect(
       receiptSection.getByText("Valid", { exact: true }),

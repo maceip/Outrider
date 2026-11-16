@@ -780,10 +780,6 @@ export function InspectorExplorer({
 
         {selectedTool ? (
           <div className="flex flex-col gap-3">
-            {selectedTool.description ? (
-              <p className="text-muted text-xs leading-relaxed">{selectedTool.description}</p>
-            ) : null}
-
             {toolSchemaFields.length > 0 ? (
               <Surface className="flex flex-col gap-2.5 rounded-lg p-3" variant="secondary">
                 {toolSchemaFields.map((field) => {

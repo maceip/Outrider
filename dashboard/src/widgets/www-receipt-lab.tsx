@@ -443,7 +443,7 @@ export function WwwReceiptLab({
     <Card className="gap-6 p-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h2 className="text-foreground text-base font-semibold">Receipt Lab</h2>
+          <h2 className="text-foreground text-base font-semibold">Access Pass Verification</h2>
           {statusChip}
         </div>
 

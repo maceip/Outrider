@@ -6,7 +6,6 @@ import {ArrowRightFromSquare, FileArrowDown, Lock, ShieldCheck} from "@gravity-u
 import {Accordion, Card, Link} from "@heroui/react";
 
 type HelpLink = {
-  description: string;
   href: string;
   icon: ComponentType<{className?: string}>;
   title: string;
@@ -14,25 +13,19 @@ type HelpLink = {
 
 const HELP_LINKS: readonly HelpLink[] = [
   {
-    description:
-      "Download the local root certificate in PEM format for command-line clients and runtimes.",
     href: "/__proxyfor__/certificate/proxyfor-ca-cert.pem",
     icon: ShieldCheck,
-    title: "HTTPS Certificate (.pem)",
+    title: "Root Certificate (.pem)",
   },
   {
-    description:
-      "Download the local root certificate in CER format for macOS Keychain Access and browsers.",
     href: "/__proxyfor__/certificate/proxyfor-ca-cert.cer",
     icon: Lock,
-    title: "HTTPS Certificate (.cer)",
+    title: "Root Certificate (.cer)",
   },
   {
-    description:
-      "Download captured HTTP and HTTPS requests and responses as a standard HAR archive.",
     href: "/__proxyfor__/traffics?har",
     icon: FileArrowDown,
-    title: "Export Traffic (HAR)",
+    title: "Export Traffic (.har)",
   },
 ];
 
@@ -102,12 +95,11 @@ function HelpLinkCard({link}: {link: HelpLink}) {
 
   return (
     <Card className="h-full justify-between">
-      <Card.Header className="gap-2">
+      <Card.Header className="flex-row items-center gap-3">
         <div className="bg-accent-soft text-accent-soft-foreground flex size-10 shrink-0 items-center justify-center rounded-lg">
           <Icon className="size-5" />
         </div>
         <Card.Title className="min-w-0 text-base">{link.title}</Card.Title>
-        <Card.Description className="leading-relaxed">{link.description}</Card.Description>
       </Card.Header>
       <Card.Footer>
         <Link
@@ -116,7 +108,7 @@ function HelpLinkCard({link}: {link: HelpLink}) {
           rel="noreferrer"
           target="_blank"
         >
-          Open
+          Download
           <ArrowRightFromSquare className="size-3.5" />
         </Link>
       </Card.Footer>

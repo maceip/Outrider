@@ -25,11 +25,6 @@ export function SalesPerformanceCard() {
     [filteredTraffics, dashboardPeriod, nowMs],
   );
 
-  const payloadBytes = useMemo(
-    () => filteredTraffics.reduce((sum, item) => sum + (item.size ?? 0), 0),
-    [filteredTraffics],
-  );
-
   return (
     <Card className="h-full">
       <Card.Header className="flex-row items-center justify-between gap-3">
@@ -72,26 +67,12 @@ export function SalesPerformanceCard() {
         </Select>
       </Card.Header>
       <Card.Content className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-          <div className="flex min-w-0 flex-col">
-            <NumberValue
-              className="text-foreground font-mono text-lg font-semibold tabular-nums"
-              maximumFractionDigits={0}
-              style="decimal"
-              value={filteredTraffics.length}
-            />
-            <span className="text-muted text-xs">Requests</span>
-          </div>
-          <div className="flex min-w-0 flex-col">
-            <NumberValue
-              className="text-foreground font-mono text-lg font-semibold tabular-nums"
-              maximumFractionDigits={0}
-              style="decimal"
-              value={payloadBytes}
-            />
-            <span className="text-muted text-xs">Payload Bytes</span>
-          </div>
-        </div>
+        <NumberValue
+          className="text-foreground font-mono text-lg font-semibold tabular-nums"
+          maximumFractionDigits={0}
+          style="decimal"
+          value={filteredTraffics.length}
+        />
         <BarChart className="font-mono tabular-nums" data={buckets} height={180}>
           <BarChart.Grid vertical={false} />
           <BarChart.XAxis dataKey="bucket" minTickGap={16} tickMargin={8} />

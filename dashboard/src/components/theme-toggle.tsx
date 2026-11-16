@@ -1,6 +1,7 @@
 "use client";
 
 import {Moon, Sun} from "@gravity-ui/icons";
+import {Button} from "@heroui/react";
 import {useCallback, useSyncExternalStore} from "react";
 
 import {IconButton} from "./icon-button";
@@ -106,7 +107,11 @@ export function useThemeMode(): ThemeMode {
   return useSyncExternalStore(subscribeTheme, getThemeSnapshot, getServerThemeSnapshot);
 }
 
-export function ThemeToggle() {
+export interface ThemeToggleProps {
+  showLabel?: boolean;
+}
+
+export function ThemeToggle({showLabel = false}: ThemeToggleProps) {
   const theme = useThemeMode();
   const isDark = theme === "brutalism-dark";
 
@@ -115,6 +120,15 @@ export function ThemeToggle() {
   }, [isDark]);
 
   const label = isDark ? "Switch to light mode" : "Switch to dark mode";
+
+  if (showLabel) {
+    return (
+      <Button aria-label={label} size="sm" variant="tertiary" onPress={handleToggle}>
+        {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
+        {isDark ? "Light mode" : "Dark mode"}
+      </Button>
+    );
+  }
 
   return (
     <IconButton label={label} size="sm" variant="tertiary" onPress={handleToggle}>

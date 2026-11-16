@@ -6,11 +6,10 @@ import {Chip} from "@heroui/react";
 import {Sidebar} from "@heroui-pro/react";
 import {useEffect, useState} from "react";
 
-import {useCoreStore} from "../lib/core-store";
 import {withWwwBasePath} from "../lib/www-base-path";
 import {FOOTER_ITEMS, NAV_ITEMS, WWW_FOOTER_ITEMS, WWW_NAV_ITEMS} from "../nav-items";
 
-import {useThemeMode} from "./theme-toggle";
+import {ThemeToggle, useThemeMode} from "./theme-toggle";
 
 const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
 
@@ -59,7 +58,6 @@ function SidebarContents({
   idPrefix = "",
   pathname,
 }: SidebarContentsProps) {
-  const {status} = useCoreStore();
   const mode = useThemeMode();
   const [activeHash, setActiveHash] = useState("#overview");
 
@@ -80,7 +78,6 @@ function SidebarContents({
 
   const navItems = IS_WWW ? WWW_NAV_ITEMS : NAV_ITEMS;
   const footerItems = IS_WWW ? WWW_FOOTER_ITEMS : FOOTER_ITEMS;
-  const subtitle = IS_WWW ? "Interactive Demo" : (status?.listen_addr ?? "Local Gateway");
 
   return (
     <>
@@ -98,12 +95,12 @@ function SidebarContents({
             }
             width={32}
           />
-          <div className="flex min-w-0 flex-col gap-0.5" data-sidebar="label">
-            <span className="text-foreground truncate font-mono text-sm font-semibold leading-tight tracking-wider">
-              Outrider
-            </span>
-            <span className="text-muted truncate font-mono text-xs leading-tight">{subtitle}</span>
-          </div>
+          <span
+            className="text-foreground truncate text-base font-semibold leading-tight tracking-[-0.02em]"
+            data-sidebar="label"
+          >
+            Outrider
+          </span>
         </div>
       </Sidebar.Header>
       <Sidebar.Content>
@@ -139,6 +136,9 @@ function SidebarContents({
             />
           ))}
         </Sidebar.Menu>
+        <div className="px-1 pt-1" data-sidebar="label">
+          <ThemeToggle showLabel />
+        </div>
       </Sidebar.Footer>
     </>
   );

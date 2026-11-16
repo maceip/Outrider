@@ -20,9 +20,9 @@
   --spacing: 0.234375rem;
   --field-border-width: 1px;
 
-  /* Font */
-  --font-sans: var(--font-custom-unbounded, "Unbounded"), sans-serif;
-  --font-heading: var(--font-custom-jetbrains-mono, "JetBrains Mono"), monospace;
+  /* Typography System: Space Grotesk (Headline + Nav/Buttons) + Inter (Body) + JetBrains Mono (Labels/Code) */
+  --font-sans: var(--font-custom-inter, "Inter"), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-custom-space-grotesk, "Space Grotesk"), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-custom-jetbrains-mono, "JetBrains Mono"), ui-monospace, monospace;
 
   /* Primitives */
@@ -133,8 +133,8 @@
   --field-shadow: none;
 
   /* Design Theme */
-  --brutalism-font-body: var(--font-custom-unbounded, "Unbounded"), sans-serif;
-  --brutalism-font-display: var(--font-custom-jetbrains-mono, "JetBrains Mono"), monospace;
+  --brutalism-font-body: var(--font-custom-inter, "Inter"), ui-sans-serif, system-ui, sans-serif;
+  --brutalism-font-display: var(--font-custom-space-grotesk, "Space Grotesk"), ui-sans-serif, system-ui, sans-serif;
 }
 
 .brutalism-dark,
@@ -231,126 +231,92 @@
   --field-shadow: none;
 
   /* Design Theme */
-  --brutalism-font-body: var(--font-custom-unbounded, "Unbounded"), sans-serif;
-  --brutalism-font-display: var(--font-custom-jetbrains-mono, "JetBrains Mono"), monospace;
+  --brutalism-font-body: var(--font-custom-inter, "Inter"), ui-sans-serif, system-ui, sans-serif;
+  --brutalism-font-display: var(--font-custom-space-grotesk, "Space Grotesk"), ui-sans-serif, system-ui, sans-serif;
 }
 
-@layer base {
-  :where(h1, h2, h3, h4, h5, h6, [role="heading"]) {
-    font-family: var(--font-heading, var(--font-sans, sans-serif));
-  }
+/* Unlayered headline & body rules to override brutalism/index.css unlayered h1-h6 */
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  letter-spacing: normal;
+}
 
-  body {
-    background-color: var(--background);
-    color: var(--foreground);
-    font-family: var(--font-sans);
-  }
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+[role="heading"] {
+  font-family: var(--font-heading);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  text-transform: none;
 }
 
 /* Component overrides */
 @layer components {
-  @font-face {
-    font-family: "Unbounded";
-    font-style: normal;
-    font-weight: 200;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG65jx043HgP6LR0Y.ttf")
-      format("truetype");
-  }
-
-  @font-face {
-    font-family: "Unbounded";
-    font-style: normal;
-    font-weight: 300;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG60bx043HgP6LR0Y.ttf")
-      format("truetype");
-  }
-
-  @font-face {
-    font-family: "Unbounded";
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG6xjx043HgP6LR0Y.ttf")
-      format("truetype");
-  }
-
-  @font-face {
-    font-family: "Unbounded";
-    font-style: normal;
-    font-weight: 500;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG6yrx043HgP6LR0Y.ttf")
-      format("truetype");
-  }
-
-  @font-face {
-    font-family: "Unbounded";
-    font-style: normal;
+  .card__title,
+  .drawer__heading,
+  .modal__heading,
+  .popover__heading,
+  .toast__title,
+  .alert__title {
+    font-family: var(--font-heading);
     font-weight: 600;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/unbounded/v12/Yq6F-LOTXCb04q32xlpat-6uR42XTqtG68b2043HgP6LR0Y.ttf")
-      format("truetype");
+    letter-spacing: -0.02em;
+    text-transform: none;
   }
 
-  @font-face {
-    font-family: "JetBrains Mono";
-    font-style: normal;
-    font-weight: 100;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yK1jPVmUsaaDhw.ttf")
-      format("truetype");
-  }
-
-  @font-face {
-    font-family: "JetBrains Mono";
-    font-style: normal;
-    font-weight: 200;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8SKxjPVmUsaaDhw.ttf")
-      format("truetype");
-  }
-
-  @font-face {
-    font-family: "JetBrains Mono";
-    font-style: normal;
-    font-weight: 300;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8lqxjPVmUsaaDhw.ttf")
-      format("truetype");
-  }
-
-  @font-face {
-    font-family: "JetBrains Mono";
-    font-style: normal;
-    font-weight: 400;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8yKxjPVmUsaaDhw.ttf")
-      format("truetype");
-  }
-
-  @font-face {
-    font-family: "JetBrains Mono";
-    font-style: normal;
+  .sidebar,
+  .sidebar__menu-label,
+  [data-sidebar="label"],
+  .navbar,
+  .tabs__tab,
+  .segment__item,
+  .link,
+  .pagination__link {
+    font-family: var(--font-heading);
     font-weight: 500;
-    font-display: swap;
-    src: url("https://fonts.gstatic.com/s/jetbrainsmono/v24/tDbY2o-flEEny0FZhsfKu5WU4zr3E_BX0PnT8RD8-qxjPVmUsaaDhw.ttf")
-      format("truetype");
+    letter-spacing: 0.01em;
+    text-transform: none;
   }
 
   .button,
-  .toggle-button {
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  .toggle-button,
+  .select__trigger {
+    font-family: var(--font-heading);
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    --tw-tracking: 0.01em;
+    text-transform: none;
+  }
+
+  .list-box-item {
+    font-family: var(--font-sans);
+    font-weight: 500;
+    letter-spacing: normal;
+    text-transform: none;
   }
 
   .badge,
-  .chip {
-    text-transform: uppercase;
+  .chip,
+  .table__column {
+    font-family: var(--font-mono);
+    font-weight: 500;
     letter-spacing: 0.06em;
-    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  code,
+  pre,
+  kbd,
+  samp {
+    font-family: var(--font-mono);
+    font-weight: 500;
   }
 
   .input-group__prefix {

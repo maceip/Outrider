@@ -38,8 +38,8 @@ export const FOOTER_ITEMS: readonly NavItem[] = [
 
 export const WWW_NAV_ITEMS: readonly NavItem[] = [
   {href: "#overview", icon: House, label: "Overview"},
-  {href: "#demo", icon: ArrowRightArrowLeft, label: "Traffic & MCP"},
-  {href: "#receipt-lab", icon: Receipt, label: "Receipt Lab"},
+  {href: "#demo", icon: ArrowRightArrowLeft, label: "Live Traffic"},
+  {href: "#receipt-lab", icon: Receipt, label: "Access Passes"},
   {href: "#downloads", icon: FileArrowDown, label: "Downloads"},
 ] as const;
 

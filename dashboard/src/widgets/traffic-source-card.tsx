@@ -37,15 +37,12 @@ export function TrafficSourceCard() {
         </div>
       </Card.Header>
       <Card.Content className="flex flex-col gap-4">
-        <div className="flex min-w-0 flex-col">
-          <NumberValue
-            className="text-foreground font-mono text-lg font-semibold tabular-nums"
-            maximumFractionDigits={0}
-            style="decimal"
-            value={filteredTraffics.length}
-          />
-          <span className="text-muted text-xs">Requests</span>
-        </div>
+        <NumberValue
+          className="text-foreground font-mono text-lg font-semibold tabular-nums"
+          maximumFractionDigits={0}
+          style="decimal"
+          value={filteredTraffics.length}
+        />
         <LineChart className="font-mono tabular-nums" data={buckets} height={180}>
           <LineChart.Grid vertical={false} />
           <LineChart.XAxis dataKey="bucket" minTickGap={16} tickMargin={8} />

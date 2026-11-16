@@ -6,7 +6,7 @@
 import { chromium } from "@playwright/test";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat } from "node:fs/promises";
+import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, stat, writeFile } from "node:fs/promises";
 import http from "node:http";
 import net from "node:net";
 import { tmpdir } from "node:os";
@@ -15,6 +15,7 @@ import path from "node:path";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const APP_BIN = "/Applications/Outrider.app/Contents/MacOS/outrider";
 const OUT_MP4 = path.join(ROOT, "dashboard/www-public/demo/playwright-walkthrough.mp4");
+const OUT_CUES_JSON = path.join(ROOT, "dashboard/src/lib/walkthrough-cues.json");
 const ARTIFACT_COPY_MP4 =
   "/Users/mac/.gemini/antigravity/brain/caeccb67-9a79-43a1-a9bf-51444c01fd54/outrider-playwright-walkthrough.mp4";
 
@@ -321,24 +322,38 @@ async function main() {
       permissions: ["clipboard-read", "clipboard-write"],
     });
     const page = await context.newPage();
+    const recordStartMs = Date.now();
+    const recordedCues = [];
+    const markCue = (id, title, description) => {
+      const startSec =
+        recordedCues.length === 0
+          ? 0
+          : Math.max(0, Number(((Date.now() - recordStartMs) / 1000).toFixed(1)));
+      recordedCues.push({ id, startSec, title, description });
+    };
 
-    // 1. Open Dashboard (/) — Silvector dark mode + seamless loopback auth + Outrider compass-star logo
+    // 1. Open Dashboard (/) — Space Grotesk + Inter + JetBrains Mono + seamless loopback auth
+    markCue(
+      "dashboard",
+      "Live Dashboard",
+      "Agent requests and session calls stream into the local gateway in real time.",
+    );
     await page.goto(`${baseUrl}/__proxyfor__/`);
     await page.getByRole("heading", { level: 1, name: "Dashboard" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(1100);
+    await page.waitForTimeout(2200);
 
-    // 2. Stream real HTTP GET, HTTP POST, WebSocket echo, and MCP 2026-07-28 session live!
+    // 2. Stream real HTTP GET, HTTP POST, WebSocket echo, and MCP session live!
     await sendProxiedHttpRequest(port, `http://127.0.0.1:${upstreamPort}/v1/catalog/products`, {
       method: "GET",
     });
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(700);
 
     await sendProxiedHttpRequest(port, `http://127.0.0.1:${upstreamPort}/v1/orders/quote`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ bundle: "outrider_session_evidence", seats: 4 }),
     });
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(700);
 
     const wsEcho = await sendProxiedWebSocketEcho(
       port,
@@ -346,7 +361,7 @@ async function main() {
       JSON.stringify({ subscribe: "agent_wire_events" }),
     );
     closeWsClient = wsEcho.closeSocket;
-    await page.waitForTimeout(350);
+    await page.waitForTimeout(700);
 
     const sessionSecret = randomUUID();
     const mcpHeaders = {
@@ -359,7 +374,7 @@ async function main() {
       "io.modelcontextprotocol/protocolVersion": "2026-07-28",
       "io.modelcontextprotocol/clientCapabilities": {},
       "io.modelcontextprotocol/clientInfo": {
-        name: "silvector-autonomous-agent",
+        name: "outrider-autonomous-agent",
         version: "1.0.0",
       },
     };
@@ -388,33 +403,44 @@ async function main() {
       }),
     });
 
-    await page.waitForTimeout(1300);
+    await page.waitForTimeout(2600);
 
     const dashboardTabs = page.getByRole("tablist", { name: "Dashboard tabs" });
     await dashboardTabs.getByRole("tab", { name: "MCP", exact: true }).click();
-    await page.waitForTimeout(950);
+    await page.waitForTimeout(1900);
     await dashboardTabs.getByRole("tab", { name: "Overview", exact: true }).click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
-    // 3. Navigate to Inspector (/inspector) -> Connect -> outrider_catalog -> outrider_checkout_bundle -> Wire Log
+    // 3. Navigate to Inspector (/inspector) -> Connect -> outrider_catalog
+    markCue(
+      "inspector-catalog",
+      "Testing a Tool Call",
+      "Connecting to the local server and running the catalog tool from the workbench.",
+    );
     await clickSidebarLink(page, "Inspector");
     await page.getByRole("heading", { level: 1, name: "Inspector" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(950);
+    await page.waitForTimeout(1900);
 
     await page.getByRole("button", { name: "Connect", exact: true }).click();
     await page.getByRole("button", { name: "Disconnect", exact: true }).waitFor({ state: "visible" });
-    await page.waitForTimeout(1050);
+    await page.waitForTimeout(2100);
 
     const toolsPanel = page.getByRole("tabpanel", { name: "Tools" });
     await toolsPanel.getByRole("button", { name: "Run Tool", exact: true }).click();
     await page.getByRole("option", { name: /<-\s*tools\/call/ }).first().waitFor({ state: "visible" });
-    await page.waitForTimeout(1150);
+    await page.waitForTimeout(2300);
 
+    // 3b. outrider_checkout_bundle -> Wire Log
+    markCue(
+      "inspector-checkout",
+      "Bundle Handshake",
+      "Requesting a gated bundle to inspect the exact access pass prompt returned to the agent.",
+    );
     const toolSelectTrigger = toolsPanel.locator('[data-slot="select-trigger"]');
     await toolSelectTrigger.click();
-    await page.waitForTimeout(450);
+    await page.waitForTimeout(900);
     await page.getByRole("option", { name: /outrider_checkout_bundle\b/ }).first().click();
-    await page.waitForTimeout(600);
+    await page.waitForTimeout(1200);
 
     const bundleArgInput = toolsPanel.locator('input[name="tool-arg-bundle_id"]');
     if ((await bundleArgInput.count()) > 0) {
@@ -424,25 +450,30 @@ async function main() {
         JSON.stringify({ bundle_id: "outrider_session_evidence" }, null, 2),
       );
     }
-    await page.waitForTimeout(650);
+    await page.waitForTimeout(1300);
     await toolsPanel.getByRole("button", { name: "Run Tool", exact: true }).click();
-    await page.waitForTimeout(1150);
+    await page.waitForTimeout(2300);
 
     await page.getByRole("option", { name: /->\s*tools\/call/ }).last().click();
-    await page.waitForTimeout(950);
+    await page.waitForTimeout(1900);
     await page.getByRole("option", { name: /<-\s*tools\/call/ }).last().click();
-    await page.waitForTimeout(1150);
+    await page.waitForTimeout(2300);
 
-    // 4. Navigate to Traffic (/traffic) -> unified Wireshark DataGrid -> MCP / All -> Request / Response / WS -> Copy cURL
+    // 4. Navigate to Traffic (/traffic) -> unified DataGrid -> Request / Response / WS -> Copy cURL
+    markCue(
+      "traffic",
+      "Wire Stream Inspection",
+      "Filtering live exchanges and inspecting full request and response payloads.",
+    );
     await clickSidebarLink(page, "Traffic");
     await page.getByRole("heading", { level: 1, name: "Traffic" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(1050);
+    await page.waitForTimeout(2100);
 
     const protocolSegment = page.locator('[aria-label="Filter by protocol"]');
     await protocolSegment.getByText("MCP", { exact: true }).click();
-    await page.waitForTimeout(950);
+    await page.waitForTimeout(1900);
     await protocolSegment.getByText("All", { exact: true }).click();
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(1800);
 
     const packetGrid = page.getByRole("grid", { name: "Live packet stream" });
     const packetRows = packetGrid
@@ -450,47 +481,57 @@ async function main() {
       .filter({ hasNot: page.getByRole("columnheader") });
 
     await packetRows.filter({ hasText: "/v1/orders/quote" }).first().click();
-    await page.waitForTimeout(1000);
+    await page.waitForTimeout(2000);
 
     const detailTabs = page.getByRole("tablist", { name: "Packet inspector sections" });
     await detailTabs.getByRole("tab", { name: "Response", exact: true }).click();
-    await page.waitForTimeout(1050);
+    await page.waitForTimeout(2100);
 
     await page.getByRole("button", { name: "Copy cURL", exact: true }).click();
     await page.getByText("Copied cURL command", { exact: true }).waitFor({ state: "visible" });
-    await page.waitForTimeout(1050);
+    await page.waitForTimeout(2100);
 
     await packetRows.filter({ hasText: "/ws/telemetry" }).first().click();
     await detailTabs.getByRole("tab", { name: "WebSocket", exact: true }).click();
-    await page.waitForTimeout(1150);
+    await page.waitForTimeout(2300);
 
     // 5. Navigate to Receipts (/orders) -> open Issue Receipt drawer -> mint real receipt -> Active in DataGrid
+    markCue(
+      "receipts",
+      "Issuing an Access Pass",
+      "Minting a scoped session pass with a call quota from the operator drawer.",
+    );
     await clickSidebarLink(page, "Receipts");
     await page.getByRole("heading", { level: 1, name: "Receipts" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(950);
+    await page.waitForTimeout(1900);
 
     await page.getByRole("button", { name: "Issue Receipt" }).click();
     await page.getByRole("dialog", { name: "Issue Receipt" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(850);
+    await page.waitForTimeout(1700);
 
-    await page.locator('input[name="receipt-subject"]').fill("agent:silvector-client");
+    await page.locator('input[name="receipt-subject"]').fill("agent:testflight-client");
     await page.locator('input[name="receipt-max-calls"]').fill("25");
-    await page.waitForTimeout(750);
+    await page.waitForTimeout(1500);
 
     await page.getByRole("button", { name: "Mint Receipt", exact: true }).click();
-    await page.getByRole("grid", { name: "Receipts" }).getByText("agent:silvector-client").waitFor({
+    await page.getByRole("grid", { name: "Receipts" }).getByText("agent:testflight-client").waitFor({
       state: "visible",
     });
-    await page.waitForTimeout(1250);
+    await page.waitForTimeout(2500);
 
-    // 6. Visit Analytics, Settings, Help + toggle Silvector Light & Dark mode
+    // 6. Visit Analytics, Settings, Help
+    markCue(
+      "telemetry",
+      "Activity & Configuration",
+      "Reviewing host volume, gateway endpoints, and local certificate downloads.",
+    );
     await clickSidebarLink(page, "Analytics");
     await page.getByRole("heading", { level: 1, name: "Analytics" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(1150);
+    await page.waitForTimeout(2300);
 
     await clickSidebarLink(page, "Settings");
     await page.getByRole("heading", { level: 1, name: "Settings" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(1050);
+    await page.waitForTimeout(2100);
 
     await clickSidebarLink(page, "Help");
     await page.getByRole("heading", { level: 1, name: "Help" }).waitFor({ state: "visible" });
@@ -499,17 +540,25 @@ async function main() {
         name: "How do I route HTTP and HTTPS traffic through Outrider?",
       })
       .click();
-    await page.waitForTimeout(1050);
+    await page.waitForTimeout(2100);
 
+    // 7. Return to Dashboard + toggle Light & Dark surfaces from bottom sidebar switcher
+    markCue(
+      "theme",
+      "Light & Dark Surfaces",
+      "Switching seamlessly between dark and light workbench themes.",
+    );
     await clickSidebarLink(page, "Dashboard");
     await page.getByRole("heading", { level: 1, name: "Dashboard" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(900);
+    await page.waitForTimeout(1800);
 
-    await page.getByRole("button", { name: "Switch to light mode" }).click();
-    await page.waitForTimeout(1350);
+    await page.locator('[aria-label="Switch to light mode"]:visible').first().click();
+    await page.waitForTimeout(2700);
 
-    await page.getByRole("button", { name: "Switch to dark mode" }).click();
-    await page.waitForTimeout(1200);
+    await page.locator('[aria-label="Switch to dark mode"]:visible').first().click();
+    await page.waitForTimeout(2400);
+
+    await writeFile(OUT_CUES_JSON, `${JSON.stringify(recordedCues, null, 2)}\n`, "utf8");
 
     await page.close();
     await context.close();

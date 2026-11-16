@@ -1,0 +1,44 @@
+[
+  {
+    "id": "dashboard",
+    "startSec": 0,
+    "title": "Live Dashboard",
+    "description": "Agent requests and session calls stream into the local gateway in real time."
+  },
+  {
+    "id": "inspector-catalog",
+    "startSec": 11.1,
+    "title": "Testing a Tool Call",
+    "description": "Connecting to the local server and running the catalog tool from the workbench."
+  },
+  {
+    "id": "inspector-checkout",
+    "startSec": 17.6,
+    "title": "Bundle Handshake",
+    "description": "Requesting a gated bundle to inspect the exact access pass prompt returned to the agent."
+  },
+  {
+    "id": "traffic",
+    "startSec": 27.6,
+    "title": "Wire Stream Inspection",
+    "description": "Filtering live exchanges and inspecting full request and response payloads."
+  },
+  {
+    "id": "receipts",
+    "startSec": 42.3,
+    "title": "Issuing an Access Pass",
+    "description": "Minting a scoped session pass with a call quota from the operator drawer."
+  },
+  {
+    "id": "telemetry",
+    "startSec": 50.1,
+    "title": "Activity & Configuration",
+    "description": "Reviewing host volume, gateway endpoints, and local certificate downloads."
+  },
+  {
+    "id": "theme",
+    "startSec": 56.8,
+    "title": "Light & Dark Surfaces",
+    "description": "Switching seamlessly between dark and light workbench themes."
+  }
+]

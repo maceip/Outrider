@@ -2,18 +2,25 @@ import type {Metadata} from "next";
 import type {ReactNode} from "react";
 
 import {Toast} from "@heroui/react";
-import {JetBrains_Mono, Unbounded} from "next/font/google";
+import {Inter, JetBrains_Mono, Space_Grotesk} from "next/font/google";
 
 import {CoreProvider} from "../lib/core-store";
 import {WWW_BASE_PATH} from "../lib/www-base-path";
 
 import "./globals.css";
 
-const unbounded = Unbounded({
+const spaceGrotesk = Space_Grotesk({
   display: "swap",
   subsets: ["latin"],
-  variable: "--font-custom-unbounded",
-  weight: ["300", "400", "500", "600", "700"],
+  variable: "--font-custom-space-grotesk",
+  weight: ["400", "500", "600", "700"],
+});
+
+const inter = Inter({
+  display: "swap",
+  subsets: ["latin"],
+  variable: "--font-custom-inter",
+  weight: ["400", "500", "600"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
@@ -83,7 +90,7 @@ export default function RootLayout({children}: {children: ReactNode}) {
   return (
     <html
       suppressHydrationWarning
-      className={`dark brutalism-dark bg-background text-foreground ${unbounded.variable} ${jetbrainsMono.variable}`}
+      className={`dark brutalism-dark bg-background text-foreground ${spaceGrotesk.variable} ${inter.variable} ${jetbrainsMono.variable}`}
       data-theme="brutalism-dark"
       lang="en"
     >

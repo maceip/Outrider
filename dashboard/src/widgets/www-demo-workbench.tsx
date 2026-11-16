@@ -822,10 +822,12 @@ export function WwwDemoWorkbench({bundle, loading = false}: WwwDemoWorkbenchProp
     <div className="flex flex-col gap-4">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div className="flex flex-wrap items-center gap-2.5">
-          <h2 className="text-foreground text-base font-semibold">Interactive Gateway Workbench</h2>
-          <Chip color={customHar ? "accent" : "default"} size="sm" variant="soft">
-            {customHar ? "Custom HAR" : "Recorded Capture"}
-          </Chip>
+          <h2 className="text-foreground text-base font-semibold">Live Session Workbench</h2>
+          {customHar ? (
+            <Chip color="accent" size="sm" variant="soft">
+              Custom Capture
+            </Chip>
+          ) : null}
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center gap-2">

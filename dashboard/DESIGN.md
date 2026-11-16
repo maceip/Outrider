@@ -152,56 +152,73 @@ colors:
     warning-soft-foreground: "#8A5A37"
     warning-soft-hover: "rgba(255, 154, 70, 0.2)"
 typography:
+  headline:
+    fontFamily: "\"Space Grotesk\", sans-serif"
+    fontWeight: "600"
+    letterSpacing: "-0.02em"
+  navAndButtons:
+    fontFamily: "\"Space Grotesk\", sans-serif"
+    fontWeight: "500-600"
+    letterSpacing: "0.01em"
+  body:
+    fontFamily: "\"Inter\", sans-serif"
+    fontWeight: "400"
+    letterSpacing: "normal"
+  labelsAndCode:
+    fontFamily: "\"JetBrains Mono\", monospace"
+    fontWeight: "500"
+    letterSpacing: "0.06em"
+    textTransform: "uppercase (labels/badges)"
   xs:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Inter\", sans-serif"
     fontSize: "12px"
     lineHeight: "16px"
   sm:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Inter\", sans-serif"
     fontSize: "14px"
     lineHeight: "20px"
   base:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Inter\", sans-serif"
     fontSize: "16px"
     lineHeight: "24px"
   lg:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "18px"
     lineHeight: "28px"
   xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "20px"
     lineHeight: "28px"
   2xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "24px"
     lineHeight: "32px"
   3xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "30px"
     lineHeight: "36px"
   4xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "36px"
     lineHeight: "40px"
   5xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "48px"
     lineHeight: "48px"
   6xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "60px"
     lineHeight: "60px"
   7xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "72px"
     lineHeight: "72px"
   8xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "96px"
     lineHeight: "96px"
   9xl:
-    fontFamily: "\"Unbounded\", sans-serif"
+    fontFamily: "\"Space Grotesk\", sans-serif"
     fontSize: "128px"
     lineHeight: "128px"
 spacing:
@@ -330,27 +347,35 @@ Use semantic HeroUI tokens and Tailwind utilities in product code. The raw value
 | `warning-soft-hover` | `rgba(255, 154, 70, 0.2)` | `rgba(255, 173, 97, 0.16)` | `Light: warning / 20% + transparent; Dark: warning / 16% + transparent` | `--warning-soft-hover` | Prefer the HeroUI token for warning-soft-hover. | Hover state for warning-soft backgrounds. |
 
 ## Typography
-Use the generated font and text scale through HeroUI components and Tailwind text utilities. The raw values below are normalized to px for design handoff.
+| Role | Font | Weight | Tracking | Case |
+| --- | --- | --- | --- | --- |
+| Headline | `"Space Grotesk", sans-serif` | `600` | `-0.02em` | Proportional normal case |
+| Nav and buttons | `"Space Grotesk", sans-serif` | `500` to `600` | `0.01em` | Proportional normal case |
+| Body copy | `"Inter", sans-serif` | `400` | `normal` (`0em`) | Normal |
+| Small labels, version, code | `"JetBrains Mono", monospace` | `500` | `0.06em` (labels) | Uppercase on small labels/badges; normal on code |
+
 | Token | Font family | Font size | Line height | HeroUI variable | Tailwind equivalent |
 | --- | --- | --- | --- | --- | --- |
-| `xs` | "Unbounded", sans-serif | `12px` | `16px` | `--text-xs` | `text-xs` |
-| `sm` | "Unbounded", sans-serif | `14px` | `20px` | `--text-sm` | `text-sm` |
-| `base` | "Unbounded", sans-serif | `16px` | `24px` | `--text-base` | `text-base` |
-| `lg` | "Unbounded", sans-serif | `18px` | `28px` | `--text-lg` | `text-lg` |
-| `xl` | "Unbounded", sans-serif | `20px` | `28px` | `--text-xl` | `text-xl` |
-| `2xl` | "Unbounded", sans-serif | `24px` | `32px` | `--text-2xl` | `text-2xl` |
-| `3xl` | "Unbounded", sans-serif | `30px` | `36px` | `--text-3xl` | `text-3xl` |
-| `4xl` | "Unbounded", sans-serif | `36px` | `40px` | `--text-4xl` | `text-4xl` |
-| `5xl` | "Unbounded", sans-serif | `48px` | `48px` | `--text-5xl` | `text-5xl` |
-| `6xl` | "Unbounded", sans-serif | `60px` | `60px` | `--text-6xl` | `text-6xl` |
-| `7xl` | "Unbounded", sans-serif | `72px` | `72px` | `--text-7xl` | `text-7xl` |
-| `8xl` | "Unbounded", sans-serif | `96px` | `96px` | `--text-8xl` | `text-8xl` |
-| `9xl` | "Unbounded", sans-serif | `128px` | `128px` | `--text-9xl` | `text-9xl` |
+| `xs` | "Inter", sans-serif | `12px` | `16px` | `--text-xs` | `text-xs` |
+| `sm` | "Inter", sans-serif | `14px` | `20px` | `--text-sm` | `text-sm` |
+| `base` | "Inter", sans-serif | `16px` | `24px` | `--text-base` | `text-base` |
+| `lg` | "Space Grotesk", sans-serif | `18px` | `28px` | `--text-lg` | `text-lg` |
+| `xl` | "Space Grotesk", sans-serif | `20px` | `28px` | `--text-xl` | `text-xl` |
+| `2xl` | "Space Grotesk", sans-serif | `24px` | `32px` | `--text-2xl` | `text-2xl` |
+| `3xl` | "Space Grotesk", sans-serif | `30px` | `36px` | `--text-3xl` | `text-3xl` |
+| `4xl` | "Space Grotesk", sans-serif | `36px` | `40px` | `--text-4xl` | `text-4xl` |
+| `5xl` | "Space Grotesk", sans-serif | `48px` | `48px` | `--text-5xl` | `text-5xl` |
+| `6xl` | "Space Grotesk", sans-serif | `60px` | `60px` | `--text-6xl` | `text-6xl` |
+| `7xl` | "Space Grotesk", sans-serif | `72px` | `72px` | `--text-7xl` | `text-7xl` |
+| `8xl` | "Space Grotesk", sans-serif | `96px` | `96px` | `--text-8xl` | `text-8xl` |
+| `9xl` | "Space Grotesk", sans-serif | `128px` | `128px` | `--text-9xl` | `text-9xl` |
 ### Font and Letter Spacing
 
 | Token | Raw value | Formula / source | HeroUI variable | Tailwind / component equivalent | Purpose |
 | --- | --- | --- | --- | --- | --- |
-| `font sans` | `"Unbounded", sans-serif` |  | `--font-sans` | Prefer inherited typography from HeroUI components and Tailwind font utilities. | Primary sans font family used by HeroUI components. |
+| `font heading` | `"Space Grotesk", sans-serif` |  | `--font-heading` | Headlines (`600`, `-0.02em`) and Nav/Buttons (`500–600`, `0.01em`). | Primary display & interactive font family. |
+| `font sans` | `"Inter", sans-serif` |  | `--font-sans` | Body copy (`400`, `normal`). | Primary body font family. |
+| `font mono` | `"JetBrains Mono", monospace` |  | `--font-mono` | Small labels (`500`, `0.06em`, `uppercase`) and code. | Monospace font family. |
 | `tracking tighter` | `-0.05em` |  | `--tracking-tighter` | Use `tracking-tighter` for compact display text. | Tailwind tighter tracking token derived from the normal tracking base. |
 | `tracking tight` | `-0.025em` |  | `--tracking-tight` | Use `tracking-tight` when headings need slightly denser letter spacing. | Tailwind tight tracking token derived from the normal tracking base. |
 | `tracking normal` | `0em` |  | `--tracking-normal` | Default inherited tracking for generated theme previews and app typography. | Editable base tracking token for the generated Tailwind tracking scale. |
