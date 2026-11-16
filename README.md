@@ -1,6 +1,4 @@
-# Agent Commerce Control Plwne
-
-![Outrider](https://github.com/maceip/Outrider/blob/main/www/public/sv.gif?raw=1)
+# Agent Commerce Control Plwne <img src="https://github.com/maceip/Outrider/blob/main/www/public/sv.gif?raw=1" width="55" alt="Outrider" align="middle">
 
 An inspecting HTTP(S)/WebSocket proxy and MCP 2026-07-28 commerce gateway, built
 on the checked-in rmcp 3.10.0 SDK and native `litert-lm-rust` 0.2.4. Entitlement
