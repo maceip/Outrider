@@ -130,6 +130,33 @@ export function InspectorPage() {
         }
 
         setInspectorState(state);
+
+        // Hydrate tools dropdown from recorded tools/list response if not yet cached
+        const activeOrFirst = requestedId ?? pickDefaultConnectionId(state.connections);
+
+        if (activeOrFirst) {
+          const lastToolsMsg = [...state.messages]
+            .reverse()
+            .find(
+              (m) =>
+                m.kind === "response" &&
+                m.method === "tools/list" &&
+                isRecord(m.body) &&
+                Array.isArray(m.body.tools),
+            );
+
+          if (lastToolsMsg && isRecord(lastToolsMsg.body) && Array.isArray(lastToolsMsg.body.tools)) {
+            const parsedTools = (lastToolsMsg.body.tools as unknown[]).filter(
+              (t): t is McpToolDescriptor => isRecord(t) && typeof t.name === "string",
+            );
+
+            if (parsedTools.length > 0) {
+              setToolsByConnection((prev) =>
+                prev[activeOrFirst] ? prev : {...prev, [activeOrFirst]: parsedTools},
+              );
+            }
+          }
+        }
       } catch {
         // Error toast is surfaced by fetchInspectorState().
       }

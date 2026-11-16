@@ -8,16 +8,12 @@ import {useCoreStore} from "../lib/core-store";
 
 import {IconButton} from "./icon-button";
 
-const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
-
 export interface DashboardNavbarProps {
   /** Title rendered in the navbar. */
   title?: string;
 }
 
-export function DashboardNavbar({
-  title = IS_WWW ? "Outrider" : "Dashboard",
-}: DashboardNavbarProps) {
+export function DashboardNavbar({title = "Dashboard"}: DashboardNavbarProps) {
   const {exportHar, refresh} = useCoreStore();
 
   return (
@@ -27,16 +23,14 @@ export function DashboardNavbar({
         <Sidebar.Trigger aria-label="Toggle sidebar" />
         <h1 className="text-foreground truncate text-lg font-semibold tracking-tight">{title}</h1>
         <Navbar.Spacer />
-        {IS_WWW ? null : (
-          <div className="flex items-center gap-2">
-            <IconButton label="Refresh" size="sm" variant="tertiary" onPress={() => void refresh()}>
-              <ArrowsRotateLeft className="size-4" />
-            </IconButton>
-            <Button size="sm" variant="primary" onPress={exportHar}>
-              Export HAR
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <IconButton label="Refresh" size="sm" variant="tertiary" onPress={() => void refresh()}>
+            <ArrowsRotateLeft className="size-4" />
+          </IconButton>
+          <Button size="sm" variant="primary" onPress={exportHar}>
+            Export HAR
+          </Button>
+        </div>
       </Navbar.Header>
     </Navbar>
   );

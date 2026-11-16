@@ -5,7 +5,6 @@ import {
   ArrowRightFromSquare,
   ChartColumn,
   CircleQuestion,
-  FileArrowDown,
   Gear,
   House,
   Receipt,
@@ -33,16 +32,5 @@ export const NAV_ITEMS: readonly NavItem[] = [
 
 export const FOOTER_ITEMS: readonly NavItem[] = [
   {href: "/help", icon: CircleQuestion, label: "Help"},
-  {external: true, href: GITHUB_REPO_URL, icon: ArrowRightFromSquare, label: "GitHub"},
-] as const;
-
-export const WWW_NAV_ITEMS: readonly NavItem[] = [
-  {href: "#overview", icon: House, label: "Overview"},
-  {href: "#demo", icon: ArrowRightArrowLeft, label: "Live Traffic"},
-  {href: "#receipt-lab", icon: Receipt, label: "Access Passes"},
-  {href: "#downloads", icon: FileArrowDown, label: "Downloads"},
-] as const;
-
-export const WWW_FOOTER_ITEMS: readonly NavItem[] = [
   {external: true, href: GITHUB_REPO_URL, icon: ArrowRightFromSquare, label: "GitHub"},
 ] as const;

@@ -1,1 +1,0 @@
-(globalThis.TURBOPACK||(globalThis.TURBOPACK=[])).push(["object"==typeof document?document.currentScript:void 0,49898,t=>{"use strict";var e=t.i(20679),o=t.i(43476);let s=({...t})=>(0,o.jsx)(e.n,{...t});s.displayName="HeroUI.Form";let i=Object.assign(s,{Root:s});t.s(["f",0,i],49898)}]);

@@ -1,19 +1,10 @@
 #!/usr/bin/env python3
-"""Builds the standalone GitHub Pages static showcase export into `www-dist/`."""
+"""Builds the GitHub Pages static export of `@heroui-pro/template-dashboard` into `www-dist/`."""
 import os
 import pathlib
 import shutil
 import subprocess
 import sys
-
-NON_SHOWCASE_ROUTES: tuple[str, ...] = (
-    "traffic",
-    "inspector",
-    "analytics",
-    "orders",
-    "settings",
-    "help",
-)
 
 
 def main() -> None:
@@ -46,17 +37,6 @@ def main() -> None:
 
     shutil.move(str(out_www), str(www_dist))
 
-    for route in NON_SHOWCASE_ROUTES:
-        route_dir = www_dist / route
-        if route_dir.exists():
-            shutil.rmtree(route_dir)
-        route_txt = www_dist / f"{route}.txt"
-        if route_txt.exists():
-            route_txt.unlink()
-        route_html = www_dist / f"{route}.html"
-        if route_html.exists():
-            route_html.unlink()
-
     dest_demo = www_dist / "demo"
     dest_demo.mkdir(parents=True, exist_ok=True)
     for item in sorted(www_public_demo.iterdir()):
@@ -66,7 +46,7 @@ def main() -> None:
             shutil.copytree(item, dest_demo / item.name, dirs_exist_ok=True)
 
     entries = sorted(p.name for p in www_dist.iterdir())
-    print(f"[build_www] Exported clean showcase to {www_dist}: {', '.join(entries)}")
+    print(f"[build_www] Exported clean template-dashboard to {www_dist}: {', '.join(entries)}")
 
 
 if __name__ == "__main__":

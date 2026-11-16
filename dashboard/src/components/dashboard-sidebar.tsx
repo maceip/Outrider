@@ -4,14 +4,11 @@ import type {NavItem} from "../nav-items";
 
 import {Chip} from "@heroui/react";
 import {Sidebar} from "@heroui-pro/react";
-import {useEffect, useState} from "react";
 
 import {withWwwBasePath} from "../lib/www-base-path";
-import {FOOTER_ITEMS, NAV_ITEMS, WWW_FOOTER_ITEMS, WWW_NAV_ITEMS} from "../nav-items";
+import {FOOTER_ITEMS, NAV_ITEMS} from "../nav-items";
 
 import {ThemeToggle, useThemeMode} from "./theme-toggle";
-
-const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
 
 interface DashboardSidebarProps {
   pathname: string;
@@ -59,25 +56,6 @@ function SidebarContents({
   pathname,
 }: SidebarContentsProps) {
   const mode = useThemeMode();
-  const [activeHash, setActiveHash] = useState("#overview");
-
-  useEffect(() => {
-    if (!IS_WWW || typeof window === "undefined") return;
-
-    const syncHash = () => {
-      setActiveHash(window.location.hash || "#overview");
-    };
-
-    syncHash();
-    window.addEventListener("hashchange", syncHash);
-
-    return () => {
-      window.removeEventListener("hashchange", syncHash);
-    };
-  }, []);
-
-  const navItems = IS_WWW ? WWW_NAV_ITEMS : NAV_ITEMS;
-  const footerItems = IS_WWW ? WWW_FOOTER_ITEMS : FOOTER_ITEMS;
 
   return (
     <>
@@ -106,16 +84,14 @@ function SidebarContents({
       <Sidebar.Content>
         <Sidebar.Group>
           <Sidebar.Menu aria-label="Dashboard navigation">
-            {navItems.map((item) => (
+            {NAV_ITEMS.map((item) => (
               <SidebarNavItem
                 key={item.href}
-                activeHash={activeHash}
                 basePath={basePath}
                 disableNavigation={disableNavigation}
                 idPrefix={idPrefix}
                 item={item}
                 pathname={pathname}
-                onSelectHash={setActiveHash}
               />
             ))}
           </Sidebar.Menu>
@@ -123,16 +99,14 @@ function SidebarContents({
       </Sidebar.Content>
       <Sidebar.Footer>
         <Sidebar.Menu aria-label="Support">
-          {footerItems.map((item) => (
+          {FOOTER_ITEMS.map((item) => (
             <SidebarNavItem
               key={item.href}
-              activeHash={activeHash}
               basePath={basePath}
               disableNavigation={disableNavigation}
               idPrefix={idPrefix}
               item={item}
               pathname={pathname}
-              onSelectHash={setActiveHash}
             />
           ))}
         </Sidebar.Menu>
@@ -145,36 +119,29 @@ function SidebarContents({
 }
 
 interface SidebarNavItemProps {
-  activeHash: string;
   basePath: string;
   disableNavigation: boolean;
   idPrefix: string;
   item: NavItem;
   pathname: string;
-  onSelectHash: (hash: string) => void;
 }
 
 function SidebarNavItem({
-  activeHash,
   basePath,
   disableNavigation,
   idPrefix,
   item,
-  onSelectHash,
   pathname,
 }: SidebarNavItemProps) {
   const Icon = item.icon;
-  const isHashLink = item.href.startsWith("#");
   const isExternal = Boolean(item.external);
-  const fullHref = isHashLink || isExternal ? item.href : basePath + item.href;
+  const fullHref = isExternal ? item.href : basePath + item.href;
 
   const isCurrent = isExternal
     ? false
-    : isHashLink
-      ? activeHash === item.href
-      : item.href === "/"
-        ? pathname === fullHref || pathname === basePath || pathname === `${basePath}/`
-        : pathname === fullHref || pathname.startsWith(`${fullHref}/`);
+    : item.href === "/"
+      ? pathname === fullHref || pathname === basePath || pathname === `${basePath}/`
+      : pathname === fullHref || pathname.startsWith(`${fullHref}/`);
 
   return (
     <Sidebar.MenuItem
@@ -184,11 +151,6 @@ function SidebarNavItem({
       rel={isExternal ? "noreferrer" : undefined}
       target={isExternal ? "_blank" : undefined}
       textValue={item.label}
-      onAction={() => {
-        if (isHashLink) {
-          onSelectHash(item.href);
-        }
-      }}
     >
       <Sidebar.MenuIcon>
         <Icon className="size-4" />

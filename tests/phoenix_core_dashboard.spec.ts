@@ -1705,32 +1705,22 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
     const res = await page.goto(pagesUrl);
     expect(res?.status()).toBe(200);
     await expect(
-      page.getByRole("heading", { level: 1, name: "Outrider" }),
+      page.getByRole("heading", { level: 1, name: "Dashboard" }),
     ).toBeVisible();
 
-    // 0. Unified <AppShell>, Agentic Commerce Testflight hero, bottom theme switcher, zero top-bar clutter, zero jargon
+    // 0. Exact @heroui-pro/template-dashboard rails on www: all 7 routes, zero custom scroll-page slop
     await expect(
       page.locator('[data-sidebar="label"]:visible').first(),
     ).toHaveText("Outrider");
 
-    await expect(
-      page.getByRole("heading", { level: 2, name: "Agentic Commerce Testflight" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Start", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Verify a Pass", exact: true }),
-    ).toBeVisible();
-    await expect(page.getByText("Open Local (:8080)")).toHaveCount(0);
-    await expect(page.locator("#overview").getByText("Silvector")).toHaveCount(0);
-
     const wwwNav = page.getByRole("treegrid", { name: "Dashboard navigation" });
     for (const navLabel of [
-      "Overview",
-      "Live Traffic",
-      "Access Passes",
-      "Downloads",
+      "Dashboard",
+      "Traffic",
+      "Inspector",
+      "Analytics",
+      "Receipts",
+      "Settings",
     ]) {
       await expect(
         wwwNav.getByRole("row", { name: navLabel, exact: true }),
@@ -1740,9 +1730,6 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
     const wwwBrandAndLayout = await page.evaluate(() => {
       const sidebarLogo = document.querySelector(
         'img[alt="Outrider"]',
-      ) as HTMLImageElement | null;
-      const heroLogo = document.querySelector(
-        'img[alt="Outrider mark"]',
       ) as HTMLImageElement | null;
       const unbackedControls = Array.from(
         document.querySelectorAll("button, input, textarea, select"),
@@ -1762,9 +1749,6 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
         sidebarLogoLoaded: Boolean(
           sidebarLogo && sidebarLogo.complete && sidebarLogo.naturalWidth > 0,
         ),
-        heroLogoLoaded: Boolean(
-          heroLogo && heroLogo.complete && heroLogo.naturalWidth > 0,
-        ),
         footerCount: document.querySelectorAll("footer").length,
         rawCodeCount: document.querySelectorAll("code:not(pre code)").length,
         unbackedControls,
@@ -1772,19 +1756,27 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
     });
     expect(wwwBrandAndLayout.noHorizontalOverflow).toBe(true);
     expect(wwwBrandAndLayout.sidebarLogoLoaded).toBe(true);
-    expect(wwwBrandAndLayout.heroLogoLoaded).toBe(true);
     expect(wwwBrandAndLayout.footerCount).toBe(0);
     expect(wwwBrandAndLayout.rawCodeCount).toBe(0);
     expect(wwwBrandAndLayout.unbackedControls).toEqual([]);
-    await expect(
-      page.locator('input[type="file"]:not([data-slot="drop-zone-input"])'),
-    ).toHaveCount(0);
 
-    await assertCleanCopyAndZeroJargon(page, "www (initial load)", {
+    // Dashboard Recent Traffic DataGrid hydrated with 9 recorded exchanges
+    const recentGrid = page.getByRole("grid", { name: "Recent traffic" });
+    await expect(
+      recentGrid.getByRole("row").filter({ hasNot: page.getByRole("columnheader") }),
+    ).toHaveCount(9);
+
+    await assertCleanCopyAndZeroJargon(page, "www Dashboard", {
       excludeCodeBlocks: true,
     });
 
-    // 1. Live Walkthrough <video> loads real 1080p H.264 metadata
+    // 1. Walkthrough Modal opens from DashboardToolbar rail -> 100% dark 2x-slower video + HeroUI Popover scene jumper
+    await page.getByRole("button", { name: "Walkthrough", exact: true }).click();
+    const modalDialog = page.getByRole("dialog", {
+      name: "Agentic Commerce Testflight",
+    });
+    await expect(modalDialog).toBeVisible();
+
     await expect
       .poll(async () =>
         page.evaluate(() => {
@@ -1808,96 +1800,85 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
     expect(videoMeta.width).toBeGreaterThan(0);
     expect(videoMeta.duration).toBeGreaterThan(50);
 
-    // 1b. On-brand HeroUI Popover scene pill crisply describes active video scene and jumps chapters
-    const scenePill = page.getByRole("button", { name: /^Scene 1 of / });
+    const scenePill = modalDialog.getByRole("button", { name: /^Scene 1 of / });
     await expect(scenePill).toBeVisible();
     await scenePill.click();
-    const sceneDialog = page.getByRole("dialog");
-    await expect(sceneDialog).toBeVisible();
     await expect(
-      sceneDialog.getByRole("listbox", { name: "Walkthrough scenes" }),
+      page.getByRole("listbox", { name: "Walkthrough scenes" }),
     ).toBeVisible();
-    await sceneDialog
+    await page
       .getByRole("option", { name: /Wire Stream Inspection/ })
       .click();
     await expect(
-      page.getByRole("button", { name: /Wire Stream Inspection/ }),
+      modalDialog.getByRole("button", { name: /Wire Stream Inspection/ }),
     ).toBeVisible();
+    await modalDialog.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(modalDialog).toBeHidden();
 
-    // 2. Traffic Monitor workbench renders 9 recorded packets, filters by MCP, and copies cURL
-    const demoGrid = page.getByRole("grid", { name: "Recorded packet stream" });
-    const demoRows = demoGrid
+    // 2. /Outrider/traffic -> split-pane TrafficPage hydrated + Copy cURL works
+    await clickSidebarLink(page, "Traffic");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Traffic" }),
+    ).toBeVisible();
+    const trafficGrid = page.getByRole("grid", { name: "Live packet stream" });
+    await expect(
+      trafficGrid.getByRole("row").filter({ hasNot: page.getByRole("columnheader") }),
+    ).toHaveCount(9);
+    await trafficGrid
       .getByRole("row")
-      .filter({ hasNot: page.getByRole("columnheader") });
-    await expect(demoRows).toHaveCount(9);
-
-    const protoSegment = page.locator(
-      '[aria-label="Filter packets by protocol"]',
-    );
-    await protoSegment.getByText("MCP", { exact: true }).click();
-    const mcpCount = await demoRows.count();
-    expect(mcpCount).toBeGreaterThan(0);
-    expect(mcpCount).toBeLessThan(9);
-
+      .filter({ hasText: "/v1/agent-manifest" })
+      .first()
+      .click();
     await page.getByRole("button", { name: "Copy cURL", exact: true }).click();
-    await expect(page.getByText(/Copied cURL for #/)).toBeVisible();
-    const copiedDemoCurl = await page.evaluate(() =>
-      navigator.clipboard.readText(),
-    );
-    expect(copiedDemoCurl).toContain("curl");
+    await expect(page.getByText("Copied cURL command", { exact: true })).toBeVisible();
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("curl");
 
-    await protoSegment.getByText("All", { exact: true }).click();
-    await expect(demoRows).toHaveCount(9);
-
-    // 3. MCP & CLEF tab renders recorded ListBox wire frames + Card CLEF evaluations
-    const workbenchTabs = page.getByRole("tablist", {
-      name: "Workbench surfaces",
-    });
-    await workbenchTabs
-      .getByRole("tab", { name: "MCP & CLEF", exact: true })
-      .click();
+    // 3. /Outrider/inspector -> opens Connected with tools preloaded + Run Tool appends live frames
+    await clickSidebarLink(page, "Inspector");
     await expect(
-      page.getByText("Recorded MCP Inspector Wire Frames", { exact: true }),
+      page.getByRole("heading", { level: 1, name: "Inspector" }),
     ).toBeVisible();
     await expect(
-      page.getByText("Recorded On-Device CLEF Evaluations", { exact: true }),
+      page.getByRole("button", { name: "Disconnect", exact: true }),
     ).toBeVisible();
+    const toolsPanel = page.getByRole("tabpanel", { name: "Tools" });
+    await toolsPanel.getByRole("button", { name: "Run Tool", exact: true }).click();
     await expect(
-      page.getByRole("option", { name: /<-\s*handshake/ }),
-    ).toBeVisible();
-    await expect(page.getByText('pick: "http"', { exact: true })).toBeVisible();
-    await expect(page.getByText("pick: true", { exact: true })).toBeVisible();
-
-    // 4. Access Pass Verification verifies recorded receipt, mints fresh receipt, and surfaces tampering/errors cleanly
-    const receiptSection = page.locator("#receipt-lab");
-    await expect(
-      receiptSection.getByRole("heading", {
-        level: 2,
-        name: "Access Pass Verification",
-      }),
-    ).toBeVisible();
-    await expect(
-      receiptSection.getByText("Valid", { exact: true }),
+      page.getByRole("option", { name: /<-\s*tools\/call/ }).last(),
     ).toBeVisible();
 
-    await receiptSection
-      .getByRole("button", { name: "Mint Signed Receipt", exact: true })
-      .click();
+    // 4. /Outrider/orders (Receipts) -> Issue Receipt Drawer mints real WebCrypto Ed25519 receipt
+    await clickSidebarLink(page, "Receipts");
     await expect(
-      page.getByText("Minted signed receipt", { exact: true }),
+      page.getByRole("heading", { level: 1, name: "Receipts" }),
     ).toBeVisible();
+    await page.getByRole("button", { name: "Issue Receipt" }).click();
     await expect(
-      receiptSection.getByText("Valid", { exact: true }),
+      page.getByRole("dialog", { name: "Issue Receipt" }),
+    ).toBeVisible();
+    await page.locator('input[name="receipt-subject"]').fill("agent:hiring-demo");
+    await page.getByRole("button", { name: "Mint Receipt", exact: true }).click();
+    await expect(
+      page.getByRole("grid", { name: "Receipts" }).getByText("agent:hiring-demo"),
     ).toBeVisible();
 
-    const payloadBox = receiptSection.locator("#www-receipt-payload");
-    const currentJson = await payloadBox.inputValue();
-    const parsedJson = JSON.parse(currentJson) as Record<string, unknown>;
-    parsedJson.max_calls = 99999;
-    await payloadBox.fill(JSON.stringify(parsedJson, null, 2));
-
+    // 5. /Outrider/analytics, /Outrider/settings, /Outrider/help
+    await clickSidebarLink(page, "Analytics");
     await expect(
-      receiptSection.getByText("Invalid Signature", { exact: true }),
+      page.getByRole("heading", { level: 1, name: "Analytics" }),
+    ).toBeVisible();
+
+    await clickSidebarLink(page, "Settings");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Settings" }),
+    ).toBeVisible();
+
+    await clickSidebarLink(page, "Help");
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Help" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("macOS Installer (.dmg)", { exact: true }),
     ).toBeVisible();
 
     await assertCleanCopyAndZeroJargon(page, "www (post-interaction)", {

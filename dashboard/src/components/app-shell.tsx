@@ -6,13 +6,13 @@ import {AppLayout} from "@heroui-pro/react";
 import {usePathname, useRouter} from "next/navigation";
 import {useCallback, useMemo} from "react";
 
+import {WWW_BASE_PATH} from "../lib/www-base-path";
 import {FOOTER_ITEMS, NAV_ITEMS} from "../nav-items";
 
 import {DashboardNavbar} from "./dashboard-navbar";
 import {DashboardSidebar} from "./dashboard-sidebar";
 
-const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
-const HOME_TITLE = IS_WWW ? "Outrider" : "Dashboard";
+const HOME_TITLE = "Dashboard";
 
 const ROUTE_LABELS = new Map<string, string>(
   [...NAV_ITEMS, ...FOOTER_ITEMS]
@@ -20,12 +20,25 @@ const ROUTE_LABELS = new Map<string, string>(
     .map((item) => [item.href, item.label]),
 );
 
+function normalizeRoutePath(rawPathname: string, basePath: string): string {
+  let clean = rawPathname;
+
+  if (basePath && clean.startsWith(basePath)) {
+    clean = clean.slice(basePath.length);
+  }
+  if (clean.startsWith("/__proxyfor__")) {
+    clean = clean.slice("/__proxyfor__".length);
+  }
+  if (WWW_BASE_PATH && clean.startsWith(WWW_BASE_PATH)) {
+    clean = clean.slice(WWW_BASE_PATH.length);
+  }
+  if (!clean || clean === "/") return "/";
+
+  return clean.replace(/\/+$/, "") || "/";
+}
+
 export interface AppShellProps {
   children: ReactNode;
-  /**
-   * Prefix used for navigation and active-state matching.
-   * Empty in standalone/Next (`basePath: "/__proxyfor__"` is handled by Next's router).
-   */
   basePath?: string;
 }
 
@@ -41,45 +54,30 @@ export function AppShell({basePath = "", children}: AppShellProps) {
         return;
       }
 
-      if (href.startsWith("#")) {
-        const targetId = href.slice(1);
-        const element = document.getElementById(targetId);
-
-        if (element) {
-          element.scrollIntoView({behavior: "smooth", block: "start"});
-        }
-        window.history.replaceState(null, "", href);
-        window.dispatchEvent(new HashChangeEvent("hashchange"));
-
-        return;
-      }
-
-      const prefixed = basePath + href;
-      const route = prefixed.startsWith("/__proxyfor__")
-        ? prefixed.slice("/__proxyfor__".length) || "/"
-        : prefixed;
+      const route = normalizeRoutePath(basePath + href, "");
 
       router.push(route);
     },
     [router, basePath],
   );
 
+  const normalizedPathname = useMemo(
+    () => normalizeRoutePath(pathname, basePath),
+    [pathname, basePath],
+  );
+
   const title = useMemo(() => {
-    if (IS_WWW) return "Outrider";
-    const sliced = pathname.slice(basePath.length) || "/";
-    const relative = sliced.length > 1 ? sliced.replace(/\/+$/, "") : sliced;
+    if (normalizedPathname === "/") return HOME_TITLE;
 
-    if (relative === "/" || relative === "") return HOME_TITLE;
-
-    return ROUTE_LABELS.get(relative) ?? HOME_TITLE;
-  }, [pathname, basePath]);
+    return ROUTE_LABELS.get(normalizedPathname) ?? HOME_TITLE;
+  }, [normalizedPathname]);
 
   return (
     <AppLayout
       className="bg-background text-foreground"
       navbar={<DashboardNavbar title={title} />}
       navigate={navigate}
-      sidebar={<DashboardSidebar basePath={basePath} pathname={pathname} />}
+      sidebar={<DashboardSidebar basePath="" pathname={normalizedPathname} />}
       sidebarCollapsible="offcanvas"
     >
       {children}

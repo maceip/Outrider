@@ -23,6 +23,8 @@ import {
   useState,
 } from "react";
 
+import {WwwDemoEngine} from "./www-demo-engine";
+
 export const PROXYFOR_BASE = "/__proxyfor__";
 export const COMMERCE_API_BASE = "/__proxyfor__/commerce";
 export const TOKEN_STORAGE_KEY = "outrider_admin_token";
@@ -148,6 +150,32 @@ export function CoreProvider({children}: {children: ReactNode}) {
   const tokenRef = useRef("");
   const disconnectToastShownRef = useRef(false);
   const authInFlightRef = useRef<Promise<string | null> | null>(null);
+  const wwwEngineRef = useRef<WwwDemoEngine | null>(null);
+
+  const syncWwwEngineState = useCallback(() => {
+    const engine = wwwEngineRef.current;
+
+    if (!engine) return;
+    const next = engine.getState();
+
+    trafficsRef.current = next.traffics;
+    statusRef.current = next.status;
+    snapshotRef.current = next.snapshot;
+    connectedRef.current = true;
+    setTraffics(next.traffics);
+    setStatus(next.status);
+    setSnapshot(next.snapshot);
+    setConnected(true);
+    setEventsVersion((v) => v + 1);
+  }, []);
+
+  const getWwwEngine = useCallback((): WwwDemoEngine => {
+    if (!wwwEngineRef.current) {
+      wwwEngineRef.current = new WwwDemoEngine(syncWwwEngineState);
+    }
+
+    return wwwEngineRef.current;
+  }, [syncWwwEngineState]);
 
   const markConnected = useCallback(() => {
     disconnectToastShownRef.current = false;
@@ -386,6 +414,12 @@ export function CoreProvider({children}: {children: ReactNode}) {
   );
 
   const refreshTraffics = useCallback(async (): Promise<void> => {
+    if (IS_WWW) {
+      await getWwwEngine().ensureLoaded();
+      syncWwwEngineState();
+
+      return;
+    }
     try {
       const response = await fetch(`${PROXYFOR_BASE}/traffics`, {cache: "no-store"});
 
@@ -413,10 +447,13 @@ export function CoreProvider({children}: {children: ReactNode}) {
 
       markDisconnected(message);
     }
-  }, [markConnected, markDisconnected]);
+  }, [getWwwEngine, markConnected, markDisconnected, syncWwwEngineState]);
 
   const refresh = useCallback(async (): Promise<void> => {
     if (IS_WWW) {
+      await getWwwEngine().ensureLoaded();
+      syncWwwEngineState();
+
       return;
     }
     await Promise.all([
@@ -435,10 +472,21 @@ export function CoreProvider({children}: {children: ReactNode}) {
         }
       })(),
     ]);
-  }, [ensureAuthenticated, fetchSnapshotWithToken, fetchStatus, refreshTraffics]);
+  }, [
+    ensureAuthenticated,
+    fetchSnapshotWithToken,
+    fetchStatus,
+    getWwwEngine,
+    refreshTraffics,
+    syncWwwEngineState,
+  ]);
 
-  const fetchTrafficDetail = useCallback(async (id: number): Promise<TrafficDetail> => {
-    const response = await fetch(`${PROXYFOR_BASE}/traffic/${id}`, {cache: "no-store"});
+  const fetchTrafficDetail = useCallback(
+    async (id: number): Promise<TrafficDetail> => {
+      if (IS_WWW) {
+        return getWwwEngine().fetchTrafficDetail(id);
+      }
+      const response = await fetch(`${PROXYFOR_BASE}/traffic/${id}`, {cache: "no-store"});
 
     if (!response.ok) {
       const text = await response.text().catch(() => "");
@@ -448,11 +496,16 @@ export function CoreProvider({children}: {children: ReactNode}) {
       throw new Error(message);
     }
 
-    return (await response.json()) as TrafficDetail;
-  }, []);
+      return (await response.json()) as TrafficDetail;
+    },
+    [getWwwEngine],
+  );
 
   const fetchInspectorState = useCallback(
     async (connectionId?: string | null, after?: number): Promise<InspectorState> => {
+      if (IS_WWW) {
+        return getWwwEngine().fetchInspectorState(connectionId, after);
+      }
       const params = new URLSearchParams();
 
       if (connectionId) {
@@ -514,11 +567,19 @@ export function CoreProvider({children}: {children: ReactNode}) {
         throw error;
       }
     },
-    [ensureAuthenticated, markConnected, markDisconnected],
+    [ensureAuthenticated, getWwwEngine, markConnected, markDisconnected],
   );
 
   const mutate = useCallback(
     async <T = unknown>(path: string, body: unknown): Promise<T> => {
+      if (IS_WWW) {
+        setBusy(true);
+        try {
+          return await getWwwEngine().mutate<T>(path, body);
+        } finally {
+          setBusy(false);
+        }
+      }
       const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 
       setBusy(true);
@@ -581,10 +642,17 @@ export function CoreProvider({children}: {children: ReactNode}) {
         setBusy(false);
       }
     },
-    [ensureAuthenticated, fetchSnapshotWithToken, markConnected, markDisconnected],
+    [ensureAuthenticated, fetchSnapshotWithToken, getWwwEngine, markConnected, markDisconnected],
   );
 
   const exportHar = useCallback(() => {
+    if (IS_WWW) {
+      void getWwwEngine().exportHarAll().catch((error: unknown) => {
+        toast.danger(error instanceof Error ? error.message : "Failed to export HAR");
+      });
+
+      return;
+    }
     void (async () => {
       try {
         const response = await fetch(`${PROXYFOR_BASE}/traffics?har`, {cache: "no-store"});
@@ -613,10 +681,20 @@ export function CoreProvider({children}: {children: ReactNode}) {
         toast.danger(message);
       }
     })();
-  }, []);
+  }, [getWwwEngine]);
 
-  const downloadTrafficHar = useCallback(async (id: number): Promise<void> => {
-    try {
+  const downloadTrafficHar = useCallback(
+    async (id: number): Promise<void> => {
+      if (IS_WWW) {
+        try {
+          await getWwwEngine().downloadTrafficHar(id);
+        } catch (error) {
+          toast.danger(error instanceof Error ? error.message : "Failed to download packet HAR");
+        }
+
+        return;
+      }
+      try {
       const response = await fetch(`${PROXYFOR_BASE}/traffic/${id}?har`, {cache: "no-store"});
 
       if (!response.ok) {
@@ -641,10 +719,20 @@ export function CoreProvider({children}: {children: ReactNode}) {
 
       toast.danger(message);
     }
-  }, []);
+  }, [getWwwEngine]);
 
-  const copyTrafficCurl = useCallback(async (id: number): Promise<void> => {
-    try {
+  const copyTrafficCurl = useCallback(
+    async (id: number): Promise<void> => {
+      if (IS_WWW) {
+        try {
+          await getWwwEngine().copyTrafficCurl(id);
+        } catch (error) {
+          toast.danger(error instanceof Error ? error.message : "Failed to copy cURL command");
+        }
+
+        return;
+      }
+      try {
       const response = await fetch(`${PROXYFOR_BASE}/traffic/${id}?curl`, {cache: "no-store"});
 
       if (!response.ok) {
@@ -661,12 +749,24 @@ export function CoreProvider({children}: {children: ReactNode}) {
 
       toast.danger(message);
     }
-  }, []);
+  }, [getWwwEngine]);
 
   // Unified live NDJSON traffic stream (`GET /__proxyfor__/subscribe/traffics`)
   useEffect(() => {
     if (IS_WWW) {
-      return;
+      const controller = new AbortController();
+
+      void getWwwEngine()
+        .ensureLoaded(controller.signal)
+        .catch((error: unknown) => {
+          if (!controller.signal.aborted && !isAbortError(error)) {
+            toast.danger(error instanceof Error ? error.message : "Failed to load demo session");
+          }
+        });
+
+      return () => {
+        controller.abort();
+      };
     }
     const controller = new AbortController();
 
@@ -723,7 +823,7 @@ export function CoreProvider({children}: {children: ReactNode}) {
     return () => {
       controller.abort();
     };
-  }, [ingestNdjsonLines, markConnected, markDisconnected]);
+  }, [getWwwEngine, ingestNdjsonLines, markConnected, markDisconnected]);
 
   // Commerce status, seamless auth, snapshot hydration, and live SSE (`GET /__proxyfor__/commerce/events`)
   useEffect(() => {
