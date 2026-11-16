@@ -11,14 +11,15 @@ import {Resizable} from "@heroui-pro/react/resizable";
 import {useCallback, useMemo, useState} from "react";
 
 import {useCoreStore} from "../lib/core-store";
+
 import {
   TrafficDetailPane,
   formatTrafficBytes,
   renderTrafficStatusChip,
-} from "../widgets/traffic-detail-pane";
+} from "./traffic-detail-pane";
 
-type ProtocolBadge = "HTTP" | "HTTPS" | "MCP" | "WS";
-type ProtocolFilter = "all" | ProtocolBadge;
+export type WireProtocolBadge = "HTTP" | "HTTPS" | "MCP" | "WS";
+type ProtocolFilter = "all" | WireProtocolBadge;
 type StatusFilter = "all" | "2xx" | "3xx" | "4xx" | "5xx" | "pending";
 
 const STATUS_FILTER_OPTIONS: ReadonlyArray<{id: StatusFilter; label: string}> = [
@@ -41,9 +42,7 @@ const STATUS_FILTER_LABELS: Record<StatusFilter, string> = {
 
 function getUriPathname(uri: string): string {
   if (uri.startsWith("/")) {
-    const clean = uri.split("?")[0]?.split("#")[0] ?? "";
-
-    return clean;
+    return uri.split("?")[0]?.split("#")[0] ?? "";
   }
   try {
     return new URL(uri).pathname;
@@ -52,7 +51,7 @@ function getUriPathname(uri: string): string {
   }
 }
 
-function getPacketProtocol(item: TrafficHead): ProtocolBadge {
+export function getPacketProtocol(item: TrafficHead): WireProtocolBadge {
   const pathname = getUriPathname(item.uri);
 
   if (pathname === "/mcp" || pathname === "/mcp/") {
@@ -80,13 +79,20 @@ function matchesStatusFilter(status: number | null, filter: StatusFilter): boole
   return true;
 }
 
-export function TrafficPage() {
+export interface WireEvidencePanelProps {
+  selectedPacketId: number | null;
+  onSelectPacketId: (id: number | null) => void;
+}
+
+export function WireEvidencePanel({
+  onSelectPacketId,
+  selectedPacketId,
+}: WireEvidencePanelProps) {
   const {traffics} = useCoreStore();
 
   const [search, setSearch] = useState("");
   const [protocolFilter, setProtocolFilter] = useState<ProtocolFilter>("all");
   const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
-  const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sortDescriptor, setSortDescriptor] = useState<DataGridSortDescriptor>({
     column: "id",
     direction: "descending",
@@ -142,40 +148,52 @@ export function TrafficPage() {
     });
   }, [filteredTraffics, sortDescriptor]);
 
-  const selectedHead = useMemo<TrafficHead | null>(
-    () => (selectedId !== null ? (traffics.find((item) => item.id === selectedId) ?? null) : null),
-    [selectedId, traffics],
-  );
+  const effectiveSelectedHead = useMemo<TrafficHead | null>(() => {
+    if (selectedPacketId !== null) {
+      const explicit = traffics.find((item) => item.id === selectedPacketId);
+
+      if (explicit) return explicit;
+    }
+
+    return sortedTraffics[0] ?? null;
+  }, [selectedPacketId, sortedTraffics, traffics]);
 
   const selectedKeys = useMemo<Selection>(
-    () => (selectedId !== null && selectedHead !== null ? new Set([String(selectedId)]) : new Set()),
-    [selectedHead, selectedId],
+    () =>
+      effectiveSelectedHead !== null ? new Set([String(effectiveSelectedHead.id)]) : new Set(),
+    [effectiveSelectedHead],
   );
 
-  const handleRowSelectionChange = useCallback((keys: Selection) => {
-    if (keys === "all") return;
-    const first = Array.from(keys)[0];
+  const handleRowSelectionChange = useCallback(
+    (keys: Selection) => {
+      if (keys === "all") return;
+      const first = Array.from(keys)[0];
 
-    if (first === undefined) {
-      setSelectedId(null);
+      if (first === undefined) {
+        onSelectPacketId(null);
 
-      return;
-    }
+        return;
+      }
 
-    const parsed = typeof first === "number" ? first : Number(first);
+      const parsed = typeof first === "number" ? first : Number(first);
 
-    if (Number.isFinite(parsed)) {
-      setSelectedId(parsed);
-    }
-  }, []);
+      if (Number.isFinite(parsed)) {
+        onSelectPacketId(parsed);
+      }
+    },
+    [onSelectPacketId],
+  );
 
-  const handleRowAction = useCallback((key: string | number) => {
-    const parsed = typeof key === "number" ? key : Number(key);
+  const handleRowAction = useCallback(
+    (key: string | number) => {
+      const parsed = typeof key === "number" ? key : Number(key);
 
-    if (Number.isFinite(parsed)) {
-      setSelectedId(parsed);
-    }
-  }, []);
+      if (Number.isFinite(parsed)) {
+        onSelectPacketId(parsed);
+      }
+    },
+    [onSelectPacketId],
+  );
 
   const selectedStatusKeys = useMemo<Selection>(() => new Set([statusFilter]), [statusFilter]);
 
@@ -199,8 +217,8 @@ export function TrafficPage() {
         header: "#",
         id: "id",
         isRowHeader: true,
-        minWidth: 76,
-        width: 84,
+        minWidth: 64,
+        width: 72,
       },
       {
         allowsSorting: true,
@@ -220,8 +238,8 @@ export function TrafficPage() {
         },
         header: "Protocol",
         id: "protocol",
-        minWidth: 104,
-        width: 112,
+        minWidth: 90,
+        width: 98,
       },
       {
         accessorKey: "method",
@@ -233,23 +251,23 @@ export function TrafficPage() {
         ),
         header: "Method",
         id: "method",
-        minWidth: 92,
-        width: 100,
+        minWidth: 80,
+        width: 88,
       },
       {
         accessorKey: "uri",
         allowsSorting: true,
         cell: (item) => (
           <span
-            className="text-foreground block max-w-[520px] truncate font-mono text-xs tabular-nums"
+            className="text-foreground block max-w-[360px] truncate font-mono text-xs tabular-nums"
             title={item.uri}
           >
             {item.uri}
           </span>
         ),
-        header: "URL",
+        header: "Endpoint",
         id: "uri",
-        minWidth: 260,
+        minWidth: 200,
       },
       {
         accessorKey: "status",
@@ -257,8 +275,8 @@ export function TrafficPage() {
         cell: (item) => renderTrafficStatusChip(item.status),
         header: "Status",
         id: "status",
-        minWidth: 96,
-        width: 108,
+        minWidth: 84,
+        width: 92,
       },
       {
         accessorKey: "time",
@@ -269,10 +287,10 @@ export function TrafficPage() {
             {item.time !== null ? `${item.time} ms` : "—"}
           </span>
         ),
-        header: "Time",
+        header: "Latency",
         id: "time",
-        minWidth: 92,
-        width: 104,
+        minWidth: 84,
+        width: 92,
       },
       {
         accessorKey: "size",
@@ -285,21 +303,21 @@ export function TrafficPage() {
         ),
         header: "Size",
         id: "size",
-        minWidth: 92,
-        width: 104,
+        minWidth: 84,
+        width: 92,
       },
     ],
     [],
   );
 
   return (
-    <div className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-7xl flex-col gap-4 px-6 pb-6 pt-6">
-      <div className="flex flex-wrap items-center justify-between gap-2 lg:flex-nowrap">
-        <div className="flex min-w-0 flex-wrap items-center gap-2 lg:flex-nowrap">
+    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden p-3">
+      <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           <SearchField
-            aria-label="Filter traffic"
-            className="w-full sm:w-64 lg:w-72"
-            name="traffic-monitor-search"
+            aria-label="Filter wire frames"
+            className="w-full sm:w-56"
+            name="wire-evidence-search"
             value={search}
             variant="secondary"
             onChange={setSearch}
@@ -308,7 +326,7 @@ export function TrafficPage() {
               <SearchField.SearchIcon />
               <SearchField.Input
                 className="font-mono text-xs"
-                placeholder="Filter by host, path, method, or status..."
+                placeholder="Filter endpoint, method, status..."
               />
               <SearchField.ClearButton />
             </SearchField.Group>
@@ -330,7 +348,7 @@ export function TrafficPage() {
 
           <Dropdown>
             <Button className="shrink-0" size="sm" variant="tertiary">
-              <Funnel aria-hidden="true" className="size-4 shrink-0" />
+              <Funnel aria-hidden="true" className="size-3.5 shrink-0" />
               {statusFilter === "all" ? "Status" : STATUS_FILTER_LABELS[statusFilter]}
             </Button>
             <Dropdown.Popover placement="bottom start">
@@ -351,52 +369,62 @@ export function TrafficPage() {
             </Dropdown.Popover>
           </Dropdown>
         </div>
+
+        <Chip className="font-mono tabular-nums" size="sm" variant="soft">
+          {`${sortedTraffics.length} frames`}
+        </Chip>
       </div>
 
-      <Card className="min-h-0 flex-1 overflow-hidden p-0">
+      <div className="min-h-0 flex-1 overflow-hidden">
         <Resizable orientation="vertical">
-          <Resizable.Panel className="flex flex-col" defaultSize={55} minSize={25}>
-            <DataGrid
-              stickyHeader
-              aria-label="Live packet stream"
-              className="h-full min-h-0 flex-1 [&_.data-grid__empty-state]:py-6 [&_.table__column]:rounded-none! [&_.table__row]:cursor-[var(--cursor-interactive)] [&_.table__row[data-selected=true]_.table__cell]:bg-accent-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground [&_.table__row[data-selected=true]:hover_.table__cell]:bg-accent-soft-hover"
-              columns={columns}
-              contentClassName="min-w-[800px]"
-              data={sortedTraffics}
-              getRowId={(item) => String(item.id)}
-              renderEmptyState={() => (
-                <EmptyState size="sm">
-                  <EmptyState.Header>
-                    <EmptyState.Title>
-                      {traffics.length === 0 ? "No Packets Captured" : "No Matching Packets"}
-                    </EmptyState.Title>
-                    <EmptyState.Description>
-                      {traffics.length === 0
-                        ? "Live proxy and MCP requests will stream here automatically."
-                        : "Adjust your search query, protocol, or status filter."}
-                    </EmptyState.Description>
-                  </EmptyState.Header>
-                </EmptyState>
-              )}
-              scrollContainerClassName="h-full overflow-auto"
-              selectedKeys={selectedKeys}
-              selectionBehavior="replace"
-              selectionMode="single"
-              sortDescriptor={sortDescriptor}
-              variant="secondary"
-              onRowAction={handleRowAction}
-              onSelectionChange={handleRowSelectionChange}
-              onSortChange={setSortDescriptor}
-            />
+          <Resizable.Panel className="min-h-0 overflow-hidden pb-1.5" defaultSize={46} minSize={26}>
+            <Card className="h-full overflow-hidden p-0">
+              <DataGrid
+                stickyHeader
+                aria-label="Live packet stream"
+                className="h-full [&_.table__column]:rounded-none! [&_.table__row]:cursor-[var(--cursor-interactive)]"
+                columns={columns}
+                contentClassName="min-w-[640px]"
+                data={sortedTraffics}
+                getRowId={(item) => String(item.id)}
+                renderEmptyState={() => (
+                  <div className="py-8">
+                    <EmptyState size="sm">
+                      <EmptyState.Header>
+                        <EmptyState.Title>No Wire Frames Recorded</EmptyState.Title>
+                        <EmptyState.Description>
+                          {traffics.length === 0
+                            ? "Proxied HTTP, HTTPS, MCP, and WebSocket exchanges appear here as buyer agents transact."
+                            : "No wire frames match the active protocol or status filters."}
+                        </EmptyState.Description>
+                      </EmptyState.Header>
+                    </EmptyState>
+                  </div>
+                )}
+                selectedKeys={selectedKeys}
+                selectionBehavior="replace"
+                selectionMode="single"
+                sortDescriptor={sortDescriptor}
+                variant="secondary"
+                onRowAction={handleRowAction}
+                onSelectionChange={handleRowSelectionChange}
+                onSortChange={setSortDescriptor}
+              />
+            </Card>
           </Resizable.Panel>
 
-          <Resizable.Handle aria-label="Resize packet panels" type="drag" variant="secondary" />
+          <Resizable.Handle aria-label="Resize wire frame inspector" variant="secondary" />
 
-          <Resizable.Panel className="flex flex-col" defaultSize={45} minSize={25}>
-            <TrafficDetailPane selectedHead={selectedHead} selectedId={selectedId} />
+          <Resizable.Panel className="min-h-0 overflow-hidden pt-1.5" defaultSize={54} minSize={30}>
+            <Card className="h-full overflow-hidden p-0">
+              <TrafficDetailPane
+                selectedHead={effectiveSelectedHead}
+                selectedId={effectiveSelectedHead?.id ?? null}
+              />
+            </Card>
           </Resizable.Panel>
         </Resizable>
-      </Card>
+      </div>
     </div>
   );
 }

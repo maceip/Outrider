@@ -47,6 +47,8 @@ import {
 import {WwwInterceptorEngine} from "../lib/www-interceptor-engine";
 
 import {CausalCradledGraph} from "./causal-cradled-graph";
+import {PassesLedgerPanel, getPassStatus} from "./passes-ledger-panel";
+import {WireEvidencePanel} from "./wire-evidence-panel";
 
 const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
 
@@ -55,7 +57,7 @@ export interface CommerceInterceptorViewProps {
 }
 
 type EventFilterKey = "all" | "mcp" | "http" | "held_pending" | "errors";
-type ExecutionViewMode = "graph" | "trace" | "both";
+type InvestigationViewMode = "both" | "graph" | "wire" | "orders";
 
 const PHASE_STEPS: ReadonlyArray<{id: CommercePhase; label: string}> = [
   {id: "discover", label: "Discover"},
@@ -209,7 +211,8 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
   const [selectedTxId, setSelectedTxId] = useState<string | null>(null);
   const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
   const [eventFilter, setEventFilter] = useState<EventFilterKey>("all");
-  const [viewMode, setViewMode] = useState<ExecutionViewMode>("both");
+  const [viewMode, setViewMode] = useState<InvestigationViewMode>("both");
+  const [selectedWirePacketId, setSelectedWirePacketId] = useState<number | null>(null);
   const [laneOverride, setLaneOverride] = useState<InterceptionDirection | null>(null);
   const [isInspectOpen, setIsInspectOpen] = useState(false);
   const [streamExpanded, setStreamExpanded] = useState(false);
@@ -453,6 +456,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
 
       setLaneOverride(null);
       setSelectedTxId("audioshop");
+      setViewMode("both");
       const heldId =
         next?.events.find((ev) => ev.tx_id === "audioshop" && ev.hold_state === "held")?.event_id ??
         "R02";
@@ -680,6 +684,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
 
     if (typeof first === "string" && first.length > 0) {
       setSelectedEventId(first);
+      setViewMode((prev) => (prev === "wire" || prev === "orders" ? "both" : prev));
     }
   }, []);
 
@@ -691,6 +696,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
       setSelectedTxId(first);
       setSelectedEventId(null);
       setLaneOverride(null);
+      setViewMode((prev) => (prev === "wire" || prev === "orders" ? "both" : prev));
     }
   }, []);
 
@@ -700,6 +706,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
 
     if (typeof first === "string") {
       setEventFilter(first as EventFilterKey);
+      setViewMode("both");
     }
   }, []);
 
@@ -859,6 +866,20 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
     selectedEvent && (selectedEvent.hold_state === "held" || selectedEvent.epistemic_kind === "held"),
   );
 
+  const passes = useMemo(() => snapshot?.capability_receipts ?? [], [snapshot]);
+  const bundles = useMemo(() => snapshot?.bundles ?? [], [snapshot]);
+  const activePasses = useMemo(
+    () => passes.filter((row) => getPassStatus(row) === "Active"),
+    [passes],
+  );
+  const buyerPasses = useMemo(
+    () =>
+      activeTx
+        ? passes.filter((row) => row.subject === activeTx.buyer_agent)
+        : passes,
+    [activeTx, passes],
+  );
+
   const rootHeightClass = embedded
     ? "border-border bg-surface flex h-[740px] w-full min-w-0 flex-col overflow-hidden rounded-xl border"
     : "border-border bg-surface flex h-[calc(100dvh-6.75rem)] min-h-[620px] w-full min-w-0 flex-col overflow-hidden border-b";
@@ -867,10 +888,10 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
     <div className={rootHeightClass} data-slot="commerce-interceptor">
       <div className="min-h-0 flex-1 overflow-hidden">
         <Resizable orientation="horizontal">
-          {/* 1. LEFT COLUMN: Sessions + Filters */}
+          {/* 1. LEFT COLUMN: Buyer Inquiries + Surfaces + Trace Filters */}
           <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={17} minSize={13}>
             <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
-              <span className="text-foreground text-xs font-semibold">Sessions</span>
+              <span className="text-foreground text-xs font-semibold">Buyer Inquiries</span>
               <Button
                 isPending={actionBusy === "scenario"}
                 size="sm"
@@ -886,7 +907,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
               <div className="flex flex-col gap-4">
                 {workspaceState.transactions.length === 0 ? (
                   <p className="text-muted px-2 py-3 text-xs leading-relaxed">
-                    No active sessions. Start a live scenario to inspect commerce mediation.
+                    No active buyer inquiries. Start a live scenario or route buyer traffic to mediate offers.
                   </p>
                 ) : (
                   <ListBox
@@ -943,7 +964,48 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
                 )}
 
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-muted px-2 text-xs font-semibold">Filters</span>
+                  <span className="text-muted px-2 text-xs font-semibold">Surfaces</span>
+                  <ListBox
+                    disallowEmptySelection
+                    aria-label="Investigation surfaces"
+                    className="gap-0.5 p-0"
+                    selectedKeys={new Set([viewMode === "graph" ? "both" : viewMode])}
+                    selectionMode="single"
+                    onSelectionChange={(keys) => {
+                      if (keys === "all") return;
+                      const first = Array.from(keys)[0];
+
+                      if (typeof first === "string") {
+                        setViewMode(first as InvestigationViewMode);
+                      }
+                    }}
+                  >
+                    {(
+                      [
+                        {count: txEvents.length, id: "both", label: "Offer Mediation"},
+                        {count: traffics.length, id: "wire", label: "Wire Frames"},
+                        {count: passes.length, id: "orders", label: "Passes & Bundles"},
+                      ] as const
+                    ).map((surfaceItem) => (
+                      <ListBox.Item
+                        key={surfaceItem.id}
+                        className="items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 normal-case data-[selected=true]:bg-surface-secondary"
+                        id={surfaceItem.id}
+                        textValue={surfaceItem.label}
+                      >
+                        <Label className="text-foreground text-xs font-medium normal-case">
+                          {surfaceItem.label}
+                        </Label>
+                        <span className="text-muted font-mono text-xs tabular-nums">
+                          {surfaceItem.count}
+                        </span>
+                      </ListBox.Item>
+                    ))}
+                  </ListBox>
+                </div>
+
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted px-2 text-xs font-semibold">Trace Filters</span>
                   <ListBox
                     disallowEmptySelection
                     aria-label="Trace filters"
@@ -983,9 +1045,109 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
 
           <Resizable.Handle aria-label="Resize sessions column" variant="secondary" />
 
-          {/* 2. CENTER COLUMN: Timeline + Graph + Trace DataGrid + 4-Gate Verification Bar */}
+          {/* 2. CENTER COLUMN: Sell-Side Investigation Stage (Investigation / Graph / Wire / Passes) */}
           <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={49} minSize={34}>
-            {!activeTx ? (
+            <div className="border-separator flex shrink-0 flex-col gap-2.5 border-b px-3.5 py-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-col gap-0.5">
+                  <h2 className="text-foreground truncate text-sm font-semibold">
+                    {activeTx ? activeTx.title : "Sell-Side Investigation Desk"}
+                  </h2>
+                  <p className="text-muted truncate font-mono text-xs">
+                    {activeTx
+                      ? `Merchant: ${activeTx.seller_host} ← Buyer: ${activeTx.buyer_agent} · ${activeTx.protocol}`
+                      : `${traffics.length} wire frames · ${activePasses.length} active passes`}
+                  </p>
+                </div>
+
+                <Segment
+                  aria-label="Investigation view"
+                  className="shrink-0"
+                  selectedKey={viewMode}
+                  size="sm"
+                  onSelectionChange={(key) => setViewMode(String(key) as InvestigationViewMode)}
+                >
+                  <Segment.Item id="both">Investigation</Segment.Item>
+                  <Segment.Item id="graph">Graph</Segment.Item>
+                  <Segment.Item id="wire">Wire</Segment.Item>
+                  <Segment.Item id="orders">Passes</Segment.Item>
+                </Segment>
+              </div>
+
+              {activeTx && (viewMode === "both" || viewMode === "graph") ? (
+                <div
+                  aria-label="Transaction phase timeline"
+                  className="grid grid-cols-5 gap-1.5"
+                  role="list"
+                >
+                  {PHASE_STEPS.map((step, idx) => {
+                    const isCompletedStep =
+                      idx < activePhaseIndex || activeTx.status === "complete";
+                    const isCurrentStep =
+                      idx === activePhaseIndex && activeTx.status !== "complete";
+                    const isHeldStep = isCurrentStep && activeTx.status === "held";
+                    const isDownstream = idx > activePhaseIndex && activeTx.status !== "complete";
+
+                    let stepSurface =
+                      "border border-border bg-surface-secondary/40 text-muted opacity-55";
+
+                    if (isHeldStep) {
+                      stepSurface =
+                        "border border-warning/50 bg-warning-soft text-foreground";
+                    } else if (isCurrentStep) {
+                      stepSurface =
+                        "border border-accent/60 bg-accent-soft text-foreground";
+                    } else if (isCompletedStep) {
+                      stepSurface =
+                        "border border-success/35 bg-success-soft text-foreground";
+                    }
+
+                    return (
+                      <div
+                        key={step.id}
+                        className={`flex min-w-0 flex-col justify-center gap-0.5 rounded-lg px-2.5 py-1.5 ${stepSurface}`}
+                        role="listitem"
+                      >
+                        <div className="flex items-center gap-1.5">
+                          {isHeldStep ? (
+                            <CirclePause className="text-warning size-3.5 shrink-0" />
+                          ) : isCompletedStep ? (
+                            <CircleCheck className="text-success size-3.5 shrink-0" />
+                          ) : null}
+                          <span className="truncate text-xs font-semibold">{step.label}</span>
+                        </div>
+                        <span
+                          className={`truncate font-mono text-[10px] ${
+                            isHeldStep
+                              ? "text-warning-soft-foreground font-medium"
+                              : isDownstream
+                                ? "text-muted"
+                                : "text-muted"
+                          }`}
+                        >
+                          {isHeldStep
+                            ? "HELD — Awaiting operator"
+                            : isCompletedStep
+                              ? "Verified"
+                              : isCurrentStep
+                                ? activeTx.status_detail || "In progress"
+                                : "Pending"}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : null}
+            </div>
+
+            {viewMode === "wire" ? (
+              <WireEvidencePanel
+                selectedPacketId={selectedWirePacketId}
+                onSelectPacketId={setSelectedWirePacketId}
+              />
+            ) : viewMode === "orders" ? (
+              <PassesLedgerPanel activeBuyerAgent={activeTx?.buyer_agent ?? null} />
+            ) : !activeTx ? (
               <div className="flex h-full min-h-0 flex-1 items-center justify-center p-6">
                 <EmptyState size="md">
                   <EmptyState.Header>
@@ -994,8 +1156,8 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
                     </EmptyState.Media>
                     <EmptyState.Title>No Active Commerce Session</EmptyState.Title>
                     <EmptyState.Description>
-                      Launch a live buyer-to-seller negotiation to hold offers in flight, verify
-                      merchant floor policies, and authorize session payment passes.
+                      Simulate or connect a live buyer-agent inquiry to hold outbound catalog
+                      offers, verify merchant floor policies, and issue session passes.
                     </EmptyState.Description>
                   </EmptyState.Header>
                   <EmptyState.Content>
@@ -1012,109 +1174,16 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
               </div>
             ) : (
               <>
-                {/* Transaction Header & 5-Step Linear Phase Timeline */}
-                <div className="border-separator flex shrink-0 flex-col gap-2.5 border-b px-3.5 py-2.5">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex min-w-0 flex-col gap-0.5">
-                      <h2 className="text-foreground truncate text-sm font-semibold">
-                        {activeTx.title}
-                      </h2>
-                      <p className="text-muted truncate font-mono text-xs">
-                        {`Buyer: ${activeTx.buyer_agent} ↔ Seller: ${activeTx.seller_host} · ${activeTx.protocol}`}
-                      </p>
-                    </div>
-
-                    <Segment
-                      aria-label="Buyer execution view"
-                      className="shrink-0"
-                      selectedKey={viewMode}
-                      size="sm"
-                      onSelectionChange={(key) => setViewMode(String(key) as ExecutionViewMode)}
-                    >
-                      <Segment.Item id="graph">Graph</Segment.Item>
-                      <Segment.Item id="trace">Trace</Segment.Item>
-                      <Segment.Item id="both">Both</Segment.Item>
-                    </Segment>
-                  </div>
-
-                  {/* 5-Step Linear Phase Timeline */}
-                  <div
-                    aria-label="Transaction phase timeline"
-                    className="grid grid-cols-5 gap-1.5"
-                    role="list"
-                  >
-                    {PHASE_STEPS.map((step, idx) => {
-                      const isCompletedStep =
-                        idx < activePhaseIndex || activeTx.status === "complete";
-                      const isCurrentStep =
-                        idx === activePhaseIndex && activeTx.status !== "complete";
-                      const isHeldStep = isCurrentStep && activeTx.status === "held";
-                      const isDownstream = idx > activePhaseIndex && activeTx.status !== "complete";
-
-                      let stepSurface =
-                        "border border-border bg-surface-secondary/40 text-muted opacity-55";
-
-                      if (isHeldStep) {
-                        stepSurface =
-                          "border border-warning/50 bg-warning-soft text-foreground";
-                      } else if (isCurrentStep) {
-                        stepSurface =
-                          "border border-accent/60 bg-accent-soft text-foreground";
-                      } else if (isCompletedStep) {
-                        stepSurface =
-                          "border border-success/35 bg-success-soft text-foreground";
-                      }
-
-                      return (
-                        <div
-                          key={step.id}
-                          className={`flex min-w-0 flex-col justify-center gap-0.5 rounded-lg px-2.5 py-1.5 ${stepSurface}`}
-                          role="listitem"
-                        >
-                          <div className="flex items-center gap-1.5">
-                            {isHeldStep ? (
-                              <CirclePause className="text-warning size-3.5 shrink-0" />
-                            ) : isCompletedStep ? (
-                              <CircleCheck className="text-success size-3.5 shrink-0" />
-                            ) : null}
-                            <span className="truncate text-xs font-semibold">{step.label}</span>
-                          </div>
-                          <span
-                            className={`truncate font-mono text-[10px] ${
-                              isHeldStep
-                                ? "text-warning-soft-foreground font-medium"
-                                : isDownstream
-                                  ? "text-muted"
-                                  : "text-muted"
-                            }`}
-                          >
-                            {isHeldStep
-                              ? "HELD — Awaiting operator"
-                              : isCompletedStep
-                                ? "Verified"
-                                : isCurrentStep
-                                  ? activeTx.status_detail || "In progress"
-                                  : "Pending"}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                </div>
-
-                {/* Synchronized Graph + Execution Trace */}
                 <ScrollShadow className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-                  {viewMode === "graph" || viewMode === "both" ? (
-                    <CausalCradledGraph
-                      draft={activeDraft}
-                      events={txEvents}
-                      offers={txOffers}
-                      selectedEventId={effectiveSelectedEventId}
-                      onSelectEvent={setSelectedEventId}
-                    />
-                  ) : null}
+                  <CausalCradledGraph
+                    draft={activeDraft}
+                    events={txEvents}
+                    offers={txOffers}
+                    selectedEventId={effectiveSelectedEventId}
+                    onSelectEvent={setSelectedEventId}
+                  />
 
-                  {viewMode === "trace" || viewMode === "both" ? (
+                  {viewMode === "both" ? (
                     <Card className="min-h-[210px] shrink-0 overflow-hidden p-0">
                       <DataGrid
                         stickyHeader
@@ -1245,18 +1314,18 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
 
           <Resizable.Handle aria-label="Resize seller context column" variant="secondary" />
 
-          {/* 3. MIDDLE-RIGHT COLUMN: Seller Context */}
+          {/* 3. MIDDLE-RIGHT COLUMN: Merchant Desk */}
           <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={16} minSize={13}>
             <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
               <span className="text-foreground truncate text-xs font-semibold">
-                {activeTx ? `Seller (${activeTx.seller_host})` : "Seller"}
+                {activeTx ? `Merchant (${activeTx.seller_host})` : "Merchant Desk"}
               </span>
             </div>
 
             <ScrollShadow className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-3">
-              {/* Active Offer */}
+              {/* Catalog Offer */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-muted text-xs font-semibold">Active Offer</span>
+                <span className="text-muted text-xs font-semibold">Catalog Offer</span>
                 {primaryOffer ? (
                   <div className="border-border bg-surface-secondary/50 flex flex-col gap-1.5 rounded-lg border p-2.5">
                     <div className="flex items-baseline justify-between gap-2">
@@ -1270,18 +1339,56 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
                     <span className="text-muted font-mono text-[11px]">
                       {`${primaryOffer.in_stock ? "In stock" : "Backorder"} · ${primaryOffer.warranty || "Standard warranty"}`}
                     </span>
+                    {promoOffer && promoOffer.offer_id !== primaryOffer.offer_id ? (
+                      <span className="text-warning-soft-foreground font-mono text-[11px] tabular-nums">
+                        {`Staged promo: ${formatMoneyExact(promoOffer.price_cents, promoOffer.currency)}`}
+                      </span>
+                    ) : null}
                     {primaryOffer.returns_policy ? (
                       <span className="text-muted text-[11px]">{primaryOffer.returns_policy}</span>
                     ) : null}
                   </div>
                 ) : (
-                  <p className="text-muted text-xs">No seller offers recorded.</p>
+                  <p className="text-muted text-xs">No catalog offers recorded.</p>
                 )}
               </div>
 
-              {/* Seller MCP Responses */}
+              {/* Session Passes Summary */}
               <div className="flex flex-col gap-1.5">
-                <span className="text-muted text-xs font-semibold">Seller MCP Responses</span>
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-muted text-xs font-semibold">Session Passes</span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onPress={() => setViewMode("orders")}
+                  >
+                    Manage
+                  </Button>
+                </div>
+                <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border p-2.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-foreground font-mono text-xs font-medium tabular-nums">
+                      {`${activePasses.length} active`}
+                    </span>
+                    <span className="text-muted font-mono text-[11px] tabular-nums">
+                      {`${bundles.length} bundles`}
+                    </span>
+                  </div>
+                  {buyerPasses[0] ? (
+                    <span className="text-muted truncate font-mono text-[11px] tabular-nums">
+                      {`${buyerPasses[0].subject} · ${buyerPasses[0].remaining_calls}/${buyerPasses[0].max_calls} calls`}
+                    </span>
+                  ) : (
+                    <span className="text-muted text-[11px]">
+                      Authorize payment or issue a buyer pass.
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Outbound MCP Responses */}
+              <div className="flex flex-col gap-1.5">
+                <span className="text-muted text-xs font-semibold">Outbound MCP Responses</span>
                 {sellerResponses.length === 0 ? (
                   <p className="text-muted text-xs">No responses recorded.</p>
                 ) : (
@@ -1666,6 +1773,14 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
                   if (match?.txId && match.eventId) {
                     setSelectedTxId(match.txId);
                     setSelectedEventId(match.eventId);
+                    setViewMode((prev) => (prev === "wire" || prev === "orders" ? "both" : prev));
+                  } else if (match?.id.startsWith("pkt-")) {
+                    const parsedId = Number(match.id.slice(4));
+
+                    if (Number.isFinite(parsedId)) {
+                      setSelectedWirePacketId(parsedId);
+                      setViewMode("wire");
+                    }
                   }
                 }}
               >

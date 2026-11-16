@@ -20,7 +20,8 @@ import path from "node:path";
 const ROOT = path.resolve(import.meta.dirname, "..");
 const RELEASE_BIN = path.join(ROOT, "target/release/outrider");
 const SCRATCH_DIR =
-  "/Users/mac/.gemini/antigravity/brain/caeccb67-9a79-43a1-a9bf-51444c01fd54/scratch";
+  process.env.CONDUIT_SCRATCH_DIR ??
+  path.join(tmpdir(), "conduit-e2e-screenshots");
 const WEBMCP_ORIGIN_TRIAL_TOKEN =
   "A/h8mpmc7Ym1LKQeIQMQ2NG8Tosq469/Pk04jVBhwrEMKVjNKhqeNZz1Js6I61E9vLmF8wRkQguqkCYtFatiJggAAABbeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTgwNjM2NDgwMCwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==";
 
@@ -92,9 +93,13 @@ async function startReleaseGateway(
   delete env.OUTRIDER_HEADLESS;
   env.OUTRIDER_CLEF_NO_FETCH = "1";
   const nativeMacos = path.join(ROOT, "native/macos");
+  const nativeLinux = path.join(ROOT, "native/linux");
   env.DYLD_LIBRARY_PATH = env.DYLD_LIBRARY_PATH
     ? `${nativeMacos}:${env.DYLD_LIBRARY_PATH}`
     : nativeMacos;
+  env.LD_LIBRARY_PATH = env.LD_LIBRARY_PATH
+    ? `${nativeLinux}:${env.LD_LIBRARY_PATH}`
+    : nativeLinux;
 
   const proc = spawn(
     RELEASE_BIN,
@@ -285,23 +290,12 @@ function sendProxiedWebSocketEcho(
   });
 }
 
-function escapeRegExp(value: string): string {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function kpiCard(page: Page, title: string) {
-  return page
-    .getByRole("term")
-    .filter({ hasText: new RegExp(`^${escapeRegExp(title)}$`) })
-    .locator("../..");
-}
-
-async function selectWorkspaceSegment(
+async function selectInvestigationView(
   page: Page,
-  label: "Transactions" | "Capture" | "Orders" | "Overview",
+  label: "Investigation" | "Graph" | "Wire" | "Passes",
 ) {
   await page
-    .locator('[aria-label="Workspace navigation"]')
+    .locator('[aria-label="Investigation view"]')
     .getByText(label, { exact: true })
     .click();
 }
@@ -429,14 +423,10 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
 
   try {
     // =========================================================================
-    // (a) Clean Cold Boot, Conduit Single-Header Shell & Zero Self-Pollution
+    // (a) Clean Cold Boot, Unified Sell-Side Shell & Removed Redundant Tabs
     // =========================================================================
     const directRoutes: ReadonlyArray<{ path: string; marker: string }> = [
       { path: "/", marker: "No Active Commerce Session" },
-      { path: "/traffic/", marker: "No Packets Captured" },
-      { path: "/inspector/", marker: "No Active Commerce Session" },
-      { path: "/orders/", marker: "No session passes found" },
-      { path: "/analytics/", marker: "No traffic recorded" },
       { path: "/settings/", marker: "Gateway Endpoints" },
       { path: "/help/", marker: "Root Certificate (.pem)" },
     ];
@@ -448,7 +438,26 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
       expect(response?.status(), `200 OK for ${route.path}`).toBe(200);
       await expect(page).toHaveTitle("Conduit");
       await expect(page.getByText(route.marker, { exact: true })).toBeVisible();
+      await expect(
+        page.locator('[aria-label="Workspace navigation"]'),
+      ).toHaveCount(0);
       await assertCleanCopyAndHeroUiHygiene(page, route.path);
+    }
+
+    // Verify redundant split Wireshark/Analytics/Orders/Inspector routes are removed (404)
+    for (const removedRoute of [
+      "/traffic/",
+      "/inspector/",
+      "/orders/",
+      "/analytics/",
+    ]) {
+      const removedRes = await fetch(
+        `${gateway.baseUrl}/__proxyfor__${removedRoute}`,
+      );
+      expect(
+        removedRes.status,
+        `404 expected for removed route ${removedRoute}`,
+      ).toBe(404);
     }
 
     await page.goto(`${gateway.baseUrl}/__proxyfor__/`);
@@ -520,7 +529,7 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
       page.locator('[aria-label="Live packet stream bar"]'),
     ).toContainText("0 events · 0 held · 0 ms avg");
 
-    // Verify backend has ZERO self-pollution after visiting all 7 routes
+    // Verify backend has ZERO self-pollution after visiting all routes
     const emptyTrafficsRes = await fetch(
       `${gateway.baseUrl}/__proxyfor__/traffics`,
     );
@@ -538,7 +547,7 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
     expect(emptySnap.fingerprint_observations.length).toBe(0);
 
     // =========================================================================
-    // (b) Live Native Gateway Commerce Interceptor v7 (`/`) End-to-End
+    // (b) Unified Sell-Side Commerce Investigation Platform (`/`) End-to-End
     // =========================================================================
     await page
       .getByRole("button", { name: "Start Live Scenario", exact: true })
@@ -553,9 +562,12 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
       }),
     ).toBeVisible();
     await expect(
-      page.getByText("Buyer: agent-7f2 ↔ Seller: audioshop.com · MCP", {
+      page.getByText("Merchant: audioshop.com ← Buyer: agent-7f2 · MCP", {
         exact: true,
       }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Merchant (audioshop.com)", { exact: true }),
     ).toBeVisible();
 
     // Verify Left Rail Sessions list (4 real SQLite transactions) & session switching
@@ -895,9 +907,9 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
     expect(mcpInitRes.status).toBe(200);
     await mcpInitRes.text();
 
-    // 1. Capture (/traffic) via Conduit single-header <Segment>
-    await selectWorkspaceSegment(page, "Capture");
-    await expect(page).toHaveURL(/\/__proxyfor__\/traffic\/?$/);
+    // 1. Unified Wire lens inside `/` via Investigation view <Segment>
+    await selectInvestigationView(page, "Wire");
+    await expect(page).toHaveURL(/\/__proxyfor__\/?$/);
 
     const packetGrid = page.getByRole("grid", { name: "Live packet stream" });
     const packetDataRows = packetGrid
@@ -950,23 +962,20 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
     const wsPanel = page.getByRole("tabpanel", { name: "WebSocket" });
     await expect(wsPanel).toContainText("conduit_packet");
     await expect(wsPanel).toContainText("ws_server_echo");
-    await assertCleanCopyAndHeroUiHygiene(page, "Capture (populated)", {
+    await assertCleanCopyAndHeroUiHygiene(page, "Wire (populated)", {
       excludeCodeBlocks: true,
     });
 
-    // 2. Orders (/orders) via Conduit single-header <Segment>
-    await selectWorkspaceSegment(page, "Orders");
-    await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Orders" }),
-    ).toBeVisible();
+    // 2. Unified Passes & Bundles lens inside `/` via Investigation view <Segment>
+    await selectInvestigationView(page, "Passes");
+    await expect(page).toHaveURL(/\/__proxyfor__\/?$/);
 
     const passesGrid = page.getByRole("grid", { name: "Session passes" });
     await expect(passesGrid).toContainText("agent-7f2");
     await expect(passesGrid).toContainText("conduit_session_evidence");
     await expect(passesGrid).toContainText("Active");
 
-    // Switch Orders segment to Bundles and verify persisted bundle
+    // Switch Orders workspace segment to Bundles and verify persisted bundle
     const ordersWorkspaceSeg = page.locator('[aria-label="Orders workspace"]');
     await ordersWorkspaceSeg.getByText("Bundles", { exact: true }).click();
     const bundlesGrid = page.getByRole("grid", { name: "Bundles" });
@@ -1022,29 +1031,22 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
       page.getByText("Receipt revoked", { exact: true }),
     ).toBeVisible();
     await expect(passesGrid).toContainText("Revoked");
-    await assertCleanCopyAndHeroUiHygiene(page, "Orders (populated)");
+    await assertCleanCopyAndHeroUiHygiene(page, "Passes (populated)", {
+      excludeCodeBlocks: true,
+    });
 
-    // 3. Overview (/analytics) via Conduit single-header <Segment>
-    await selectWorkspaceSegment(page, "Overview");
-    await expect(page).toHaveURL(/\/__proxyfor__\/analytics\/?$/);
+    // Return to Investigation lens
+    await selectInvestigationView(page, "Investigation");
     await expect(
-      page.getByRole("heading", { level: 1, name: "Overview" }),
+      page.locator('[data-slot="causal-cradled-graph"]'),
     ).toBeVisible();
 
-    const recentTrafficGrid = page.getByRole("grid", { name: "Recent traffic" });
-    await expect(recentTrafficGrid).toContainText(httpPostUrl);
-    await expect(recentTrafficGrid).toContainText("/mcp");
-
-    const timeRangeSegment = page.locator('[aria-label="Time range"]');
-    for (const range of ["5M", "1H", "24H", "ALL"] as const) {
-      await timeRangeSegment.getByText(range, { exact: true }).click();
-      await expect(kpiCard(page, "Events")).not.toContainText("0");
-    }
-    await assertCleanCopyAndHeroUiHygiene(page, "Overview (populated)");
-
-    // 4. Settings (/settings) via top navbar button
+    // 3. Settings (/settings) via top navbar button
     await page.getByRole("button", { name: "Settings", exact: true }).click();
     await expect(page).toHaveURL(/\/__proxyfor__\/settings\/?$/);
+    await expect(
+      page.getByRole("button", { name: "Investigation Desk", exact: true }),
+    ).toBeVisible();
     await expect(page.locator('input[name="proxy-address"]')).toHaveValue(
       `127.0.0.1:${gateway.port}`,
     );
@@ -1073,7 +1075,7 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
     expect(statusAfterSave.probe_policy).toBe("on-request");
     await assertCleanCopyAndHeroUiHygiene(page, "Settings");
 
-    // 5. Help (/help) via top navbar button
+    // 4. Help (/help) via top navbar button + return to Investigation Desk
     await page.getByRole("button", { name: "Help", exact: true }).click();
     await expect(page).toHaveURL(/\/__proxyfor__\/help\/?$/);
     await page
@@ -1095,6 +1097,11 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
       expect(res.status).toBe(200);
     }
     await assertCleanCopyAndHeroUiHygiene(page, "Help");
+
+    await page
+      .getByRole("button", { name: "Investigation Desk", exact: true })
+      .click();
+    await expect(page).toHaveURL(/\/__proxyfor__\/?$/);
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
@@ -1368,32 +1375,35 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders firecrawl-minimal h
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Intercept, verify, and mediate agent commerce in real time.",
+        name: "Sell-side commerce investigation and offer mediation in real time.",
       }),
     ).toBeVisible();
     await expect(
       page.getByText(
-        "Hold live buyer-to-seller offers in flight, validate policy and schema gates, and approve session orders before a single transaction clears.",
+        "Inspect live buyer-agent inquiries on the wire, enforce merchant floor policies before offers clear, and govern session capability passes from one desk.",
         { exact: true },
       ),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Launch Live Interceptor", exact: true }),
+      page.getByRole("button", { name: "Open Investigation Desk", exact: true }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "Watch Walkthrough", exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText("In-Flight Hold Gate", { exact: true }),
+      page.getByText("Sell-Side Offer Hold Gate", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByText("Decoupled Verification", { exact: true }),
+      page.getByText("Unified Investigation Desk", { exact: true }),
     ).toBeVisible();
     await expect(
       page.getByText("Local Binary, Zero Cloud", { exact: true }),
     ).toBeVisible();
+    await expect(
+      page.locator('[aria-label="Live workspace view"]'),
+    ).toHaveCount(0);
 
-    // 2. Embedded Live Commerce Interceptor v7 hydrated from `/Outrider/demo/interceptor-seed.json`
+    // 2. Embedded Sell-Side Commerce Investigation Desk hydrated from `/Outrider/demo/interceptor-seed.json`
     const liveSection = page.locator("#live-interceptor");
     await expect(
       liveSection.getByRole("heading", {
@@ -1473,13 +1483,13 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders firecrawl-minimal h
       }),
     ).toBeVisible();
 
-    // Switch embedded `#live-interceptor` <Segment> across Capture & Orders
-    const embeddedSegment = liveSection.locator(
-      '[aria-label="Live workspace view"]',
+    // Switch unified Investigation view inside `#live-interceptor` across Wire & Passes
+    const investigationSeg = liveSection.locator(
+      '[aria-label="Investigation view"]',
     );
-    await embeddedSegment.getByText("Capture", { exact: true }).click();
+    await investigationSeg.getByText("Wire", { exact: true }).click();
     const capturedGrid = liveSection.getByRole("grid", {
-      name: "Captured session packets",
+      name: "Live packet stream",
     });
     await expect(
       capturedGrid
@@ -1487,16 +1497,12 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders firecrawl-minimal h
         .filter({ hasNot: page.getByRole("columnheader") }),
     ).toHaveCount(9);
 
-    await embeddedSegment.getByText("Orders", { exact: true }).click();
-    const ordersGrid = liveSection.getByRole("grid", {
-      name: "Signed session orders",
+    await investigationSeg.getByText("Passes", { exact: true }).click();
+    const passesGrid = liveSection.getByRole("grid", {
+      name: "Session passes",
     });
-    await expect(
-      ordersGrid
-        .getByRole("row")
-        .filter({ hasNot: page.getByRole("columnheader") }),
-    ).toHaveCount(1);
-    await embeddedSegment.getByText("Transactions", { exact: true }).click();
+    await expect(passesGrid).toContainText("conduit_session_evidence");
+    await investigationSeg.getByText("Investigation", { exact: true }).click();
 
     // 3. Walkthrough <Modal> + <Popover> scene jumper
     await page

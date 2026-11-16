@@ -4,8 +4,6 @@ import {Moon, Sun} from "@gravity-ui/icons";
 import {Button} from "@heroui/react";
 import {useCallback, useSyncExternalStore} from "react";
 
-import {IconButton} from "./icon-button";
-
 export type SilvectorTheme = "brutalism-dark" | "brutalism-light";
 export type ThemeMode = SilvectorTheme;
 
@@ -131,8 +129,8 @@ export function ThemeToggle({showLabel = false}: ThemeToggleProps) {
   }
 
   return (
-    <IconButton label={label} size="sm" variant="tertiary" onPress={handleToggle}>
+    <Button isIconOnly aria-label={label} size="sm" variant="tertiary" onPress={handleToggle}>
       {isDark ? <Sun className="size-4" /> : <Moon className="size-4" />}
-    </IconButton>
+    </Button>
   );
 }

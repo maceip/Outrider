@@ -1,6 +1,9 @@
 name: CI Build, Live Smoke Gate, Attested SBOM & Release
 
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
@@ -22,9 +25,89 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  verify-pr:
+    name: Build HeroUI Pro Exports, Compile Binary & Run Playwright E2E
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install, typecheck, lint & build dashboard/out + www-dist
+        working-directory: dashboard
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run typecheck
+          npm run lint
+          rm -rf out
+          npm run build
+          npm run build:www
+
+      - name: Verify HeroUI Pro static export structure
+        shell: python
+        run: |
+          import pathlib, sys
+          out = pathlib.Path("dashboard/out")
+          for legacy_dir in ("zim", "traffic", "inspector", "analytics", "orders"):
+              if (out / legacy_dir).exists():
+                  sys.exit(f"Unexpected legacy /{legacy_dir} export directory")
+          for req in (out / "index.html", out / "settings/index.html", out / "help/index.html"):
+              if not req.is_file() or req.stat().st_size < 200:
+                  sys.exit(f"Missing or empty required static export file: {req}")
+          www = pathlib.Path("www-dist")
+          if not (www / "index.html").is_file() or not (www / "demo/interceptor-seed.json").is_file():
+              sys.exit("Missing www-dist/index.html or demo/interceptor-seed.json")
+
+      - name: Upload built static exports (dashboard/out + www-dist)
+        uses: actions/upload-artifact@v4
+        with:
+          name: built-static-exports
+          path: |
+            dashboard/out
+            www-dist
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Install Rust stable toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Cargo registry and target build
+        uses: Swatinem/rust-cache@v2
+        with:
+          key: pr-linux-x64
+
+      - name: Install SHA-256-pinned LiteRT-LM native runtime
+        run: python3 scripts/install_native.py --target x86_64-unknown-linux-gnu
+
+      - name: Build optimized release binary with embedded dashboard/out
+        env:
+          LITERT_LM_LIB_DIR: ${{ github.workspace }}/native/linux
+        run: cargo build --release --locked -p proxyfor --bin outrider
+
+      - name: Install Playwright & run full E2E suite
+        run: |
+          set -euo pipefail
+          npm ci
+          npx playwright install --with-deps chromium
+          npx playwright test tests/phoenix_core_dashboard.spec.ts
+
   bump-version:
     name: Bump Patch Version & Tag Release
-    if: "!contains(github.event.head_commit.message, 'chore(release):')"
+    if: github.event_name != 'pull_request' && !contains(github.event.head_commit.message, 'chore(release):')
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.bump.outputs.version }}
@@ -42,9 +125,16 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Bump version across Cargo & Dashboard manifests and tag release
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Bump version, rebuild HeroUI Pro exports, and tag release
         id: bump
         shell: bash
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
         run: |
           set -euo pipefail
           git config user.name "github-actions[bot]"
@@ -59,8 +149,17 @@ jobs:
             echo "release_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
           else
             python3 scripts/bump_version.py --github-output "$GITHUB_OUTPUT"
+            (
+              cd dashboard
+              npm ci
+              npm run typecheck
+              npm run lint
+              rm -rf out
+              npm run build
+              npm run build:www
+            )
             NEXT_VER="$(python3 -c 'import re, pathlib; m=re.search(r"(?ms)^\[package\]\s+.*?^version\s*=\s*\"(\d+\.\d+\.\d+)\"", pathlib.Path("proxyfor/Cargo.toml").read_text()); print(m.group(1))')"
-            git add proxyfor/Cargo.toml Cargo.lock dashboard/package.json dashboard/package-lock.json
+            git add -A proxyfor/Cargo.toml Cargo.lock dashboard/package.json dashboard/package-lock.json dashboard/out www-dist
             git commit -m "chore(release): v${NEXT_VER} [skip ci]"
             git tag -a "v${NEXT_VER}" -m "Outrider v${NEXT_VER}"
             git push origin HEAD:main
@@ -83,14 +182,11 @@ jobs:
         run: |
           import pathlib, sys
           out = pathlib.Path("dashboard/out")
-          if (out / "zim").exists():
-              sys.exit("Unexpected legacy /zim export directory")
+          for legacy_dir in ("zim", "traffic", "inspector", "analytics", "orders"):
+              if (out / legacy_dir).exists():
+                  sys.exit(f"Unexpected legacy /{legacy_dir} export directory")
           required = [
               out / "index.html",
-              out / "traffic/index.html",
-              out / "inspector/index.html",
-              out / "analytics/index.html",
-              out / "orders/index.html",
               out / "settings/index.html",
               out / "help/index.html",
           ]
