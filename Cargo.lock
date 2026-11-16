@@ -2274,7 +2274,7 @@ dependencies = [
 
 [[package]]
 name = "proxyfor"
-version = "0.5.11"
+version = "0.5.12"
 dependencies = [
  "anyhow",
  "arboard",
