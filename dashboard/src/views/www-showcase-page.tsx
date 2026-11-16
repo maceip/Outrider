@@ -4,7 +4,7 @@ import type {LiveSessionBundle} from "../widgets/www-demo-workbench";
 import type {Selection} from "@heroui/react";
 
 import {ArrowRightFromSquare, FileArrowDown} from "@gravity-ui/icons";
-import {Button, Card, Description, Label, ListBox, Popover, toast} from "@heroui/react";
+import {Button, Card, Label, ListBox, Popover, toast} from "@heroui/react";
 import {Segment} from "@heroui-pro/react";
 import {CodeBlock} from "@heroui-pro/react/code-block";
 import {KPI} from "@heroui-pro/react/kpi";
@@ -160,6 +160,14 @@ function parseLatestRelease(raw: unknown): GitHubLatestRelease | null {
 
 function openExternalUrl(url: string) {
   window.open(url, "_blank", "noopener,noreferrer");
+}
+
+function formatCueTime(sec: number): string {
+  const whole = Math.max(0, Math.floor(sec));
+  const mins = Math.floor(whole / 60);
+  const rem = whole % 60;
+
+  return `${mins}:${String(rem).padStart(2, "0")}`;
 }
 
 export function WwwShowcasePage() {
@@ -435,15 +443,16 @@ export function WwwShowcasePage() {
                           {activeVideoConfig.cues.map((scene, idx) => (
                             <ListBox.Item
                               key={scene.id}
+                              className="items-center justify-between gap-3"
                               id={scene.id}
                               textValue={scene.title}
                             >
-                              <Label className="text-xs font-medium">
+                              <Label className="min-w-0 flex-1 truncate text-xs font-medium">
                                 {`${idx + 1}. ${scene.title}`}
                               </Label>
-                              <Description className="line-clamp-1 text-xs">
-                                {scene.description}
-                              </Description>
+                              <span className="text-muted shrink-0 font-mono text-[11px] font-medium tracking-[0.06em] tabular-nums">
+                                {formatCueTime(scene.startSec)}
+                              </span>
                               <ListBox.ItemIndicator />
                             </ListBox.Item>
                           ))}
@@ -455,22 +464,27 @@ export function WwwShowcasePage() {
               </div>
             </div>
 
-            <Card.Footer className="border-separator flex flex-wrap items-center justify-between gap-3 border-t px-4 py-2.5">
-              <Segment
-                aria-label="Select showcase reel"
-                selectedKey={heroVideo}
-                size="sm"
-                onSelectionChange={(key) => handleSelectVideo(String(key) as HeroVideoKey)}
-              >
-                {HERO_VIDEOS.map((item) => (
-                  <Segment.Item key={item.id} id={item.id}>
-                    {item.label}
-                  </Segment.Item>
-                ))}
-              </Segment>
-              <span className="text-muted min-w-0 flex-1 truncate text-right text-xs">
+            <Card.Footer className="border-separator flex flex-col items-start gap-2 border-t px-4 py-3">
+              <div className="flex w-full flex-wrap items-center justify-between gap-2">
+                <Segment
+                  aria-label="Select showcase reel"
+                  selectedKey={heroVideo}
+                  size="sm"
+                  onSelectionChange={(key) => handleSelectVideo(String(key) as HeroVideoKey)}
+                >
+                  {HERO_VIDEOS.map((item) => (
+                    <Segment.Item key={item.id} id={item.id}>
+                      {item.label}
+                    </Segment.Item>
+                  ))}
+                </Segment>
+                <span className="text-muted font-mono text-[11px] font-medium tracking-[0.06em] uppercase tabular-nums">
+                  {formatCueTime(videoTimeSec)}
+                </span>
+              </div>
+              <p className="text-muted text-xs leading-relaxed">
                 {activeCueInfo.cue.description}
-              </span>
+              </p>
             </Card.Footer>
           </Card>
         </div>
