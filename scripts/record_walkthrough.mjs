@@ -542,20 +542,9 @@ async function main() {
       .click();
     await page.waitForTimeout(2100);
 
-    // 7. Return to Dashboard + toggle Light & Dark surfaces from bottom sidebar switcher
-    markCue(
-      "theme",
-      "Light & Dark Surfaces",
-      "Switching seamlessly between dark and light workbench themes.",
-    );
+    // Return cleanly to dark Dashboard — zero light-mode flash mixed into dark demo footage
     await clickSidebarLink(page, "Dashboard");
     await page.getByRole("heading", { level: 1, name: "Dashboard" }).waitFor({ state: "visible" });
-    await page.waitForTimeout(1800);
-
-    await page.locator('[aria-label="Switch to light mode"]:visible').first().click();
-    await page.waitForTimeout(2700);
-
-    await page.locator('[aria-label="Switch to dark mode"]:visible').first().click();
     await page.waitForTimeout(2400);
 
     await writeFile(OUT_CUES_JSON, `${JSON.stringify(recordedCues, null, 2)}\n`, "utf8");

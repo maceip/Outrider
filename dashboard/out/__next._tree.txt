@@ -5,4 +5,4 @@
 :HL["/__proxyfor__/_next/static/media/83afe278b6a6bb3c-s.p.2bn3s6zvc0dyp.woff2","font",{"crossOrigin":"","type":"font/woff2"}]
 2:[["children",{"s":"__PAGE__","h":160}]]
 1:[["children",{"s":"(app)","h":96,"c":"$Q2"}]]
-0:{"b":"m6gQ5U1EEFO7HSaWXFIqa","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"UcDuLOSh4agF5CFSIi2Sy","t":{"t":{"s":"","h":80,"c":"$Q1"}}}

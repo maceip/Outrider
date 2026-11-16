@@ -5,7 +5,6 @@ import type {Selection} from "@heroui/react";
 
 import {ArrowRightFromSquare, FileArrowDown} from "@gravity-ui/icons";
 import {Button, Card, Label, ListBox, Popover, toast} from "@heroui/react";
-import {Segment} from "@heroui-pro/react";
 import {CodeBlock} from "@heroui-pro/react/code-block";
 import {KPI} from "@heroui-pro/react/kpi";
 import {useCallback, useEffect, useMemo, useRef, useState} from "react";
@@ -15,8 +14,6 @@ import walkthroughCuesData from "../lib/walkthrough-cues.json";
 import {WWW_BASE_PATH, withWwwBasePath} from "../lib/www-base-path";
 import {WwwDemoWorkbench} from "../widgets/www-demo-workbench";
 import {WwwReceiptLab} from "../widgets/www-receipt-lab";
-
-type HeroVideoKey = "walkthrough" | "reel" | "mark";
 
 interface VideoSceneCue {
   description: string;
@@ -42,56 +39,6 @@ const GITHUB_RELEASES_LATEST_URL = "https://github.com/maceip/Outrider/releases/
 const GITHUB_RELEASES_API_URL = "https://api.github.com/repos/maceip/Outrider/releases/latest";
 
 const WALKTHROUGH_CUES: ReadonlyArray<VideoSceneCue> = walkthroughCuesData;
-
-const REEL_CUES: ReadonlyArray<VideoSceneCue> = [
-  {
-    description: "Precision dark surfaces and high-contrast lime accents built for dense agent telemetry.",
-    id: "reel-surfaces",
-    startSec: 0,
-    title: "Unified Workbench Design",
-  },
-  {
-    description: "Every table, chart, and inspector shares one cohesive component geometry.",
-    id: "reel-system",
-    startSec: 15,
-    title: "Consistent Controls",
-  },
-];
-
-const MARK_CUES: ReadonlyArray<VideoSceneCue> = [
-  {
-    description: "The Outrider compass-star emblem rendered across desktop installers and web surfaces.",
-    id: "mark-emblem",
-    startSec: 0,
-    title: "Outrider Brand Emblem",
-  },
-];
-
-const HERO_VIDEOS: ReadonlyArray<{
-  cues: ReadonlyArray<VideoSceneCue>;
-  file: string;
-  id: HeroVideoKey;
-  label: string;
-}> = [
-  {
-    cues: WALKTHROUGH_CUES,
-    file: "playwright-walkthrough.mp4",
-    id: "walkthrough",
-    label: "Live Walkthrough",
-  },
-  {
-    cues: REEL_CUES,
-    file: "silvector-reel.mp4",
-    id: "reel",
-    label: "Motion Reel",
-  },
-  {
-    cues: MARK_CUES,
-    file: "outrider-mark.mp4",
-    id: "mark",
-    label: "Brand Mark",
-  },
-];
 
 interface QuickStartCommand {
   command: string;
@@ -175,7 +122,6 @@ export function WwwShowcasePage() {
   const brandThemeDir = mode === "brutalism-light" ? "light" : "dark";
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
-  const [heroVideo, setHeroVideo] = useState<HeroVideoKey>("walkthrough");
   const [videoTimeSec, setVideoTimeSec] = useState(0);
   const [cuePopoverOpen, setCuePopoverOpen] = useState(false);
   const [bundle, setBundle] = useState<LiveSessionBundle | null>(null);
@@ -276,54 +222,40 @@ export function WwwShowcasePage() {
     };
   }, [latestRelease]);
 
-  const activeVideoConfig = useMemo(
-    () => HERO_VIDEOS.find((item) => item.id === heroVideo) ?? HERO_VIDEOS[0],
-    [heroVideo],
-  );
-
   const activeCueInfo = useMemo(() => {
-    const cues = activeVideoConfig.cues;
     let index = 0;
 
-    for (let i = 0; i < cues.length; i += 1) {
-      if (videoTimeSec >= cues[i].startSec) {
+    for (let i = 0; i < WALKTHROUGH_CUES.length; i += 1) {
+      if (videoTimeSec >= WALKTHROUGH_CUES[i].startSec) {
         index = i;
       }
     }
 
     return {
-      cue: cues[index] ?? cues[0],
+      cue: WALKTHROUGH_CUES[index] ?? WALKTHROUGH_CUES[0],
       index,
-      total: cues.length,
+      total: WALKTHROUGH_CUES.length,
     };
-  }, [activeVideoConfig.cues, videoTimeSec]);
+  }, [videoTimeSec]);
 
-  const handleSelectVideo = useCallback((nextKey: HeroVideoKey) => {
-    setHeroVideo(nextKey);
-    setVideoTimeSec(0);
+  const handleJumpToCue = useCallback((keys: Selection) => {
+    if (keys === "all") return;
+    const pickedId = Array.from(keys)[0];
+
+    if (typeof pickedId !== "string") return;
+    const target = WALKTHROUGH_CUES.find((item) => item.id === pickedId);
+
+    if (!target) return;
+    if (videoRef.current) {
+      videoRef.current.currentTime = target.startSec;
+      void videoRef.current.play().catch(() => {});
+    }
+    setVideoTimeSec(target.startSec);
+    setCuePopoverOpen(false);
   }, []);
 
-  const handleJumpToCue = useCallback(
-    (keys: Selection) => {
-      if (keys === "all") return;
-      const pickedId = Array.from(keys)[0];
-
-      if (typeof pickedId !== "string") return;
-      const target = activeVideoConfig.cues.find((item) => item.id === pickedId);
-
-      if (!target) return;
-      if (videoRef.current) {
-        videoRef.current.currentTime = target.startSec;
-        void videoRef.current.play().catch(() => {});
-      }
-      setVideoTimeSec(target.startSec);
-      setCuePopoverOpen(false);
-    },
-    [activeVideoConfig.cues],
-  );
-
-  const activeVideoSrc = `${WWW_BASE_PATH}/demo/${activeVideoConfig.file}`;
-  const posterSrc = `${WWW_BASE_PATH}/brand/${brandThemeDir}/outrider-logo-512.png`;
+  const walkthroughSrc = `${WWW_BASE_PATH}/demo/playwright-walkthrough.mp4`;
+  const posterSrc = `${WWW_BASE_PATH}/brand/dark/outrider-logo-512.png`;
   const logoSrc = `${WWW_BASE_PATH}/brand/${brandThemeDir}/outrider-logo-256.png`;
 
   const kpis = useMemo(
@@ -386,7 +318,6 @@ export function WwwShowcasePage() {
           <Card className="overflow-hidden p-0">
             <div className="relative">
               <video
-                key={activeVideoSrc}
                 ref={videoRef}
                 autoPlay
                 controls
@@ -395,7 +326,7 @@ export function WwwShowcasePage() {
                 playsInline
                 className="bg-surface-secondary aspect-video w-full object-cover"
                 poster={posterSrc}
-                src={activeVideoSrc}
+                src={walkthroughSrc}
                 onLoadedMetadata={(event) => {
                   setVideoTimeSec(event.currentTarget.currentTime);
                 }}
@@ -433,58 +364,42 @@ export function WwwShowcasePage() {
                         </p>
                       </div>
 
-                      {activeVideoConfig.cues.length > 1 ? (
-                        <ListBox
-                          aria-label="Walkthrough scenes"
-                          selectedKeys={new Set([activeCueInfo.cue.id])}
-                          selectionMode="single"
-                          onSelectionChange={handleJumpToCue}
-                        >
-                          {activeVideoConfig.cues.map((scene, idx) => (
-                            <ListBox.Item
-                              key={scene.id}
-                              className="items-center justify-between gap-3"
-                              id={scene.id}
-                              textValue={scene.title}
-                            >
-                              <Label className="min-w-0 flex-1 truncate text-xs font-medium">
-                                {`${idx + 1}. ${scene.title}`}
-                              </Label>
-                              <span className="text-muted shrink-0 font-mono text-[11px] font-medium tracking-[0.06em] tabular-nums">
-                                {formatCueTime(scene.startSec)}
-                              </span>
-                              <ListBox.ItemIndicator />
-                            </ListBox.Item>
-                          ))}
-                        </ListBox>
-                      ) : null}
+                      <ListBox
+                        aria-label="Walkthrough scenes"
+                        selectedKeys={new Set([activeCueInfo.cue.id])}
+                        selectionMode="single"
+                        onSelectionChange={handleJumpToCue}
+                      >
+                        {WALKTHROUGH_CUES.map((scene, idx) => (
+                          <ListBox.Item
+                            key={scene.id}
+                            className="items-center justify-between gap-3"
+                            id={scene.id}
+                            textValue={scene.title}
+                          >
+                            <Label className="min-w-0 flex-1 truncate text-xs font-medium">
+                              {`${idx + 1}. ${scene.title}`}
+                            </Label>
+                            <span className="text-muted shrink-0 font-mono text-[11px] font-medium tracking-[0.06em] tabular-nums">
+                              {formatCueTime(scene.startSec)}
+                            </span>
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
                     </Popover.Dialog>
                   </Popover.Content>
                 </Popover>
               </div>
             </div>
 
-            <Card.Footer className="border-separator flex flex-col items-start gap-2 border-t px-4 py-3">
-              <div className="flex w-full flex-wrap items-center justify-between gap-2">
-                <Segment
-                  aria-label="Select showcase reel"
-                  selectedKey={heroVideo}
-                  size="sm"
-                  onSelectionChange={(key) => handleSelectVideo(String(key) as HeroVideoKey)}
-                >
-                  {HERO_VIDEOS.map((item) => (
-                    <Segment.Item key={item.id} id={item.id}>
-                      {item.label}
-                    </Segment.Item>
-                  ))}
-                </Segment>
-                <span className="text-muted font-mono text-[11px] font-medium tracking-[0.06em] uppercase tabular-nums">
-                  {formatCueTime(videoTimeSec)}
-                </span>
-              </div>
-              <p className="text-muted text-xs leading-relaxed">
+            <Card.Footer className="border-separator flex items-center justify-between gap-3 border-t px-4 py-2.5">
+              <p className="text-muted min-w-0 flex-1 text-xs leading-relaxed">
                 {activeCueInfo.cue.description}
               </p>
+              <span className="text-muted shrink-0 font-mono text-[11px] font-medium tracking-[0.06em] uppercase tabular-nums">
+                {formatCueTime(videoTimeSec)}
+              </span>
             </Card.Footer>
           </Card>
         </div>

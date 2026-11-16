@@ -34,11 +34,5 @@
     "startSec": 50.1,
     "title": "Activity & Configuration",
     "description": "Reviewing host volume, gateway endpoints, and local certificate downloads."
-  },
-  {
-    "id": "theme",
-    "startSec": 56.8,
-    "title": "Light & Dark Surfaces",
-    "description": "Switching seamlessly between dark and light workbench themes."
   }
 ]
