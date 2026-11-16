@@ -2,6 +2,7 @@ pub mod admin_auth;
 pub mod bundler;
 pub mod db;
 pub mod http;
+pub mod interception;
 pub mod receipt;
 
 use crate::clef::engine::ClefEngine;
@@ -42,6 +43,7 @@ pub struct Commerce {
     pub peers: std::sync::Mutex<std::collections::HashMap<String, rmcp::Peer<rmcp::RoleServer>>>,
     pub events: tokio::sync::broadcast::Sender<serde_json::Value>,
     pub inspector: crate::inspector::Inspector,
+    pub interception: interception::InterceptionEngine,
 }
 impl std::fmt::Debug for Commerce {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -59,6 +61,7 @@ impl Commerce {
     ) -> Result<(Arc<Self>, Option<String>)> {
         db.0.lock().map_err(|_|anyhow::anyhow!("database lock poisoned"))?.execute("UPDATE upstream_servers SET status='Disconnected',error='Runtime restarted; no live connection',updated_at=?1",[db::now()])?;
         crate::inspector::Inspector::reset_stale(&db)?;
+        interception::InterceptionEngine::reset_stale(&db)?;
         let (auth, token, key) = AdminAuth::load(dir, allow_remote)?;
         let receipts = ReceiptAuthority::load(db.clone(), &dir.join("outrider-ed25519.pem"))?;
         let (events, _) = tokio::sync::broadcast::channel(256);
@@ -83,6 +86,7 @@ impl Commerce {
                 peers: Default::default(),
                 events,
                 inspector: Default::default(),
+                interception: Default::default(),
             }),
             token,
         ))
@@ -132,6 +136,7 @@ impl Commerce {
             serde_json::to_value(*self.probe_policy.read().unwrap())?,
         );
         result.insert("public_key".into(), self.receipts.public_key().into());
+        result.insert("interception".into(), self.interception.state(self)?);
         for table in [
             "agent_sessions",
             "fingerprint_observations",

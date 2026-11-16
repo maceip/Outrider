@@ -1,5 +1,8 @@
 import {SettingsPage} from "../../../views/settings-page";
+import {WwwLandingPage} from "../../../views/www-landing-page";
+
+const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
 
 export default function Page() {
-  return <SettingsPage />;
+  return IS_WWW ? <WwwLandingPage /> : <SettingsPage />;
 }

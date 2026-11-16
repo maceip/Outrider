@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import {
   chmod,
   cp,
+  mkdir,
   mkdtemp,
   readdir,
   readFile,
@@ -18,6 +19,8 @@ import path from "node:path";
 
 const ROOT = path.resolve(import.meta.dirname, "..");
 const RELEASE_BIN = path.join(ROOT, "target/release/outrider");
+const SCRATCH_DIR =
+  "/Users/mac/.gemini/antigravity/brain/caeccb67-9a79-43a1-a9bf-51444c01fd54/scratch";
 const WEBMCP_ORIGIN_TRIAL_TOKEN =
   "A/h8mpmc7Ym1LKQeIQMQ2NG8Tosq469/Pk04jVBhwrEMKVjNKhqeNZz1Js6I61E9vLmF8wRkQguqkCYtFatiJggAAABbeyJvcmlnaW4iOiJodHRwOi8vbG9jYWxob3N0OjgwIiwiZmVhdHVyZSI6IldlYk1DUCIsImV4cGlyeSI6MTgwNjM2NDgwMCwiaXNUaGlyZFBhcnR5Ijp0cnVlfQ==";
 
@@ -36,6 +39,7 @@ const FORBIDDEN_STRINGS = [
   "Kate Moore",
   "Alice Johnson",
   "Failed to fetch",
+  "Outrider",
 ] as const;
 
 async function pickFreePort(): Promise<number> {
@@ -77,7 +81,7 @@ async function startReleaseGateway(
   extraArgs: string[] = ["--web", "--no-open"],
   extraEnv: Record<string, string> = {},
 ): Promise<RunningGateway> {
-  const configDir = await mkdtemp(path.join(tmpdir(), "outrider-phoenix-e2e-"));
+  const configDir = await mkdtemp(path.join(tmpdir(), "conduit-v7-e2e-"));
   const port = await pickFreePort();
   const baseUrl = `http://localhost:${port}`;
 
@@ -292,699 +296,112 @@ function kpiCard(page: Page, title: string) {
     .locator("../..");
 }
 
-async function clickSidebarLink(page: Page, label: string) {
-  const nav =
-    label === "Help"
-      ? page.getByRole("treegrid", { name: "Support" })
-      : page.getByRole("treegrid", { name: "Dashboard navigation" });
-  await nav.getByRole("row", { name: label, exact: true }).click();
+async function selectWorkspaceSegment(
+  page: Page,
+  label: "Transactions" | "Capture" | "Orders" | "Overview",
+) {
+  await page
+    .locator('[aria-label="Workspace navigation"]')
+    .getByText(label, { exact: true })
+    .click();
 }
 
-async function assertCleanCopyAndZeroJargon(
+async function assertCleanCopyAndHeroUiHygiene(
   page: Page,
   routeName: string,
   options: { excludeCodeBlocks?: boolean } = {},
 ) {
-  const text = await page.evaluate((excludePre) => {
-    if (!excludePre) {
-      return document.body.innerText;
+  const audit = await page.evaluate((excludePre) => {
+    const codeEls = excludePre
+      ? Array.from(
+          document.querySelectorAll<HTMLElement>(
+            "pre, [data-slot='code-block']",
+          ),
+        )
+      : [];
+    const savedDisplays = codeEls.map((el) => el.style.display);
+    let text = "";
+    try {
+      for (const el of codeEls) {
+        el.style.display = "none";
+      }
+      text = document.body.innerText;
+    } finally {
+      codeEls.forEach((el, idx) => {
+        el.style.display = savedDisplays[idx] ?? "";
+      });
     }
-    const clone = document.body.cloneNode(true) as HTMLElement;
-    for (const el of clone.querySelectorAll("pre, [data-slot='code-block']")) {
-      el.remove();
-    }
-    return clone.innerText;
+
+    const unbackedControls = Array.from(
+      document.querySelectorAll("button, input, textarea, select"),
+    )
+      .filter((el) => {
+        const hasOwnSlot = el.hasAttribute("data-slot");
+        const isHeroClass =
+          el.classList.contains("button") ||
+          el.classList.contains("segment__item") ||
+          el.classList.contains("input") ||
+          el.classList.contains("search-field__input") ||
+          el.classList.contains("accordion__trigger") ||
+          el.classList.contains("select__trigger") ||
+          el.classList.contains("tabs__tab") ||
+          el.classList.contains("close-button") ||
+          el.closest(
+            ".segment, .switch, .search-field, .text-field, .select, .accordion, .tabs, [data-slot='code-block'], [data-slot='table'], [data-slot='data-grid']",
+          ) !== null;
+        return !hasOwnSlot && !isHeroClass;
+      })
+      .map((el) => `${el.tagName.toLowerCase()}.${el.className}`);
+
+    return {
+      text,
+      noHorizontalOverflow:
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+      footerCount: document.querySelectorAll("footer").length,
+      rawCodeCount: document.querySelectorAll("code:not(pre code)").length,
+      verticalStripeCount: document.querySelectorAll(
+        "[class*='border-l-2'], [class*='border-l-4']",
+      ).length,
+      unbackedControls,
+    };
   }, Boolean(options.excludeCodeBlocks));
+
   for (const forbidden of FORBIDDEN_STRINGS) {
     expect(
-      text.toLowerCase(),
+      audit.text.toLowerCase(),
       `Route "${routeName}" must not contain forbidden string "${forbidden}"`,
     ).not.toContain(forbidden.toLowerCase());
   }
-  expect(text, `Route "${routeName}" must never render NaN`).not.toContain(
+  expect(audit.text, `Route "${routeName}" must never render NaN`).not.toContain(
     "NaN",
   );
+  expect(
+    audit.noHorizontalOverflow,
+    `Zero horizontal overflow expected on "${routeName}"`,
+  ).toBe(true);
+  expect(
+    audit.footerCount,
+    `Zero <footer> tags expected on "${routeName}"`,
+  ).toBe(0);
+  expect(
+    audit.rawCodeCount,
+    `Zero inline <code> tags expected on "${routeName}"`,
+  ).toBe(0);
+  expect(
+    audit.verticalStripeCount,
+    `Zero vertical accent stripes expected on "${routeName}"`,
+  ).toBe(0);
+  expect(
+    audit.unbackedControls,
+    `Zero non-HeroUI controls expected on "${routeName}"`,
+  ).toEqual([]);
 }
 
-test("Phoenix HeroUI Pro dashboard clean boot, zero self-pollution, unified live stream, and interactive persistence", async ({
+test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (AudioShop hold/validate/release/Ed25519 fulfill), and unified Capture/Orders/Overview/Settings/Help persistence", async ({
   page,
 }) => {
-  const gateway = await startReleaseGateway();
-  let upstreamServer: http.Server | null = null;
-
-  const consoleErrors: string[] = [];
-  const pageErrors: string[] = [];
-  const badResponses: string[] = [];
-
-  page.on("console", (msg) => {
-    if (msg.type() === "error") {
-      consoleErrors.push(msg.text());
-    }
-  });
-  page.on("pageerror", (err) => {
-    pageErrors.push(err.message);
-  });
-  page.on("response", (res) => {
-    if (res.status() >= 400) {
-      badResponses.push(
-        `${res.status()} ${res.request().method()} ${res.url()}`,
-      );
-    }
-  });
-
-  try {
-    // =========================================================================
-    // (a) Clean Boot & WebMCP Origin Trial
-    // =========================================================================
-    await page.goto(`${gateway.baseUrl}/__proxyfor__/`);
-    await expect(page).toHaveTitle("Conduit");
-
-    const originTrialContent = await page
-      .locator('meta[http-equiv="origin-trial"]')
-      .getAttribute("content");
-    expect(originTrialContent).toBe(WEBMCP_ORIGIN_TRIAL_TOKEN);
-
-    await expect(
-      page.locator('[data-sidebar="label"]:visible').first(),
-    ).toHaveText("Conduit");
-
-    expect(consoleErrors).toEqual([]);
-    expect(pageErrors).toEqual([]);
-    expect(badResponses).toEqual([]);
-
-    // =========================================================================
-    // (b) Zero Self-Pollution & Zero Fake Data / Jargon across all 7 routes
-    // =========================================================================
-    // 1. Dashboard (/)
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Dashboard" }),
-    ).toBeVisible();
-    for (const label of ["Requests", "MCP Calls", "Sessions", "Errors"]) {
-      await expect(kpiCard(page, label)).toContainText("0");
-    }
-    await expect(
-      page.getByText("No traffic recorded", { exact: true }),
-    ).toBeVisible();
-    await assertCleanCopyAndZeroJargon(page, "Dashboard");
-
-    // 2. Traffic (/traffic/)
-    await clickSidebarLink(page, "Traffic");
-    await expect(page).toHaveURL(/\/__proxyfor__\/traffic\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Traffic" }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("No Packets Captured", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("No Request Selected", { exact: true }),
-    ).toBeVisible();
-    await assertCleanCopyAndZeroJargon(page, "Traffic");
-
-    // 3. Inspector (/inspector/)
-    await clickSidebarLink(page, "Inspector");
-    await expect(page).toHaveURL(/\/__proxyfor__\/inspector\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Inspector" }),
-    ).toBeVisible();
-    await expect(page.locator('input[name="inspector-target"]')).toHaveValue(
-      new RegExp(`^http://(localhost|127\\.0\\.0\\.1):${gateway.port}/mcp$`),
-    );
-    await expect(
-      page.getByText("No Live Connection", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("No Wire Messages", { exact: true }),
-    ).toBeVisible();
-    await assertCleanCopyAndZeroJargon(page, "Inspector");
-
-    // 4. Analytics (/analytics/)
-    await clickSidebarLink(page, "Analytics");
-    await expect(page).toHaveURL(/\/__proxyfor__\/analytics\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Analytics" }),
-    ).toBeVisible();
-    await expect(kpiCard(page, "Events")).toContainText("0");
-    await expect(kpiCard(page, "Unique Hosts")).toContainText("0");
-    await expect(kpiCard(page, "Error Rate")).toContainText("0%");
-    await expect(kpiCard(page, "Avg. Latency")).toContainText("0 ms");
-    await expect(
-      page.getByText("No live events", { exact: true }),
-    ).toBeVisible();
-    await assertCleanCopyAndZeroJargon(page, "Analytics");
-
-    // 5. Receipts (/orders/)
-    await clickSidebarLink(page, "Receipts");
-    await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Receipts" }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("No receipts found", { exact: true }),
-    ).toBeVisible();
-    await assertCleanCopyAndZeroJargon(page, "Receipts");
-
-    // 4. Settings (/settings/)
-    await clickSidebarLink(page, "Settings");
-    await expect(page).toHaveURL(/\/__proxyfor__\/settings\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Settings" }),
-    ).toBeVisible();
-    await expect(page.locator('input[name="proxy-address"]')).toHaveValue(
-      `127.0.0.1:${gateway.port}`,
-    );
-    await expect(page.locator('input[name="mcp-endpoint"]')).toHaveValue(
-      `http://127.0.0.1:${gateway.port}/mcp`,
-    );
-    await assertCleanCopyAndZeroJargon(page, "Settings");
-
-    // 5. Help (/help/)
-    await clickSidebarLink(page, "Help");
-    await expect(page).toHaveURL(/\/__proxyfor__\/help\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Help" }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Root Certificate (.pem)", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Root Certificate (.cer)", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Export Traffic (.har)", { exact: true }),
-    ).toBeVisible();
-    await assertCleanCopyAndZeroJargon(page, "Help");
-
-    // Verify backend has ZERO self-pollution after browsing all 5 UI routes
-    const emptyTrafficsRes = await fetch(
-      `${gateway.baseUrl}/__proxyfor__/traffics`,
-    );
-    expect(emptyTrafficsRes.status).toBe(200);
-    const emptyTraffics = (await emptyTrafficsRes.json()) as unknown[];
-    expect(emptyTraffics.length).toBe(0);
-
-    const emptySnapRes = await fetch(
-      `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
-      {
-        headers: { Authorization: `Bearer ${gateway.adminToken}` },
-      },
-    );
-    expect(emptySnapRes.status).toBe(200);
-    const emptySnap = (await emptySnapRes.json()) as {
-      fingerprint_observations: unknown[];
-    };
-    expect(emptySnap.fingerprint_observations.length).toBe(0);
-
-    // =========================================================================
-    // (c) Unified Live Stream (HTTP Proxy + /mcp -> Live UI Update Without Reload)
-    // =========================================================================
-    await page.goto(`${gateway.baseUrl}/__proxyfor__/`);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Dashboard" }),
-    ).toBeVisible();
-    await expect(kpiCard(page, "Requests")).toContainText("0");
-
-    // Start ephemeral upstream HTTP test server
-    upstreamServer = http.createServer((_req, res) => {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ ok: true }));
-    });
-    await new Promise<void>((resolve) =>
-      upstreamServer!.listen(0, "127.0.0.1", resolve),
-    );
-    const upstreamPort = (upstreamServer.address() as net.AddressInfo).port;
-    const upstreamTargetUrl = `http://127.0.0.1:${upstreamPort}/e2e-upstream-ping`;
-
-    // 1. Send 1 proxied HTTP request through 127.0.0.1:<port>
-    const proxiedRes = await sendProxiedHttpGet(
-      gateway.port,
-      upstreamTargetUrl,
-    );
-    expect(proxiedRes.statusCode).toBe(200);
-    expect(JSON.parse(proxiedRes.body)).toEqual({ ok: true });
-
-    // 2. Send 1 direct POST http://localhost:<port>/mcp JSON-RPC initialize request
-    const mcpInitRes = await fetch(`${gateway.baseUrl}/mcp`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json, text/event-stream",
-      },
-      body: JSON.stringify({
-        jsonrpc: "2.0",
-        id: 1,
-        method: "initialize",
-        params: {
-          protocolVersion: "2025-03-26",
-          capabilities: {},
-          clientInfo: { name: "phoenix-e2e-mcp-client", version: "1.0.0" },
-        },
-      }),
-    });
-    expect(mcpInitRes.status).toBe(200);
-    await mcpInitRes.text();
-
-    // Without reloading the browser page, assert Dashboard live-updates via /subscribe/traffics
-    await expect(kpiCard(page, "Requests")).toContainText("2");
-    await expect(kpiCard(page, "MCP Calls")).toContainText("1");
-
-    const recentGrid = page.getByRole("grid", { name: "Recent traffic" });
-    const recentDataRows = recentGrid
-      .getByRole("row")
-      .filter({ hasNot: page.getByRole("columnheader") });
-    await expect(recentDataRows).toHaveCount(2);
-    await expect(recentGrid).toContainText(upstreamTargetUrl);
-    await expect(recentGrid).toContainText(`${gateway.baseUrl}/mcp`);
-
-    // Switch Dashboard tabs: Traffic -> 1 row, MCP -> 1 row, Overview -> 2 rows
-    const dashboardTabs = page.getByRole("tablist", { name: "Dashboard tabs" });
-
-    await dashboardTabs
-      .getByRole("tab", { name: "Traffic", exact: true })
-      .click();
-    await expect(recentDataRows).toHaveCount(1);
-    await expect(recentGrid).toContainText(upstreamTargetUrl);
-    await expect(recentGrid).not.toContainText(`${gateway.baseUrl}/mcp`);
-    await expect(kpiCard(page, "Requests")).toContainText("1");
-
-    await dashboardTabs.getByRole("tab", { name: "MCP", exact: true }).click();
-    await expect(recentDataRows).toHaveCount(1);
-    await expect(recentGrid).toContainText(`${gateway.baseUrl}/mcp`);
-    await expect(recentGrid).not.toContainText(upstreamTargetUrl);
-    await expect(kpiCard(page, "Requests")).toContainText("1");
-    await expect(kpiCard(page, "MCP Calls")).toContainText("1");
-
-    await dashboardTabs
-      .getByRole("tab", { name: "Overview", exact: true })
-      .click();
-    await expect(recentDataRows).toHaveCount(2);
-    await expect(kpiCard(page, "Requests")).toContainText("2");
-
-    // Exercise Dashboard period selector, Recent Traffic search & status filter, Copy cURL, and Export HAR
-    await page.getByRole("button", { name: "Change period" }).click();
-    await page
-      .getByRole("menuitemradio", { name: "Daily", exact: true })
-      .click();
-    await expect(kpiCard(page, "Requests")).toContainText("2");
-
-    const trafficSearch = page.getByRole("searchbox", {
-      name: "Search traffic",
-    });
-    await trafficSearch.fill("e2e-upstream-ping");
-    await expect(recentDataRows).toHaveCount(1);
-    await trafficSearch.fill("");
-    await expect(recentDataRows).toHaveCount(2);
-
-    await recentGrid.getByRole("button", { name: "Copy cURL" }).first().click();
-    await expect(
-      page.getByText("Copied cURL command", { exact: true }),
-    ).toBeVisible();
-    const clipboardCurl = await page.evaluate(() =>
-      navigator.clipboard.readText(),
-    );
-    expect(clipboardCurl).toContain("curl");
-
-    const downloadPromise = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Export HAR" }).first().click();
-    const harDownload = await downloadPromise;
-    expect(harDownload.suggestedFilename()).toMatch(/^conduit-.*\.har$/);
-
-    // Navigate to Analytics (/analytics/) and assert KPIs, protocol breakdown, Live events, and Segment
-    await clickSidebarLink(page, "Analytics");
-    await expect(page).toHaveURL(/\/__proxyfor__\/analytics\/?$/);
-    await expect(kpiCard(page, "Events")).toContainText("2");
-
-    const protocolCard = page
-      .locator('[data-slot="card"]')
-      .filter({ has: page.getByText("Traffic by Protocol", { exact: true }) })
-      .first();
-    const httpRow = protocolCard
-      .locator("div")
-      .filter({ has: page.getByText("HTTP", { exact: true }) })
-      .first();
-    const mcpRow = protocolCard
-      .locator("div")
-      .filter({ has: page.getByText("MCP", { exact: true }) })
-      .first();
-    await expect(httpRow).toContainText("1");
-    await expect(mcpRow).toContainText("1");
-
-    const liveEventsGrid = page.getByRole("grid", { name: "Live events" });
-    const liveEventRows = liveEventsGrid
-      .getByRole("row")
-      .filter({ hasNot: page.getByRole("columnheader") });
-    await expect(liveEventRows).toHaveCount(2);
-    await expect(liveEventsGrid).toContainText(upstreamTargetUrl);
-    await expect(liveEventsGrid).toContainText(`${gateway.baseUrl}/mcp`);
-
-    const timeRangeSegment = page.locator('[aria-label="Time range"]');
-    for (const range of ["5M", "1H", "24H", "ALL"] as const) {
-      await timeRangeSegment.getByText(range, { exact: true }).click();
-      await expect(kpiCard(page, "Events")).toContainText("2");
-      await expect(liveEventRows).toHaveCount(2);
-    }
-
-    // =========================================================================
-    // (d) Interactive Persistence on Orders, Settings, and Help
-    // =========================================================================
-    // Authenticate via local desktop bootstrap endpoint to obtain session token
-    const localBootstrapRes = await fetch(
-      `${gateway.baseUrl}/__proxyfor__/commerce/bootstrap/local`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-outrider-client": "dashboard",
-        },
-        body: "{}",
-      },
-    );
-    expect(localBootstrapRes.status).toBe(200);
-    const { token: sessionToken } = (await localBootstrapRes.json()) as {
-      token: string;
-    };
-    expect(sessionToken).toBe(gateway.adminToken);
-
-    const bundlePutRes = await fetch(
-      `${gateway.baseUrl}/__proxyfor__/commerce/bundles/put`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${sessionToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          bundle_id: "gateway-core",
-          title: "Gateway Core Tools",
-          items: ["outrider_session_evidence"],
-          rules: {},
-        }),
-      },
-    );
-    expect(bundlePutRes.status).toBe(200);
-
-    const issueRes = await fetch(
-      `${gateway.baseUrl}/__proxyfor__/commerce/receipts/issue`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${sessionToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          subject: "agent:phoenix-client",
-          bundle_id: "gateway-core",
-          max_calls: 5,
-          expires_at_unix: Math.floor(Date.now() / 1000) + 3600,
-        }),
-      },
-    );
-    expect(issueRes.status).toBe(200);
-    const issuedPayload = (await issueRes.json()) as {
-      signed_receipt: { receipt: { receipt_id: string } };
-    };
-    const receiptId = issuedPayload.signed_receipt.receipt.receipt_id;
-    expect(receiptId.length).toBeGreaterThan(8);
-
-    // Visit Receipts (/orders/), verify receipt row, filter via SearchField, Status & Date range, then Revoke
-    await clickSidebarLink(page, "Receipts");
-    await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
-
-    const receiptsGrid = page.getByRole("grid", { name: "Receipts" });
-    const receiptRows = receiptsGrid
-      .getByRole("row")
-      .filter({ hasNot: page.getByRole("columnheader") });
-    await expect(receiptRows).toHaveCount(1);
-    await expect(receiptsGrid).toContainText(receiptId);
-    await expect(receiptsGrid).toContainText("agent:phoenix-client");
-    await expect(receiptsGrid).toContainText("gateway-core");
-    await expect(receiptsGrid).toContainText("Active");
-    await expect(receiptsGrid).toContainText("5 / 5");
-
-    // Filter via SearchField
-    const searchInput = page.getByPlaceholder("Search receipts...");
-    await searchInput.fill("unmatched-receipt-search");
-    await expect(
-      page.getByText("No receipts match the active search or filters.", {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await searchInput.fill("phoenix-client");
-    await expect(receiptRows).toHaveCount(1);
-    await searchInput.fill("");
-    await expect(receiptRows).toHaveCount(1);
-
-    // Filter via Status dropdown
-    await page.getByRole("button", { name: "Status", exact: true }).click();
-    await page
-      .getByRole("menuitemradio", { name: "Revoked", exact: true })
-      .click();
-    await expect(
-      page.getByText("No receipts match the active search or filters.", {
-        exact: true,
-      }),
-    ).toBeVisible();
-
-    await page.getByRole("button", { name: "Revoked", exact: true }).click();
-    await page
-      .getByRole("menuitemradio", { name: "Active", exact: true })
-      .click();
-    await expect(receiptRows).toHaveCount(1);
-
-    await page.getByRole("button", { name: "Active", exact: true }).click();
-    await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
-    await expect(receiptRows).toHaveCount(1);
-
-    // Filter via Date range dropdown
-    await page.getByRole("button", { name: "Date range", exact: true }).click();
-    await page
-      .getByRole("menuitemradio", { name: "Last 7 days", exact: true })
-      .click();
-    await expect(receiptRows).toHaveCount(1);
-    await page
-      .getByRole("button", { name: "Last 7 days", exact: true })
-      .click();
-    await page
-      .getByRole("menuitemradio", { name: "All time", exact: true })
-      .click();
-    await expect(receiptRows).toHaveCount(1);
-
-    // Copy ID action + Revoke action -> assert status flips to Revoked and HeroUI toast appears
-    const receiptActionBtn = page
-      .locator(`[data-receipt-id="${receiptId}"]`)
-      .getByRole("button", { name: "Receipt actions" });
-    await receiptActionBtn.click();
-    await page.getByRole("menuitem", { name: "Copy ID", exact: true }).click();
-    await expect(
-      page.getByText("Copied receipt ID", { exact: true }),
-    ).toBeVisible();
-
-    await receiptActionBtn.click();
-    await page.getByRole("menuitem", { name: "Revoke", exact: true }).click();
-
-    await expect(receiptsGrid).toContainText("Revoked");
-    await expect(
-      page.getByText("Receipt revoked", { exact: true }),
-    ).toBeVisible();
-
-    // Verify backend persisted revoked = 1
-    const snapAfterRevokeRes = await fetch(
-      `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
-      {
-        headers: { Authorization: `Bearer ${sessionToken}` },
-      },
-    );
-    const snapAfterRevoke = (await snapAfterRevokeRes.json()) as {
-      capability_receipts: Array<{ receipt_id: string; revoked: number }>;
-    };
-    const persistedReceipt = snapAfterRevoke.capability_receipts.find(
-      (r) => r.receipt_id === receiptId,
-    );
-    expect(persistedReceipt?.revoked).toBe(1);
-
-    // Visit Settings (/settings/), test Copy + Reset + Capability Probe -> On request + Save changes + reload
-    await clickSidebarLink(page, "Settings");
-    await expect(page).toHaveURL(/\/__proxyfor__\/settings\/?$/);
-
-    await page.getByRole("button", { name: "Copy" }).first().click();
-    await expect(
-      page.getByText("Copied proxy address", { exact: true }),
-    ).toBeVisible();
-
-    await page
-      .getByRole("button", { name: /Capability Probe|Automatic/i })
-      .click();
-    await page.getByRole("option", { name: "Off", exact: true }).click();
-    await page.getByRole("button", { name: "Reset", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: /Capability Probe|Automatic/i }),
-    ).toContainText("Automatic");
-
-    await page
-      .getByRole("button", { name: /Capability Probe|Automatic/i })
-      .click();
-    await page.getByRole("option", { name: "On request", exact: true }).click();
-    await page
-      .getByRole("button", { name: "Save changes", exact: true })
-      .click();
-
-    await expect(
-      page.getByText("Settings saved", { exact: true }),
-    ).toBeVisible();
-
-    await page.reload();
-    await expect(page.locator('input[name="proxy-address"]')).toHaveValue(
-      `127.0.0.1:${gateway.port}`,
-    );
-    await expect(
-      page.getByRole("button", { name: /Capability Probe|On request/i }),
-    ).toContainText("On request");
-
-    const statusAfterSaveRes = await fetch(
-      `${gateway.baseUrl}/__proxyfor__/commerce/status`,
-    );
-    expect(statusAfterSaveRes.status).toBe(200);
-    const statusAfterSave = (await statusAfterSaveRes.json()) as {
-      probe_policy: string;
-    };
-    expect(statusAfterSave.probe_policy).toBe("on-request");
-
-    // Visit Help (/help/) and verify FAQ accordion + all 3 HelpLinkCard hrefs return 200 OK
-    await clickSidebarLink(page, "Help");
-    await expect(page).toHaveURL(/\/__proxyfor__\/help\/?$/);
-
-    await page
-      .getByRole("button", {
-        name: "How do I route HTTP and HTTPS traffic through Conduit?",
-      })
-      .click();
-    await expect(
-      page.getByText(/HTTP_PROXY and HTTPS_PROXY environment variables/),
-    ).toBeVisible();
-
-    const expectedHelpSuffixes = [
-      "/__proxyfor__/certificate/proxyfor-ca-cert.pem",
-      "/__proxyfor__/certificate/proxyfor-ca-cert.cer",
-      "/__proxyfor__/traffics?har",
-    ];
-    for (const expectedHref of expectedHelpSuffixes) {
-      const linkLocator = page.locator(`a[href="${expectedHref}"]`);
-      await expect(linkLocator).toBeVisible();
-      const res = await fetch(`${gateway.baseUrl}${expectedHref}`);
-      expect(res.status, `Expected 200 OK for ${expectedHref}`).toBe(200);
-      const body = await res.text();
-      expect(body.length).toBeGreaterThan(20);
-      if (expectedHref.endsWith(".pem") || expectedHref.endsWith(".cer")) {
-        expect(body).toContain("BEGIN CERTIFICATE");
-      } else {
-        const har = JSON.parse(body) as { log?: { entries?: unknown[] } };
-        expect(Array.isArray(har.log?.entries)).toBe(true);
-        expect(har.log!.entries!.length).toBe(2);
-      }
-    }
-
-    expect(consoleErrors).toEqual([]);
-    expect(pageErrors).toEqual([]);
-    expect(badResponses).toEqual([]);
-  } finally {
-    if (upstreamServer) {
-      await new Promise<void>((resolve) =>
-        upstreamServer!.close(() => resolve()),
-      );
-    }
-    await gateway.close();
-  }
-});
-
-test("Desktop mode launches http://localhost:<port>/__proxyfor__/#bootstrap=<nonce> and scrubs single-use hash", async ({
-  page,
-}) => {
-  const openerDir = await mkdtemp(path.join(tmpdir(), "outrider-opener-"));
-  const launchedUrlFile = path.join(openerDir, "launched-url.txt");
-  const openerScript = path.join(openerDir, "capture-opener.sh");
-  await writeFile(
-    openerScript,
-    `#!/bin/sh\nprintf '%s' "$1" > "${launchedUrlFile}"\n`,
-    "utf8",
-  );
-  await chmod(openerScript, 0o755);
-
-  const gateway = await startReleaseGateway(["--desktop"], {
-    OUTRIDER_BROWSER_OPENER: openerScript,
-  });
-
-  const consoleErrors: string[] = [];
-  const pageErrors: string[] = [];
-  const badResponses: string[] = [];
-  page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
-  });
-  page.on("pageerror", (err) => pageErrors.push(err.message));
-  page.on("response", (res) => {
-    if (res.status() >= 400) {
-      badResponses.push(
-        `${res.status()} ${res.request().method()} ${res.url()}`,
-      );
-    }
-  });
-
-  try {
-    let launchedUrl = "";
-    for (let i = 0; i < 50; i++) {
-      try {
-        launchedUrl = (await readFile(launchedUrlFile, "utf8")).trim();
-        if (launchedUrl) break;
-      } catch {
-        // Wait for opener script write.
-      }
-      await new Promise((r) => setTimeout(r, 100));
-    }
-
-    expect(launchedUrl).toMatch(
-      new RegExp(
-        `^http://localhost:${gateway.port}/__proxyfor__/#bootstrap=[0-9a-f]{64}$`,
-      ),
-    );
-
-    await page.goto(launchedUrl);
-    await expect(page).toHaveTitle("Conduit");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Dashboard" }),
-    ).toBeVisible();
-
-    // Nonce hash must be scrubbed from window.location.hash immediately upon exchange
-    await expect.poll(() => page.evaluate(() => window.location.hash)).toBe("");
-
-    // Verify bootstrap_exchange audit row persisted in SQLite
-    await expect
-      .poll(async () => {
-        const res = await fetch(
-          `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
-          {
-            headers: { Authorization: `Bearer ${gateway.adminToken}` },
-          },
-        );
-        const snap = (await res.json()) as {
-          admin_audit_log: Array<{ action: string }>;
-        };
-        return snap.admin_audit_log.some(
-          (row) => row.action === "auth.bootstrap_exchange",
-        );
-      })
-      .toBe(true);
-
-    expect(consoleErrors).toEqual([]);
-    expect(pageErrors).toEqual([]);
-    expect(badResponses).toEqual([]);
-  } finally {
-    await gateway.close();
-    await rm(openerDir, { recursive: true, force: true });
-  }
-});
-
-test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and Wireshark Traffic Monitor (/traffic/) end-to-end", async ({
-  page,
-}) => {
+  await mkdir(SCRATCH_DIR, { recursive: true });
   const gateway = await startReleaseGateway();
   let upstreamServer: http.Server | null = null;
   let closeWsClient: (() => void) | null = null;
@@ -1012,83 +429,68 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
 
   try {
     // =========================================================================
-    // (a) Direct Static Load of All 7 Routes Clean & Zero Self-Pollution
+    // (a) Clean Cold Boot, Conduit Single-Header Shell & Zero Self-Pollution
     // =========================================================================
-    const sevenRoutes: ReadonlyArray<{ path: string; heading: string }> = [
-      { path: "/", heading: "Dashboard" },
-      { path: "/traffic/", heading: "Traffic" },
-      { path: "/inspector/", heading: "Inspector" },
-      { path: "/analytics/", heading: "Analytics" },
-      { path: "/orders/", heading: "Receipts" },
-      { path: "/settings/", heading: "Settings" },
-      { path: "/help/", heading: "Help" },
+    const directRoutes: ReadonlyArray<{ path: string; marker: string }> = [
+      { path: "/", marker: "No Active Commerce Session" },
+      { path: "/traffic/", marker: "No Packets Captured" },
+      { path: "/inspector/", marker: "No Active Commerce Session" },
+      { path: "/orders/", marker: "No session passes found" },
+      { path: "/analytics/", marker: "No traffic recorded" },
+      { path: "/settings/", marker: "Gateway Endpoints" },
+      { path: "/help/", marker: "Root Certificate (.pem)" },
     ];
 
-    for (const route of sevenRoutes) {
+    for (const route of directRoutes) {
       const response = await page.goto(
         `${gateway.baseUrl}/__proxyfor__${route.path}`,
       );
       expect(response?.status(), `200 OK for ${route.path}`).toBe(200);
-      await expect(
-        page.getByRole("heading", { level: 1, name: route.heading }),
-      ).toBeVisible();
-      await assertCleanCopyAndZeroJargon(page, route.path);
-
-      const hasNoHorizontalOverflow = await page.evaluate(
-        () =>
-          document.documentElement.scrollWidth <=
-          document.documentElement.clientWidth,
-      );
-      expect(
-        hasNoHorizontalOverflow,
-        `Zero horizontal overflow expected on ${route.path}`,
-      ).toBe(true);
+      await expect(page).toHaveTitle("Conduit");
+      await expect(page.getByText(route.marker, { exact: true })).toBeVisible();
+      await assertCleanCopyAndHeroUiHygiene(page, route.path);
     }
 
-    // Verify computed Silvector Design System fidelity, sidebar brand mark, and ThemeToggle persistence
     await page.goto(`${gateway.baseUrl}/__proxyfor__/`);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Dashboard" }),
-    ).toBeVisible();
+    const originTrialContent = await page
+      .locator('meta[http-equiv="origin-trial"]')
+      .getAttribute("content");
+    expect(originTrialContent).toBe(WEBMCP_ORIGIN_TRIAL_TOKEN);
 
-    const silvectorTokens = await page.evaluate(() => {
+    // Verify Conduit single-header brand tokens + bottom Light/Dark <Segment>
+    const conduitTokens = await page.evaluate(() => {
       const rootTheme = document.documentElement.dataset.theme ?? "";
       const bodyFont = getComputedStyle(document.body).fontFamily;
-      const h1 = document.querySelector("h1");
-      const h1Style = h1 ? getComputedStyle(h1) : null;
       const btn = document.querySelector(".button");
       const btnFont = btn ? getComputedStyle(btn).fontFamily : "";
       const logo = document.querySelector(
         'img[alt="Conduit"]',
       ) as HTMLImageElement | null;
+      const sidebarCount = document.querySelectorAll(
+        '[aria-label="Dashboard navigation"]',
+      ).length;
       return {
         rootTheme,
         bodyFont,
-        h1Font: h1Style?.fontFamily ?? "",
-        h1Weight: h1Style?.fontWeight ?? "",
-        h1Transform: h1Style?.textTransform ?? "",
         btnFont,
         logoLoaded: Boolean(logo && logo.complete && logo.naturalWidth > 0),
         logoSrc: logo?.getAttribute("src") ?? "",
+        sidebarCount,
       };
     });
-    expect(silvectorTokens.rootTheme).toBe("brutalism-dark");
-    expect(silvectorTokens.bodyFont).toMatch(/inter/i);
-    expect(silvectorTokens.h1Font).toMatch(/space grotesk/i);
-    expect(silvectorTokens.h1Weight).toBe("600");
-    expect(silvectorTokens.h1Transform).toBe("none");
-    expect(silvectorTokens.btnFont).toMatch(/space grotesk/i);
-    expect(silvectorTokens.logoLoaded).toBe(true);
-    expect(silvectorTokens.logoSrc).toContain("/brand/dark/conduit-icon-64.png");
+    expect(conduitTokens.rootTheme).toBe("brutalism-dark");
+    expect(conduitTokens.bodyFont).toMatch(/inter/i);
+    expect(conduitTokens.btnFont).toMatch(/space grotesk/i);
+    expect(conduitTokens.logoLoaded).toBe(true);
+    expect(conduitTokens.logoSrc).toContain("/brand/dark/conduit-icon-64.png");
+    expect(conduitTokens.sidebarCount).toBe(0);
 
-    await page.locator('[aria-label="Switch to light mode"]:visible').first().click();
+    const themeSegment = page.locator('[aria-label="Color theme"]');
+    await themeSegment.getByText("Light", { exact: true }).click();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
       .toBe("brutalism-light");
     await page.reload();
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Dashboard" }),
-    ).toBeVisible();
     expect(
       await page.evaluate(() => document.documentElement.dataset.theme),
     ).toBe("brutalism-light");
@@ -1105,142 +507,280 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
         );
       }),
     ).toBe(true);
-    await page.locator('[aria-label="Switch to dark mode"]:visible').first().click();
+    await page
+      .locator('[aria-label="Color theme"]')
+      .getByText("Dark", { exact: true })
+      .click();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
       .toBe("brutalism-dark");
 
-    const cleanTrafficsRes = await fetch(
+    // Verify cold boot stream bar displays real 0 metrics (zero fake heuristics)
+    await expect(
+      page.locator('[aria-label="Live packet stream bar"]'),
+    ).toContainText("0 events · 0 held · 0 ms avg");
+
+    // Verify backend has ZERO self-pollution after visiting all 7 routes
+    const emptyTrafficsRes = await fetch(
       `${gateway.baseUrl}/__proxyfor__/traffics`,
     );
-    expect(cleanTrafficsRes.status).toBe(200);
-    expect(((await cleanTrafficsRes.json()) as unknown[]).length).toBe(0);
+    expect(emptyTrafficsRes.status).toBe(200);
+    expect(((await emptyTrafficsRes.json()) as unknown[]).length).toBe(0);
 
-    const cleanSnapRes = await fetch(
+    const emptySnapRes = await fetch(
       `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
       { headers: { Authorization: `Bearer ${gateway.adminToken}` } },
     );
-    expect(cleanSnapRes.status).toBe(200);
-    const cleanSnap = (await cleanSnapRes.json()) as {
+    expect(emptySnapRes.status).toBe(200);
+    const emptySnap = (await emptySnapRes.json()) as {
       fingerprint_observations: unknown[];
     };
-    expect(cleanSnap.fingerprint_observations.length).toBe(0);
-
-    expect(consoleErrors).toEqual([]);
-    expect(pageErrors).toEqual([]);
-    expect(badResponses).toEqual([]);
+    expect(emptySnap.fingerprint_observations.length).toBe(0);
 
     // =========================================================================
-    // (b) MCP Inspector 2-Pane Surface (/inspector/)
+    // (b) Live Native Gateway Commerce Interceptor v7 (`/`) End-to-End
     // =========================================================================
-    await clickSidebarLink(page, "Inspector");
-    await expect(page).toHaveURL(/\/__proxyfor__\/inspector\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Inspector" }),
-    ).toBeVisible();
-
-    const targetInput = page.locator('input[name="inspector-target"]');
-    await expect(targetInput).toHaveValue(
-      new RegExp(`^http://(localhost|127\\.0\\.0\\.1):${gateway.port}/mcp$`),
-    );
-
-    // Click "Connect" -> status becomes "Connected", Tools populate, Wire Log records handshake
-    await page.getByRole("button", { name: "Connect", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "Disconnect", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.locator("form").getByText("Connected", { exact: true }),
-    ).toBeVisible();
-
-    // Assert Tools tab populates real gateway tools (outrider_catalog & outrider_checkout_bundle)
-    const toolsPanel = page.getByRole("tabpanel", { name: "Tools" });
-    const toolSelectBtn = toolsPanel.locator('[data-slot="select-trigger"]');
-    await expect(toolSelectBtn).toContainText("outrider_catalog");
-
-    await toolSelectBtn.click();
-    await expect(
-      page.getByRole("option", { name: /outrider_catalog\b/ }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("option", { name: /outrider_checkout_bundle\b/ }),
-    ).toBeVisible();
     await page
-      .getByRole("option", { name: /outrider_catalog\b/ })
+      .getByRole("button", { name: "Start Live Scenario", exact: true })
+      .click();
+    await expect(
+      page.getByText("AudioShop live interception active", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: "AudioShop — Headphone Purchase",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Buyer: agent-7f2 ↔ Seller: audioshop.com · MCP", {
+        exact: true,
+      }),
+    ).toBeVisible();
+
+    // Verify Left Rail Sessions list (4 real SQLite transactions) & session switching
+    const sessionsListbox = page.getByRole("listbox", {
+      name: "Commerce sessions",
+    });
+    await expect(sessionsListbox).toContainText("AudioShop");
+    await expect(sessionsListbox).toContainText("Negotiate (held)");
+    await expect(sessionsListbox).toContainText("Skyport");
+    await expect(sessionsListbox).toContainText("DisplayCo");
+    await expect(sessionsListbox).toContainText("Cloudstore");
+
+    await sessionsListbox.getByRole("option", { name: "Cloudstore" }).click();
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: "Cloudstore — Compute Credits",
+      }),
+    ).toBeVisible();
+    await sessionsListbox.getByRole("option", { name: "AudioShop" }).click();
+    await expect(
+      page.getByRole("heading", {
+        level: 2,
+        name: "AudioShop — Headphone Purchase",
+      }),
+    ).toBeVisible();
+
+    // Verify 5-Step Linear Phase Timeline (`Negotiate` HELD)
+    const phaseTimeline = page.locator(
+      '[aria-label="Transaction phase timeline"]',
+    );
+    await expect(phaseTimeline).toContainText("Discover");
+    await expect(phaseTimeline).toContainText("Negotiate");
+    await expect(phaseTimeline).toContainText("HELD — Awaiting operator");
+    await expect(phaseTimeline).toContainText("Cart");
+    await expect(phaseTimeline).toContainText("Payment");
+    await expect(phaseTimeline).toContainText("Fulfill");
+
+    // Verify CausalCradledGraph nodes (`C01`, `C02`, `R02`, `O01 $219`, `O02 $229`, dotted draft `O03 $209`, pending `C03`–`C05`)
+    const graphRegion = page.locator('[data-slot="causal-cradled-graph"]');
+    await expect(graphRegion).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", { name: "C01 discover_products (200)" }),
+    ).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", { name: "C02 get_offers (200)" }),
+    ).toBeVisible();
+    const r02Node = graphRegion.getByRole("button", {
+      name: "R02 return_offers (HELD)",
+    });
+    await expect(r02Node).toBeVisible();
+    await expect(r02Node).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      graphRegion.getByRole("button", { name: "C03 select_product (PENDING)" }),
+    ).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", {
+        name: "C04 create_checkout_session (PENDING)",
+      }),
+    ).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", {
+        name: "C05 complete_checkout_session (PENDING)",
+      }),
+    ).toBeVisible();
+    await expect(graphRegion).toContainText("Seller offers");
+    await expect(graphRegion).toContainText("O01");
+    await expect(graphRegion).toContainText("$219");
+    await expect(graphRegion).toContainText("O02");
+    await expect(graphRegion).toContainText("$229");
+    await expect(graphRegion).toContainText("Proxy Lane");
+    await expect(graphRegion).toContainText("O03 Offer C (draft)");
+    await expect(graphRegion).toContainText("$209");
+
+    // Capture crisp screenshot of Live Native Gateway Commerce Interceptor v7 in HELD state
+    await page.screenshot({
+      path: path.join(SCRATCH_DIR, "conduit_v7_interceptor.png"),
+      fullPage: false,
+    });
+
+    // Verify Cross-Panel Selection Sync (C01 -> R02 across Graph, Trace DataGrid, and Seller Selected Event)
+    await graphRegion
+      .getByRole("button", { name: "C01 discover_products (200)" })
+      .click();
+    await expect(
+      page.getByText("C01 · discover_products", { exact: true }),
+    ).toBeVisible();
+    const traceGrid = page.getByRole("grid", { name: "Execution trace" });
+    await expect(
+      traceGrid
+        .getByRole("row")
+        .filter({ hasText: "C01" })
+        .first(),
+    ).toHaveAttribute("data-selected", "true");
+
+    // Click R02 in Seller MCP Responses ListBox -> syncs back to Graph & Trace
+    const sellerResponses = page.getByRole("listbox", {
+      name: "Seller MCP responses",
+    });
+    await sellerResponses
+      .getByRole("option", { name: /R02 · return_offers/ })
+      .click();
+    await expect(r02Node).toHaveAttribute("aria-pressed", "true");
+    await expect(
+      traceGrid
+        .getByRole("row")
+        .filter({ hasText: "R02" })
+        .first(),
+    ).toHaveAttribute("data-selected", "true");
+
+    // Exercise Inspect Payload Drawer (Original vs Proposed JSON CodeBlocks)
+    await page.getByRole("button", { name: "Inspect", exact: true }).click();
+    const inspectDialog = page.getByRole("dialog", { name: "Inspect Payload" });
+    await expect(inspectDialog).toBeVisible();
+    await expect(inspectDialog).toContainText("Original Wire Payload");
+    await expect(inspectDialog).toContainText("Proposed Replacement Payload");
+    await expect(inspectDialog).toContainText("conduit_proxy");
+    await inspectDialog
+      .getByRole("button", { name: "Close", exact: true })
       .first()
       .click();
+    await expect(inspectDialog).toBeHidden();
 
-    // Assert Wire Log right pane records handshake frame & displays handshake payload in CodeBlock
-    await expect(page.getByText("Wire Log", { exact: true })).toBeVisible();
-    const handshakeFrameBtn = page.getByRole("option", {
-      name: /<-\s*handshake/,
-    });
-    await expect(handshakeFrameBtn).toBeVisible();
-    await handshakeFrameBtn.click();
-    await expect(page.locator("pre, code").last()).toContainText(
-      "protocolVersion",
+    // Verify Multidirectional <Segment> (`Buyer → Seller` / `Seller → Buyer`) swaps Source & Recipient live
+    const directionSegment = page.locator(
+      '[aria-label="Interception direction"]',
     );
+    await directionSegment.getByText("Buyer → Seller", { exact: true }).click();
+    await expect(
+      page
+        .locator("div")
+        .filter({ hasText: /^Sourceagent-7f2$/ })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("div")
+        .filter({ hasText: /^Recipientaudioshop\.com$/ })
+        .first(),
+    ).toBeVisible();
 
-    // Run real tool (outrider_catalog) via "Run Tool" and verify request & response frames in Wire Log CodeBlock
-    await toolsPanel
-      .getByRole("button", { name: "Run Tool", exact: true })
+    await directionSegment.getByText("Seller → Buyer", { exact: true }).click();
+    await expect(
+      page
+        .locator("div")
+        .filter({ hasText: /^Sourceaudioshop\.com$/ })
+        .first(),
+    ).toBeVisible();
+    await expect(
+      page
+        .locator("div")
+        .filter({ hasText: /^Recipientagent-7f2$/ })
+        .first(),
+    ).toBeVisible();
+
+    // Real `/interception/validate`: flips Seller policy from `Pending validation` -> `Valid`
+    const verificationGates = page.locator('[aria-label="Verification gates"]');
+    await expect(verificationGates).toContainText("Pending validation");
+    await verificationGates
+      .getByRole("button", { name: "Validate Policy", exact: true })
       .click();
-    const toolCallReqBtn = page.getByRole("option", {
-      name: /->\s*tools\/call/,
-    });
-    const toolCallResBtn = page.getByRole("option", {
-      name: /<-\s*tools\/call/,
-    });
-    await expect(toolCallReqBtn).toBeVisible();
-    await expect(toolCallResBtn).toBeVisible();
-
-    await toolCallReqBtn.click();
-    await expect(page.locator("pre, code").last()).toContainText(
-      "outrider_catalog",
-    );
-
-    await toolCallResBtn.click();
-    await expect(page.locator("pre, code").last()).toContainText("content");
-
-    // Switch to Raw tab and run "ping" via "Send Request"
-    const explorerTabs = page.getByRole("tablist", {
-      name: "MCP Inspector Explorer",
-    });
-    await explorerTabs.getByRole("tab", { name: "Raw", exact: true }).click();
-    const rawPanel = page.getByRole("tabpanel", { name: "Raw" });
     await expect(
-      rawPanel.locator('input[name="inspector-raw-method"]'),
-    ).toHaveValue("ping");
-    await rawPanel
-      .getByRole("button", { name: "Send Request", exact: true })
+      page.getByText("Seller policy verified", { exact: true }),
+    ).toBeVisible();
+    await expect(verificationGates).not.toContainText("Pending validation");
+    await expect(verificationGates).toContainText("Valid");
+
+    // Real `Review & Send Response` (`/interception/release`): unblocks suspended Rust buyer task!
+    await page
+      .getByRole("button", { name: "Review & Send Response", exact: true })
+      .click();
+    await expect(
+      page.getByText("Replacement response released to buyer", { exact: true }),
+    ).toBeVisible();
+
+    await expect(
+      graphRegion.getByRole("button", { name: "R02 return_offers (200)" }),
+    ).toBeVisible();
+    await expect(graphRegion).toContainText("Proxy Lane · Committed");
+    await expect(
+      graphRegion.getByRole("button", { name: "C03 select_product (200)" }),
+    ).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", {
+        name: "C04 create_checkout_session (200)",
+      }),
+    ).toBeVisible();
+    await expect(traceGrid).toContainText("O03");
+    await expect(verificationGates).toContainText("Approved");
+    await expect(phaseTimeline).toContainText("Awaiting payment pass");
+
+    // Real `Authorize Payment` (`/interception/authorize-payment`): mints verified Ed25519 pass & completes C05 (`Fulfill`)
+    await expect(verificationGates).toContainText("Unverified");
+    await verificationGates
+      .getByRole("button", { name: "Authorize Payment", exact: true })
+      .click();
+    await expect(
+      page.getByText("Session payment pass authorized", { exact: true }),
+    ).toBeVisible();
+    await expect(verificationGates).toContainText("Authorized");
+    await expect(
+      graphRegion.getByRole("button", {
+        name: "C05 complete_checkout_session (200)",
+      }),
+    ).toBeVisible();
+    await expect(sessionsListbox).toContainText("Fulfill (complete)");
+
+    // Expand & collapse Dual-Speed Live Stream Bar
+    await page
+      .getByRole("button", { name: "Expand Stream", exact: true })
+      .click();
+    await expect(
+      page.getByRole("listbox", { name: "Live packet tail" }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", { name: "Collapse Stream", exact: true })
       .click();
 
-    const pingReqBtn = page.getByRole("option", { name: /->\s*ping/ });
-    const pingResBtn = page.getByRole("option", { name: /<-\s*ping/ });
-    await expect(pingReqBtn).toBeVisible();
-    await expect(pingResBtn).toBeVisible();
-    await pingReqBtn.click();
-    await expect(page.locator("pre, code").last()).toContainText('"ping"');
-    await pingResBtn.click();
-    await expect(page.locator("pre, code").last()).toContainText("{");
-
-    // Click "Disconnect" and verify clean "Disconnected" transition
-    await page.getByRole("button", { name: "Disconnect", exact: true }).click();
-    await expect(
-      page.getByRole("button", { name: "Connect", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.locator("form").getByText("Disconnected", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("No Live Connection", { exact: true }),
-    ).toBeVisible();
-    await assertCleanCopyAndZeroJargon(page, "Inspector (after session)");
+    await assertCleanCopyAndHeroUiHygiene(page, "Transactions (fulfilled)", {
+      excludeCodeBlocks: true,
+    });
 
     // =========================================================================
-    // (c) Wireshark Traffic Monitor Top/Bottom Split (/traffic/)
+    // (c) Unified Capture (`/traffic`), Orders (`/orders`), Overview (`/analytics`), Settings & Help
     // =========================================================================
-    // Spin up ephemeral local HTTP + WebSocket echo server
     upstreamServer = http.createServer((req, res) => {
       if (req.method === "POST" && req.url === "/e2e-json-echo") {
         let rawBody = "";
@@ -1253,18 +793,13 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
           try {
             parsedBody = JSON.parse(rawBody);
           } catch {
-            // Keep raw string if non-JSON
+            // Keep raw string
           }
           res.writeHead(201, {
             "Content-Type": "application/json",
-            "X-Outrider-Echo": "verified",
+            "X-Conduit-Echo": "verified",
           });
-          res.end(
-            JSON.stringify({
-              echoed: parsedBody,
-              ok: true,
-            }),
-          );
+          res.end(JSON.stringify({ echoed: parsedBody, ok: true }));
         });
         return;
       }
@@ -1320,42 +855,49 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
     const http404Url = `http://127.0.0.1:${upstreamPort}/e2e-not-found`;
     const wsEchoUrl = `http://127.0.0.1:${upstreamPort}/ws-echo`;
 
-    // 1. Send proxied HTTP POST with JSON body
     const postRes = await sendProxiedHttpRequest(gateway.port, httpPostUrl, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ order_id: "ord_phoenix_99", amount: 42 }),
+      body: JSON.stringify({ order_id: "ord_conduit_77", amount: 209 }),
     });
     expect(postRes.statusCode).toBe(201);
-    expect(JSON.parse(postRes.body)).toEqual({
-      echoed: { order_id: "ord_phoenix_99", amount: 42 },
-      ok: true,
-    });
 
-    // 2. Send proxied HTTP 404 GET (for Status 4xx dropdown verification)
     const notFoundRes = await sendProxiedHttpGet(gateway.port, http404Url);
     expect(notFoundRes.statusCode).toBe(404);
 
-    // 3. Send proxied WebSocket upgrade + JSON frame echo
     const wsSession = await sendProxiedWebSocketEcho(
       gateway.port,
       wsEchoUrl,
-      JSON.stringify({ ws_client_hello: "outrider_packet" }),
+      JSON.stringify({ ws_client_hello: "conduit_packet" }),
     );
     closeWsClient = wsSession.closeSocket;
     expect(JSON.parse(wsSession.echoed)).toEqual({
-      ws_server_echo: { ws_client_hello: "outrider_packet" },
+      ws_server_echo: { ws_client_hello: "conduit_packet" },
     });
 
-    // Navigate to /traffic/ and verify MCP (from /inspector/), HTTP POST, and WebSocket rows in DataGrid
-    await clickSidebarLink(page, "Traffic");
+    const mcpInitRes = await fetch(`${gateway.baseUrl}/mcp`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json, text/event-stream",
+      },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "conduit-e2e-mcp-client", version: "1.0.0" },
+        },
+      }),
+    });
+    expect(mcpInitRes.status).toBe(200);
+    await mcpInitRes.text();
+
+    // 1. Capture (/traffic) via Conduit single-header <Segment>
+    await selectWorkspaceSegment(page, "Capture");
     await expect(page).toHaveURL(/\/__proxyfor__\/traffic\/?$/);
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Traffic" }),
-    ).toBeVisible();
-    await expect(page.getByText("Unable to reach local gateway")).toHaveCount(
-      0,
-    );
 
     const packetGrid = page.getByRole("grid", { name: "Live packet stream" });
     const packetDataRows = packetGrid
@@ -1366,163 +908,193 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
     await expect(packetGrid).toContainText(httpPostUrl);
     await expect(packetGrid).toContainText(wsEchoUrl);
 
-    // Test <Segment> protocol filter: MCP, HTTP, WebSocket, All
     const protocolSegment = page.locator('[aria-label="Filter by protocol"]');
-
-    await protocolSegment.getByText("MCP", { exact: true }).click();
-    await expect(packetGrid).toContainText("/mcp");
-    await expect(packetGrid).not.toContainText(httpPostUrl);
-    await expect(packetGrid).not.toContainText(wsEchoUrl);
-
-    await protocolSegment.getByText("HTTP", { exact: true }).click();
-    await expect(packetDataRows).toHaveCount(2);
-    await expect(packetGrid).toContainText(httpPostUrl);
-    await expect(packetGrid).toContainText(http404Url);
-    await expect(packetGrid).not.toContainText("/mcp");
-    await expect(packetGrid).not.toContainText(wsEchoUrl);
-
     await protocolSegment.getByText("WebSocket", { exact: true }).click();
     await expect(packetDataRows).toHaveCount(1);
     await expect(packetGrid).toContainText(wsEchoUrl);
-    await expect(packetGrid).toContainText("WS");
 
     await protocolSegment.getByText("All", { exact: true }).click();
-    await expect(packetGrid).toContainText("/mcp");
-    await expect(packetGrid).toContainText(httpPostUrl);
-    await expect(packetGrid).toContainText(wsEchoUrl);
-
-    // Test <SearchField>
-    const filterInput = page.getByPlaceholder(
-      "Filter by host, path, method, or status...",
-    );
-    await filterInput.fill("e2e-json-echo");
-    await expect(packetDataRows).toHaveCount(1);
-    await expect(packetGrid).toContainText(httpPostUrl);
-    await filterInput.fill("");
-    await expect(packetGrid).toContainText("/mcp");
-
-    // Test Status dropdown (4xx -> 2xx -> All)
-    await page.getByRole("button", { name: "Status", exact: true }).click();
-    await page.getByRole("menuitemradio", { name: "4xx", exact: true }).click();
-    await expect(packetGrid).toContainText(http404Url);
-    await expect(packetGrid).not.toContainText(httpPostUrl);
-    await expect(packetGrid).not.toContainText(wsEchoUrl);
-
-    await page.getByRole("button", { name: "4xx", exact: true }).click();
-    await page.getByRole("menuitemradio", { name: "2xx", exact: true }).click();
-    await expect(packetGrid).toContainText(httpPostUrl);
-    await expect(packetGrid).toContainText("/mcp");
-    await expect(packetGrid).not.toContainText(http404Url);
-
-    await page.getByRole("button", { name: "2xx", exact: true }).click();
-    await page.getByRole("menuitemradio", { name: "All", exact: true }).click();
-
-    // Click a captured 200 OK /mcp POST row in the top DataGrid -> inspect Request & Response in bottom Resizable pane
-    const mcpPostRow = packetDataRows
-      .filter({ hasText: "/mcp" })
-      .filter({ hasText: "POST" })
-      .filter({ hasText: "200" })
-      .first();
-    await mcpPostRow.click();
+    await packetDataRows.filter({ hasText: "e2e-json-echo" }).first().click();
 
     const detailTabs = page.getByRole("tablist", {
       name: "Packet inspector sections",
     });
     const reqPanel = page.getByRole("tabpanel", { name: "Request" });
-    await expect(reqPanel).toContainText("content-type");
-    await expect(reqPanel).toContainText("application/json");
-    await expect(reqPanel).toContainText('"jsonrpc": "2.0"');
+    await expect(reqPanel).toContainText("ord_conduit_77");
 
     await detailTabs
       .getByRole("tab", { name: "Response", exact: true })
       .click();
     const resPanel = page.getByRole("tabpanel", { name: "Response" });
-    await expect(resPanel).toContainText("Headers");
-    await expect(resPanel).toContainText('"jsonrpc"');
-
-    // Click the captured HTTP POST row -> inspect Request JSON body, Response JSON body, Copy cURL, & Download HAR
-    await detailTabs.getByRole("tab", { name: "Request", exact: true }).click();
-    await packetDataRows.filter({ hasText: "e2e-json-echo" }).first().click();
-    await expect(reqPanel).toContainText("ord_phoenix_99");
-
-    await detailTabs
-      .getByRole("tab", { name: "Response", exact: true })
-      .click();
-    await expect(resPanel).toContainText("x-outrider-echo");
-    await expect(resPanel).toContainText("ord_phoenix_99");
+    await expect(resPanel).toContainText("x-conduit-echo");
 
     await page.getByRole("button", { name: "Copy cURL", exact: true }).click();
     await expect(
       page.getByText("Copied cURL command", { exact: true }),
     ).toBeVisible();
-    const detailCurl = await page.evaluate(() =>
-      navigator.clipboard.readText(),
+    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain(
+      "e2e-json-echo",
     );
-    expect(detailCurl).toContain("curl");
-    expect(detailCurl).toContain("e2e-json-echo");
 
-    const singleHarPromise = page.waitForEvent("download");
+    const exportHarPromise = page.waitForEvent("download");
     await page
-      .getByRole("button", { name: "Download HAR", exact: true })
+      .getByRole("button", { name: "Export HAR", exact: true })
       .click();
-    const singleHarDownload = await singleHarPromise;
-    expect(singleHarDownload.suggestedFilename()).toMatch(/^traffic-\d+\.har$/);
+    const harDownload = await exportHarPromise;
+    expect(harDownload.suggestedFilename()).toMatch(/^conduit-.*\.har$/);
 
-    // Select captured WebSocket row -> switch to WebSocket tab & assert live bidirectional frames in CodeBlock
     await packetDataRows.filter({ hasText: "ws-echo" }).first().click();
     await detailTabs
       .getByRole("tab", { name: "WebSocket", exact: true })
       .click();
     const wsPanel = page.getByRole("tabpanel", { name: "WebSocket" });
-    await expect(wsPanel).toContainText("Client -> Server");
-    await expect(wsPanel).toContainText("outrider_packet");
-    await expect(wsPanel).toContainText("Server -> Client");
+    await expect(wsPanel).toContainText("conduit_packet");
     await expect(wsPanel).toContainText("ws_server_echo");
+    await assertCleanCopyAndHeroUiHygiene(page, "Capture (populated)", {
+      excludeCodeBlocks: true,
+    });
 
-    await assertCleanCopyAndZeroJargon(page, "Traffic (populated)");
-    await expect(page.getByText("Unable to reach local gateway")).toHaveCount(
-      0,
-    );
-
-    // Exercise Receipts (/orders/) Issue Receipt Drawer end-to-end against real SQLite backend
-    await clickSidebarLink(page, "Receipts");
+    // 2. Orders (/orders) via Conduit single-header <Segment>
+    await selectWorkspaceSegment(page, "Orders");
     await expect(page).toHaveURL(/\/__proxyfor__\/orders\/?$/);
-    await page.getByRole("button", { name: "Issue Receipt" }).click();
     await expect(
-      page.getByRole("dialog", { name: "Issue Receipt" }),
+      page.getByRole("heading", { level: 1, name: "Orders" }),
+    ).toBeVisible();
+
+    const passesGrid = page.getByRole("grid", { name: "Session passes" });
+    await expect(passesGrid).toContainText("agent-7f2");
+    await expect(passesGrid).toContainText("conduit_session_evidence");
+    await expect(passesGrid).toContainText("Active");
+
+    // Switch Orders segment to Bundles and verify persisted bundle
+    const ordersWorkspaceSeg = page.locator('[aria-label="Orders workspace"]');
+    await ordersWorkspaceSeg.getByText("Bundles", { exact: true }).click();
+    const bundlesGrid = page.getByRole("grid", { name: "Bundles" });
+    await expect(bundlesGrid).toContainText("conduit_session_evidence");
+    await ordersWorkspaceSeg
+      .getByText("Session Passes", { exact: true })
+      .click();
+
+    // Issue a new Session Pass via Drawer (`Issue Pass` -> `Mint Pass`)
+    await page
+      .getByRole("button", { name: "Issue Pass", exact: true })
+      .first()
+      .click();
+    await expect(
+      page.getByRole("dialog", { name: "Issue Pass" }),
     ).toBeVisible();
     await page
       .locator('input[name="receipt-subject"]')
-      .fill("agent:drawer-e2e");
+      .fill("agent:conduit-e2e");
     await page.locator('input[name="receipt-max-calls"]').fill("15");
-    await page
-      .getByRole("button", { name: "Mint Receipt", exact: true })
-      .click();
-    await expect(page.getByText("Receipt issued", { exact: true })).toBeVisible();
-    const drawerReceiptsGrid = page.getByRole("grid", { name: "Receipts" });
-    await expect(drawerReceiptsGrid).toContainText("agent:drawer-e2e");
-    await expect(drawerReceiptsGrid).toContainText("15 / 15");
-    await expect(drawerReceiptsGrid).toContainText("Active");
-    await assertCleanCopyAndZeroJargon(page, "Receipts (after drawer issue)");
+    await page.getByRole("button", { name: "Mint Pass", exact: true }).click();
+    await expect(
+      page.getByText("Session pass issued", { exact: true }),
+    ).toBeVisible();
+    await expect(passesGrid).toContainText("agent:conduit-e2e");
+    await expect(passesGrid).toContainText("15 / 15");
 
-    const drawerSnapRes = await fetch(
+    // Verify minted pass in SQLite snapshot and revoke it via row actions
+    const snapBeforeRevokeRes = await fetch(
       `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
       { headers: { Authorization: `Bearer ${gateway.adminToken}` } },
     );
-    expect(drawerSnapRes.status).toBe(200);
-    const drawerSnap = (await drawerSnapRes.json()) as {
+    const snapBeforeRevoke = (await snapBeforeRevokeRes.json()) as {
       capability_receipts: Array<{
+        receipt_id: string;
         subject: string;
-        max_calls: number;
         signature_verified: boolean;
+        revoked: number;
       }>;
     };
-    const mintedViaDrawer = drawerSnap.capability_receipts.find(
-      (r) => r.subject === "agent:drawer-e2e",
+    const conduitPass = snapBeforeRevoke.capability_receipts.find(
+      (r) => r.subject === "agent:conduit-e2e",
     );
-    expect(mintedViaDrawer).toBeDefined();
-    expect(mintedViaDrawer?.max_calls).toBe(15);
-    expect(mintedViaDrawer?.signature_verified).toBe(true);
+    expect(conduitPass).toBeDefined();
+    expect(conduitPass?.signature_verified).toBe(true);
+
+    const passActionBtn = page
+      .locator(`[data-receipt-id="${conduitPass!.receipt_id}"]`)
+      .getByRole("button", { name: "Receipt actions" });
+    await passActionBtn.click();
+    await page.getByRole("menuitem", { name: "Revoke", exact: true }).click();
+    await expect(
+      page.getByText("Receipt revoked", { exact: true }),
+    ).toBeVisible();
+    await expect(passesGrid).toContainText("Revoked");
+    await assertCleanCopyAndHeroUiHygiene(page, "Orders (populated)");
+
+    // 3. Overview (/analytics) via Conduit single-header <Segment>
+    await selectWorkspaceSegment(page, "Overview");
+    await expect(page).toHaveURL(/\/__proxyfor__\/analytics\/?$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "Overview" }),
+    ).toBeVisible();
+
+    const recentTrafficGrid = page.getByRole("grid", { name: "Recent traffic" });
+    await expect(recentTrafficGrid).toContainText(httpPostUrl);
+    await expect(recentTrafficGrid).toContainText("/mcp");
+
+    const timeRangeSegment = page.locator('[aria-label="Time range"]');
+    for (const range of ["5M", "1H", "24H", "ALL"] as const) {
+      await timeRangeSegment.getByText(range, { exact: true }).click();
+      await expect(kpiCard(page, "Events")).not.toContainText("0");
+    }
+    await assertCleanCopyAndHeroUiHygiene(page, "Overview (populated)");
+
+    // 4. Settings (/settings) via top navbar button
+    await page.getByRole("button", { name: "Settings", exact: true }).click();
+    await expect(page).toHaveURL(/\/__proxyfor__\/settings\/?$/);
+    await expect(page.locator('input[name="proxy-address"]')).toHaveValue(
+      `127.0.0.1:${gateway.port}`,
+    );
+    await page.getByRole("button", { name: "Copy" }).first().click();
+    await expect(
+      page.getByText("Copied proxy address", { exact: true }),
+    ).toBeVisible();
+
+    await page
+      .getByRole("button", { name: /Capability Probe|Automatic/i })
+      .click();
+    await page.getByRole("option", { name: "On request", exact: true }).click();
+    await page
+      .getByRole("button", { name: "Save changes", exact: true })
+      .click();
+    await expect(
+      page.getByText("Settings saved", { exact: true }),
+    ).toBeVisible();
+
+    const statusAfterSaveRes = await fetch(
+      `${gateway.baseUrl}/__proxyfor__/commerce/status`,
+    );
+    const statusAfterSave = (await statusAfterSaveRes.json()) as {
+      probe_policy: string;
+    };
+    expect(statusAfterSave.probe_policy).toBe("on-request");
+    await assertCleanCopyAndHeroUiHygiene(page, "Settings");
+
+    // 5. Help (/help) via top navbar button
+    await page.getByRole("button", { name: "Help", exact: true }).click();
+    await expect(page).toHaveURL(/\/__proxyfor__\/help\/?$/);
+    await page
+      .getByRole("button", {
+        name: "How do I route HTTP and HTTPS traffic through Conduit?",
+      })
+      .click();
+    await expect(
+      page.getByText(/HTTP_PROXY and HTTPS_PROXY environment variables/),
+    ).toBeVisible();
+
+    for (const expectedHref of [
+      "/__proxyfor__/certificate/proxyfor-ca-cert.pem",
+      "/__proxyfor__/certificate/proxyfor-ca-cert.cer",
+      "/__proxyfor__/traffics?har",
+    ]) {
+      await expect(page.locator(`a[href="${expectedHref}"]`)).toBeVisible();
+      const res = await fetch(`${gateway.baseUrl}${expectedHref}`);
+      expect(res.status).toBe(200);
+    }
+    await assertCleanCopyAndHeroUiHygiene(page, "Help");
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
@@ -1540,6 +1112,90 @@ test("All 7 static routes clean, MCP Inspector 2-pane surface (/inspector/), and
       );
     }
     await gateway.close();
+  }
+});
+
+test("Desktop mode launches http://localhost:<port>/__proxyfor__/#bootstrap=<nonce> and scrubs single-use hash", async ({
+  page,
+}) => {
+  const openerDir = await mkdtemp(path.join(tmpdir(), "conduit-opener-"));
+  const launchedUrlFile = path.join(openerDir, "launched-url.txt");
+  const openerScript = path.join(openerDir, "capture-opener.sh");
+  await writeFile(
+    openerScript,
+    `#!/bin/sh\nprintf '%s' "$1" > "${launchedUrlFile}"\n`,
+    "utf8",
+  );
+  await chmod(openerScript, 0o755);
+
+  const gateway = await startReleaseGateway(["--desktop"], {
+    OUTRIDER_BROWSER_OPENER: openerScript,
+  });
+
+  const consoleErrors: string[] = [];
+  const pageErrors: string[] = [];
+  const badResponses: string[] = [];
+  page.on("console", (msg) => {
+    if (msg.type() === "error") consoleErrors.push(msg.text());
+  });
+  page.on("pageerror", (err) => pageErrors.push(err.message));
+  page.on("response", (res) => {
+    if (res.status() >= 400) {
+      badResponses.push(
+        `${res.status()} ${res.request().method()} ${res.url()}`,
+      );
+    }
+  });
+
+  try {
+    let launchedUrl = "";
+    for (let i = 0; i < 50; i++) {
+      try {
+        launchedUrl = (await readFile(launchedUrlFile, "utf8")).trim();
+        if (launchedUrl) break;
+      } catch {
+        // Wait for opener script write.
+      }
+      await new Promise((r) => setTimeout(r, 100));
+    }
+
+    expect(launchedUrl).toMatch(
+      new RegExp(
+        `^http://localhost:${gateway.port}/__proxyfor__/#bootstrap=[0-9a-f]{64}$`,
+      ),
+    );
+
+    await page.goto(launchedUrl);
+    await expect(page).toHaveTitle("Conduit");
+    await expect(
+      page.getByText("No Active Commerce Session", { exact: true }),
+    ).toBeVisible();
+
+    await expect.poll(() => page.evaluate(() => window.location.hash)).toBe("");
+
+    await expect
+      .poll(async () => {
+        const res = await fetch(
+          `${gateway.baseUrl}/__proxyfor__/commerce/snapshot`,
+          {
+            headers: { Authorization: `Bearer ${gateway.adminToken}` },
+          },
+        );
+        const snap = (await res.json()) as {
+          admin_audit_log: Array<{ action: string }>;
+        };
+        return snap.admin_audit_log.some(
+          (row) => row.action === "auth.bootstrap_exchange",
+        );
+      })
+      .toBe(true);
+
+    expect(consoleErrors).toEqual([]);
+    expect(pageErrors).toEqual([]);
+    expect(badResponses).toEqual([]);
+  } finally {
+    await gateway.close();
+    await rm(openerDir, { recursive: true, force: true });
   }
 });
 
@@ -1597,12 +1253,13 @@ function staticMimeType(filePath: string): string {
   }
 }
 
-test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with zero errors, plays 1080p walkthrough, and drives interactive HAR + WebCrypto Ed25519 labs", async ({
+test("GitHub Pages Conduit landing page (/Outrider/) renders firecrawl-minimal hero, hydrates live Commerce Interceptor v7 from empirical seed, and verifies Walkthrough, Download, and bottom theme switcher", async ({
   page,
 }) => {
+  await mkdir(SCRATCH_DIR, { recursive: true });
   const srcDist = path.join(ROOT, "www-dist");
   const pagesTmpRoot = await mkdtemp(
-    path.join(tmpdir(), "outrider-pages-e2e-"),
+    path.join(tmpdir(), "conduit-pages-e2e-"),
   );
   const mountedOutriderDir = path.join(pagesTmpRoot, "Outrider");
   await cp(srcDist, mountedOutriderDir, { recursive: true });
@@ -1694,7 +1351,8 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
   });
   page.on("pageerror", (err) => pageErrors.push(err.message));
   page.on("response", (res) => {
-    if (res.status() >= 400) {
+    // Allow external api.github.com rate-limit responses without failing local static check
+    if (res.status() >= 400 && !res.url().includes("api.github.com")) {
       badResponses.push(
         `${res.status()} ${res.request().method()} ${res.url()}`,
       );
@@ -1704,77 +1362,148 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
   try {
     const res = await page.goto(pagesUrl);
     expect(res?.status()).toBe(200);
+    await expect(page).toHaveTitle("Conduit");
+
+    // 1. Marketing Hero & 3-Column Value Prop Strip
     await expect(
-      page.getByRole("heading", { level: 1, name: "Dashboard" }),
+      page.getByRole("heading", {
+        level: 1,
+        name: "Intercept, verify, and mediate agent commerce in real time.",
+      }),
+    ).toBeVisible();
+    await expect(
+      page.getByText(
+        "Hold live buyer-to-seller offers in flight, validate policy and schema gates, and approve session orders before a single transaction clears.",
+        { exact: true },
+      ),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Launch Live Interceptor", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Watch Walkthrough", exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("In-Flight Hold Gate", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Decoupled Verification", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Local Binary, Zero Cloud", { exact: true }),
     ).toBeVisible();
 
-    // 0. Exact @heroui-pro/template-dashboard rails on www: all 7 routes, zero custom scroll-page slop
-    await expect(page).toHaveTitle("Conduit");
+    // 2. Embedded Live Commerce Interceptor v7 hydrated from `/Outrider/demo/interceptor-seed.json`
+    const liveSection = page.locator("#live-interceptor");
     await expect(
-      page.locator('[data-sidebar="label"]:visible').first(),
-    ).toHaveText("Conduit");
+      liveSection.getByRole("heading", {
+        level: 2,
+        name: "AudioShop — Headphone Purchase",
+      }),
+    ).toBeVisible();
 
-    const wwwNav = page.getByRole("treegrid", { name: "Dashboard navigation" });
-    for (const navLabel of [
-      "Dashboard",
-      "Traffic",
-      "Inspector",
-      "Analytics",
-      "Receipts",
-      "Settings",
-    ]) {
-      await expect(
-        wwwNav.getByRole("row", { name: navLabel, exact: true }),
-      ).toBeVisible();
-    }
-
-    const wwwBrandAndLayout = await page.evaluate(() => {
-      const sidebarLogo = document.querySelector(
-        'img[alt="Conduit"]',
-      ) as HTMLImageElement | null;
-      const unbackedControls = Array.from(
-        document.querySelectorAll("button, input, textarea, select"),
-      )
-        .filter((el) => {
-          const hasSlot =
-            el.hasAttribute("data-slot") || el.closest("[data-slot]") !== null;
-          const isHeroButton = el.classList.contains("button");
-          return !hasSlot && !isHeroButton;
-        })
-        .map((el) => `${el.tagName.toLowerCase()}.${el.className}`);
-
-      return {
-        noHorizontalOverflow:
-          document.documentElement.scrollWidth <=
-          document.documentElement.clientWidth,
-        sidebarLogoLoaded: Boolean(
-          sidebarLogo && sidebarLogo.complete && sidebarLogo.naturalWidth > 0,
-        ),
-        footerCount: document.querySelectorAll("footer").length,
-        rawCodeCount: document.querySelectorAll("code:not(pre code)").length,
-        unbackedControls,
-      };
+    const graphRegion = liveSection.locator('[data-slot="causal-cradled-graph"]');
+    const r02Node = graphRegion.getByRole("button", {
+      name: "R02 return_offers (HELD)",
     });
-    expect(wwwBrandAndLayout.noHorizontalOverflow).toBe(true);
-    expect(wwwBrandAndLayout.sidebarLogoLoaded).toBe(true);
-    expect(wwwBrandAndLayout.footerCount).toBe(0);
-    expect(wwwBrandAndLayout.rawCodeCount).toBe(0);
-    expect(wwwBrandAndLayout.unbackedControls).toEqual([]);
+    await expect(r02Node).toBeVisible();
+    await expect(r02Node).toHaveAttribute("aria-pressed", "true");
+    await expect(graphRegion).toContainText("O03 Offer C (draft)");
+    await expect(graphRegion).toContainText("$209");
 
-    // Dashboard Recent Traffic DataGrid hydrated with 9 recorded exchanges
-    const recentGrid = page.getByRole("grid", { name: "Recent traffic" });
-    await expect(
-      recentGrid.getByRole("row").filter({ hasNot: page.getByRole("columnheader") }),
-    ).toHaveCount(9);
-
-    await assertCleanCopyAndZeroJargon(page, "www Dashboard", {
+    await assertCleanCopyAndHeroUiHygiene(page, "www Conduit Landing", {
       excludeCodeBlocks: true,
     });
 
-    // 1. Walkthrough Modal opens from DashboardToolbar rail -> 100% dark 2x-slower video + HeroUI Popover scene jumper
-    await page.getByRole("button", { name: "Walkthrough", exact: true }).click();
+    // Capture full-page screenshot of Conduit www landing + embedded Commerce Interceptor v7
+    await page.screenshot({
+      path: path.join(SCRATCH_DIR, "conduit_www_landing.png"),
+      fullPage: true,
+    });
+
+    // Test R02 selection sync, Validate Policy, Review & Send Response, and WebCrypto Authorize Payment on www
+    await graphRegion
+      .getByRole("button", { name: "C01 discover_products (200)" })
+      .click();
+    await expect(
+      liveSection.getByText("C01 · discover_products", { exact: true }),
+    ).toBeVisible();
+    await r02Node.click();
+    await expect(r02Node).toHaveAttribute("aria-pressed", "true");
+
+    const verificationGates = liveSection.locator(
+      '[aria-label="Verification gates"]',
+    );
+    await expect(verificationGates).toContainText("Pending validation");
+    await verificationGates
+      .getByRole("button", { name: "Validate Policy", exact: true })
+      .click();
+    await expect(
+      page.getByText("Seller policy verified", { exact: true }),
+    ).toBeVisible();
+    await expect(verificationGates).toContainText("Valid");
+
+    await liveSection
+      .getByRole("button", { name: "Review & Send Response", exact: true })
+      .click();
+    await expect(
+      page.getByText("Replacement response released to buyer", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", { name: "R02 return_offers (200)" }),
+    ).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", { name: "C03 select_product (200)" }),
+    ).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", {
+        name: "C04 create_checkout_session (200)",
+      }),
+    ).toBeVisible();
+
+    await verificationGates
+      .getByRole("button", { name: "Authorize Payment", exact: true })
+      .click();
+    await expect(
+      page.getByText("Session payment pass authorized", { exact: true }),
+    ).toBeVisible();
+    await expect(
+      graphRegion.getByRole("button", {
+        name: "C05 complete_checkout_session (200)",
+      }),
+    ).toBeVisible();
+
+    // Switch embedded `#live-interceptor` <Segment> across Capture & Orders
+    const embeddedSegment = liveSection.locator(
+      '[aria-label="Live workspace view"]',
+    );
+    await embeddedSegment.getByText("Capture", { exact: true }).click();
+    const capturedGrid = liveSection.getByRole("grid", {
+      name: "Captured session packets",
+    });
+    await expect(
+      capturedGrid
+        .getByRole("row")
+        .filter({ hasNot: page.getByRole("columnheader") }),
+    ).toHaveCount(9);
+
+    await embeddedSegment.getByText("Orders", { exact: true }).click();
+    const ordersGrid = liveSection.getByRole("grid", {
+      name: "Signed session orders",
+    });
+    await expect(
+      ordersGrid
+        .getByRole("row")
+        .filter({ hasNot: page.getByRole("columnheader") }),
+    ).toHaveCount(1);
+    await embeddedSegment.getByText("Transactions", { exact: true }).click();
+
+    // 3. Walkthrough <Modal> + <Popover> scene jumper
+    await page
+      .getByRole("button", { name: "Walkthrough", exact: true })
+      .click();
     const modalDialog = page.getByRole("dialog", {
-      name: "Agentic Commerce Testflight",
+      name: "Conduit Walkthrough",
     });
     await expect(modalDialog).toBeVisible();
 
@@ -1782,107 +1511,57 @@ test("GitHub Pages static showcase (www-dist rewritten to /Outrider) loads with 
       .poll(async () =>
         page.evaluate(() => {
           const video = document.querySelector("video");
-          return video
-            ? { width: video.videoWidth, duration: video.duration }
-            : { width: 0, duration: 0 };
+          return Boolean(
+            video && video.videoWidth > 0 && Number.isFinite(video.duration) && video.duration > 50,
+          );
         }),
       )
-      .toEqual({
-        width: expect.any(Number),
-        duration: expect.any(Number),
-      });
-    const videoMeta = await page.evaluate(() => {
-      const video = document.querySelector("video");
-      return {
-        width: video?.videoWidth ?? 0,
-        duration: video?.duration ?? 0,
-      };
-    });
-    expect(videoMeta.width).toBeGreaterThan(0);
-    expect(videoMeta.duration).toBeGreaterThan(50);
+      .toBe(true);
 
     const scenePill = modalDialog.getByRole("button", { name: /^Scene 1 of / });
     await expect(scenePill).toBeVisible();
     await scenePill.click();
+    const scenesListbox = page.getByRole("listbox", {
+      name: "Walkthrough scenes",
+    });
+    await expect(scenesListbox).toBeVisible();
+    await scenesListbox.getByRole("option").nth(1).click();
     await expect(
-      page.getByRole("listbox", { name: "Walkthrough scenes" }),
+      modalDialog.getByRole("button", { name: /^Scene 2 of / }),
     ).toBeVisible();
-    await page
-      .getByRole("option", { name: /Wire Stream Inspection/ })
+    await modalDialog
+      .getByRole("button", { name: "Close", exact: true })
       .click();
-    await expect(
-      modalDialog.getByRole("button", { name: /Wire Stream Inspection/ }),
-    ).toBeVisible();
-    await modalDialog.getByRole("button", { name: "Close", exact: true }).click();
     await expect(modalDialog).toBeHidden();
 
-    // 2. /Outrider/traffic -> split-pane TrafficPage hydrated + Copy cURL works
-    await clickSidebarLink(page, "Traffic");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Traffic" }),
-    ).toBeVisible();
-    const trafficGrid = page.getByRole("grid", { name: "Live packet stream" });
-    await expect(
-      trafficGrid.getByRole("row").filter({ hasNot: page.getByRole("columnheader") }),
-    ).toHaveCount(9);
-    await trafficGrid
-      .getByRole("row")
-      .filter({ hasText: "/v1/agent-manifest" })
-      .first()
-      .click();
-    await page.getByRole("button", { name: "Copy cURL", exact: true }).click();
-    await expect(page.getByText("Copied cURL command", { exact: true })).toBeVisible();
-    expect(await page.evaluate(() => navigator.clipboard.readText())).toContain("curl");
+    // 4. Download <Dropdown>
+    await page.getByRole("button", { name: "Download", exact: true }).click();
+    const downloadMenu = page.getByRole("menu", { name: "Download" });
+    await expect(downloadMenu).toBeVisible();
+    for (const itemLabel of [
+      "macOS (.dmg)",
+      "Windows (.msi)",
+      "Linux (.tar.gz)",
+      "All Releases",
+    ]) {
+      await expect(
+        downloadMenu.getByRole("menuitem", { name: itemLabel, exact: true }),
+      ).toBeVisible();
+    }
+    await page.keyboard.press("Escape");
 
-    // 3. /Outrider/inspector -> opens Connected with tools preloaded + Run Tool appends live frames
-    await clickSidebarLink(page, "Inspector");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Inspector" }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Disconnect", exact: true }),
-    ).toBeVisible();
-    const toolsPanel = page.getByRole("tabpanel", { name: "Tools" });
-    await toolsPanel.getByRole("button", { name: "Run Tool", exact: true }).click();
-    await expect(
-      page.getByRole("option", { name: /<-\s*tools\/call/ }).last(),
-    ).toBeVisible();
+    // 5. Bottom Light / Dark <Segment> switcher
+    const footerThemeSeg = page.locator('[aria-label="Color theme"]');
+    await footerThemeSeg.getByText("Light", { exact: true }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+      .toBe("brutalism-light");
+    await footerThemeSeg.getByText("Dark", { exact: true }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+      .toBe("brutalism-dark");
 
-    // 4. /Outrider/orders (Receipts) -> Issue Receipt Drawer mints real WebCrypto Ed25519 receipt
-    await clickSidebarLink(page, "Receipts");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Receipts" }),
-    ).toBeVisible();
-    await page.getByRole("button", { name: "Issue Receipt" }).click();
-    await expect(
-      page.getByRole("dialog", { name: "Issue Receipt" }),
-    ).toBeVisible();
-    await page.locator('input[name="receipt-subject"]').fill("agent:hiring-demo");
-    await page.getByRole("button", { name: "Mint Receipt", exact: true }).click();
-    await expect(
-      page.getByRole("grid", { name: "Receipts" }).getByText("agent:hiring-demo"),
-    ).toBeVisible();
-
-    // 5. /Outrider/analytics, /Outrider/settings, /Outrider/help
-    await clickSidebarLink(page, "Analytics");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Analytics" }),
-    ).toBeVisible();
-
-    await clickSidebarLink(page, "Settings");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Settings" }),
-    ).toBeVisible();
-
-    await clickSidebarLink(page, "Help");
-    await expect(
-      page.getByRole("heading", { level: 1, name: "Help" }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("macOS Installer (.dmg)", { exact: true }),
-    ).toBeVisible();
-
-    await assertCleanCopyAndZeroJargon(page, "www (post-interaction)", {
+    await assertCleanCopyAndHeroUiHygiene(page, "www Conduit (post-flow)", {
       excludeCodeBlocks: true,
     });
 

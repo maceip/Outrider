@@ -1,5 +1,8 @@
-import {AnalyticsPage} from "../../../views/analytics-page";
+import {OverviewPage} from "../../../views/overview-page";
+import {WwwLandingPage} from "../../../views/www-landing-page";
+
+const IS_WWW = process.env.NEXT_PUBLIC_WWW === "1";
 
 export default function Page() {
-  return <AnalyticsPage />;
+  return IS_WWW ? <WwwLandingPage /> : <OverviewPage />;
 }

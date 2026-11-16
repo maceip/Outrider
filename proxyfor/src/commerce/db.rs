@@ -18,6 +18,12 @@ pub fn now() -> i64 {
         .expect("system clock before epoch")
         .as_secs() as i64
 }
+pub fn now_ms() -> i64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .expect("system clock before epoch")
+        .as_millis() as i64
+}
 pub fn id() -> String {
     uuid::Uuid::new_v4().to_string()
 }
@@ -54,6 +60,77 @@ impl Database {
               error TEXT, created_at INTEGER NOT NULL
             );")?;
         connection.execute_batch(include_str!("schema.sql"))?;
+        connection.execute_batch(
+            "CREATE TABLE IF NOT EXISTS commerce_transactions (
+                tx_id TEXT PRIMARY KEY,
+                title TEXT NOT NULL,
+                short_title TEXT NOT NULL,
+                category_label TEXT NOT NULL,
+                buyer_agent TEXT NOT NULL,
+                seller_host TEXT NOT NULL,
+                protocol TEXT NOT NULL,
+                phase TEXT NOT NULL,
+                status TEXT NOT NULL,
+                status_detail TEXT NOT NULL,
+                sub_status TEXT NOT NULL,
+                created_at_ms INTEGER NOT NULL,
+                updated_at_ms INTEGER NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS interception_events (
+                event_id TEXT NOT NULL,
+                tx_id TEXT NOT NULL,
+                seq INTEGER NOT NULL,
+                timestamp_ms INTEGER NOT NULL,
+                actor TEXT NOT NULL,
+                direction TEXT NOT NULL,
+                protocol TEXT NOT NULL,
+                event_name TEXT NOT NULL,
+                epistemic_kind TEXT NOT NULL,
+                hold_state TEXT NOT NULL,
+                status_code INTEGER,
+                status_label TEXT NOT NULL,
+                correlation_id TEXT NOT NULL,
+                latency_ms INTEGER,
+                observation TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                PRIMARY KEY(tx_id, event_id)
+            );
+            CREATE TABLE IF NOT EXISTS commercial_offers (
+                offer_id TEXT NOT NULL,
+                tx_id TEXT NOT NULL,
+                parent_event_id TEXT NOT NULL,
+                label TEXT NOT NULL,
+                sku_title TEXT NOT NULL,
+                price_cents INTEGER NOT NULL,
+                currency TEXT NOT NULL,
+                in_stock INTEGER NOT NULL,
+                warranty TEXT NOT NULL,
+                returns_policy TEXT NOT NULL,
+                is_draft INTEGER NOT NULL,
+                committed INTEGER NOT NULL,
+                PRIMARY KEY(tx_id, offer_id)
+            );
+            CREATE TABLE IF NOT EXISTS interception_drafts (
+                draft_id TEXT PRIMARY KEY,
+                tx_id TEXT NOT NULL,
+                target_event_id TEXT NOT NULL,
+                lane TEXT NOT NULL,
+                enabled INTEGER NOT NULL,
+                promo_offer_id TEXT NOT NULL,
+                summary TEXT NOT NULL,
+                result_preview TEXT NOT NULL,
+                delivery_state TEXT NOT NULL,
+                proposed_payload TEXT NOT NULL,
+                mcp_schema TEXT NOT NULL,
+                mcp_schema_detail TEXT NOT NULL,
+                seller_policy TEXT NOT NULL,
+                seller_policy_detail TEXT NOT NULL,
+                operator_approval TEXT NOT NULL,
+                payment_auth TEXT NOT NULL,
+                seller_floor_cents INTEGER NOT NULL,
+                updated_at_ms INTEGER NOT NULL
+            );",
+        )?;
         Ok(Self(Arc::new(Mutex::new(connection))))
     }
     pub fn record_session(

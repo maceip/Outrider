@@ -199,6 +199,12 @@ pub async fn route(commerce: Arc<Commerce>, request: Request<Incoming>) -> HttpR
             Err(e) => json_response(500, json!({"error": format!("{e:#}")})),
         };
     }
+    if method == "GET" && path == "/interception/state" {
+        return match commerce.interception.state(&commerce) {
+            Ok(v) => json_response(200, v),
+            Err(e) => json_response(500, json!({"error": format!("{e:#}")})),
+        };
+    }
     if method != "POST" {
         return json_response(405, json!({"error":"Method not allowed"}));
     }
@@ -334,6 +340,26 @@ pub async fn mutate(
         "/inspector/answer" => commerce.inspector.answer(&body),
         "/onboarding/configure-agent" => crate::onboarding::configure_agent(commerce, &body, actor),
         "/onboarding/run-sortie" => crate::onboarding::run_sortie(commerce, &body, actor).await,
+        "/interception/run-scenario" => {
+            commerce
+                .interception
+                .run_scenario(commerce, &body, actor)
+                .await
+        }
+        "/interception/draft" => commerce.interception.update_draft(commerce, &body, actor),
+        "/interception/validate" => commerce.interception.validate_draft(commerce, &body, actor),
+        "/interception/release" => {
+            commerce
+                .interception
+                .release_intercept(commerce, &body, actor)
+                .await
+        }
+        "/interception/authorize-payment" => {
+            commerce
+                .interception
+                .authorize_payment(commerce, &body, actor)
+                .await
+        }
         _ => anyhow::bail!("Unknown admin action"),
     }
 }

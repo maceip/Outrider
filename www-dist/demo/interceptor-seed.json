@@ -1,0 +1,785 @@
+{
+  "active_intercepting": true,
+  "held_count": 1,
+  "transactions": [
+    {
+      "tx_id": "audioshop",
+      "title": "AudioShop \u2014 Headphone Purchase",
+      "short_title": "AudioShop",
+      "category_label": "Audio \u00b7 $219",
+      "buyer_agent": "agent-7f2",
+      "seller_host": "audioshop.com",
+      "protocol": "MCP",
+      "phase": "negotiate",
+      "status": "held",
+      "status_detail": "HELD \u2014 Awaiting operator",
+      "sub_status": "Negotiate (held)",
+      "created_at_ms": 1794829441308,
+      "updated_at_ms": 1794829441313
+    },
+    {
+      "tx_id": "skyport",
+      "title": "Skyport \u2014 Flight Booking",
+      "short_title": "Skyport",
+      "category_label": "Flight \u00b7 $438",
+      "buyer_agent": "agent-4b9",
+      "seller_host": "skyport.aero",
+      "protocol": "MCP",
+      "phase": "negotiate",
+      "status": "live",
+      "status_detail": "Comparing carrier fare offers",
+      "sub_status": "Negotiate (live)",
+      "created_at_ms": 1794829441314,
+      "updated_at_ms": 1794829441314
+    },
+    {
+      "tx_id": "displayco",
+      "title": "DisplayCo \u2014 Studio Display",
+      "short_title": "DisplayCo",
+      "category_label": "Monitor \u00b7 $329",
+      "buyer_agent": "agent-9c1",
+      "seller_host": "displayco.hardware",
+      "protocol": "MCP",
+      "phase": "discover",
+      "status": "live",
+      "status_detail": "Catalog discovery completed",
+      "sub_status": "Discover (live)",
+      "created_at_ms": 1794829441324,
+      "updated_at_ms": 1794829441324
+    },
+    {
+      "tx_id": "cloudstore",
+      "title": "Cloudstore \u2014 Compute Credits",
+      "short_title": "Cloudstore",
+      "category_label": "Credits \u00b7 $100",
+      "buyer_agent": "agent-2d4",
+      "seller_host": "cloudstore.io",
+      "protocol": "HTTP",
+      "phase": "fulfill",
+      "status": "complete",
+      "status_detail": "Compute credits provisioned",
+      "sub_status": "Fulfill (complete)",
+      "created_at_ms": 1794829441334,
+      "updated_at_ms": 1794829441334
+    }
+  ],
+  "events": [
+    {
+      "event_id": "C01",
+      "tx_id": "audioshop",
+      "seq": 1,
+      "timestamp_ms": 1794829441311,
+      "actor": "agent-7f2",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "discover_products",
+      "epistemic_kind": "observed",
+      "hold_state": "none",
+      "status_code": 200,
+      "status_label": "200",
+      "correlation_id": "corr-7f2-01",
+      "latency_ms": 2,
+      "hold_ms": null,
+      "observation": "Products found (12)",
+      "payload": {
+        "request": {
+          "jsonrpc": "2.0",
+          "id": "corr-7f2-01",
+          "method": "tools/call",
+          "protocolVersion": "2026-07-28",
+          "params": {
+            "name": "discover_products",
+            "arguments": {
+              "category": "wireless_headphones",
+              "max_price_cents": 25000
+            }
+          }
+        },
+        "response": {
+          "jsonrpc": "2.0",
+          "id": "corr-7f2-01",
+          "protocolVersion": "2026-07-28",
+          "result": {
+            "seller": "audioshop.com",
+            "category": "wireless_headphones",
+            "total_matches": 12,
+            "products": [
+              {
+                "sku": "SWX-BLK-01",
+                "sku_title": "Studio Wireless X",
+                "msrp_cents": 22900,
+                "currency": "USD",
+                "in_stock": true
+              },
+              {
+                "sku": "SWP-SLV-02",
+                "sku_title": "Studio Monitor Pro",
+                "msrp_cents": 27900,
+                "currency": "USD",
+                "in_stock": true
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "event_id": "C02",
+      "tx_id": "audioshop",
+      "seq": 2,
+      "timestamp_ms": 1794829441312,
+      "actor": "agent-7f2",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "get_offers",
+      "epistemic_kind": "observed",
+      "hold_state": "none",
+      "status_code": 200,
+      "status_label": "200",
+      "correlation_id": "corr-7f2-02",
+      "latency_ms": 1,
+      "hold_ms": null,
+      "observation": "Call to get_offers",
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": "corr-7f2-02",
+        "method": "tools/call",
+        "protocolVersion": "2026-07-28",
+        "params": {
+          "name": "get_offers",
+          "arguments": {
+            "sku": "SWX-BLK-01",
+            "sku_title": "Studio Wireless X"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "R02",
+      "tx_id": "audioshop",
+      "seq": 3,
+      "timestamp_ms": 1794829441313,
+      "actor": "audioshop.com",
+      "direction": "seller_to_buyer",
+      "protocol": "MCP",
+      "event_name": "return_offers",
+      "epistemic_kind": "held",
+      "hold_state": "held",
+      "status_code": null,
+      "status_label": "HELD",
+      "correlation_id": "corr-7f2-02",
+      "latency_ms": null,
+      "hold_ms": 165,
+      "observation": "2 offers held at gate ($219, $229)",
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": "corr-7f2-02",
+        "method": "return_offers",
+        "protocolVersion": "2026-07-28",
+        "direction": "seller_to_buyer",
+        "source": "audioshop.com",
+        "recipient": "agent-7f2",
+        "offers": [
+          {
+            "offer_id": "O01",
+            "label": "Offer A",
+            "sku_title": "Studio Wireless X",
+            "price_cents": 21900,
+            "currency": "USD",
+            "in_stock": true,
+            "warranty": "2-year manufacturer",
+            "returns_policy": "30-day free returns"
+          },
+          {
+            "offer_id": "O02",
+            "label": "Offer B",
+            "sku_title": "Studio Wireless X",
+            "price_cents": 22900,
+            "currency": "USD",
+            "in_stock": true,
+            "warranty": "3-year extended",
+            "returns_policy": "60-day free returns"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "C03",
+      "tx_id": "audioshop",
+      "seq": 4,
+      "timestamp_ms": 1794829441312,
+      "actor": "agent-7f2",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "select_product",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-7f2-03",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting offer delivery",
+      "payload": {
+        "jsonrpc": "2.0",
+        "method": "select_product",
+        "protocolVersion": "2026-07-28",
+        "status": "pending"
+      }
+    },
+    {
+      "event_id": "C04",
+      "tx_id": "audioshop",
+      "seq": 5,
+      "timestamp_ms": 1794829441313,
+      "actor": "agent-7f2",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "create_checkout_session",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-7f2-04",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting product selection",
+      "payload": {
+        "jsonrpc": "2.0",
+        "method": "create_checkout_session",
+        "protocolVersion": "2026-07-28",
+        "status": "pending"
+      }
+    },
+    {
+      "event_id": "C05",
+      "tx_id": "audioshop",
+      "seq": 6,
+      "timestamp_ms": 1794829441314,
+      "actor": "agent-7f2",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "complete_checkout_session",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-7f2-05",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting session payment pass",
+      "payload": {
+        "jsonrpc": "2.0",
+        "method": "complete_checkout_session",
+        "protocolVersion": "2026-07-28",
+        "status": "pending"
+      }
+    },
+    {
+      "event_id": "C01",
+      "tx_id": "skyport",
+      "seq": 1,
+      "timestamp_ms": 1794829441314,
+      "actor": "agent-4b9",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "discover_products",
+      "epistemic_kind": "observed",
+      "hold_state": "none",
+      "status_code": 200,
+      "status_label": "200",
+      "correlation_id": "corr-4b9-01",
+      "latency_ms": 1,
+      "hold_ms": null,
+      "observation": "Flights found (8)",
+      "payload": {
+        "request": {
+          "jsonrpc": "2.0",
+          "id": "corr-4b9-01",
+          "method": "tools/call",
+          "protocolVersion": "2026-07-28",
+          "params": {
+            "name": "discover_flights",
+            "arguments": {
+              "origin": "SFO",
+              "destination": "JFK"
+            }
+          }
+        },
+        "response": {
+          "jsonrpc": "2.0",
+          "id": "corr-4b9-01",
+          "protocolVersion": "2026-07-28",
+          "result": {
+            "seller": "skyport.aero",
+            "route": "SFO -> JFK",
+            "total_matches": 8,
+            "lowest_fare_cents": 43800,
+            "currency": "USD"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "C02",
+      "tx_id": "skyport",
+      "seq": 2,
+      "timestamp_ms": 1794829441315,
+      "actor": "agent-4b9",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "get_offers",
+      "epistemic_kind": "observed",
+      "hold_state": "none",
+      "status_code": 200,
+      "status_label": "200",
+      "correlation_id": "corr-4b9-02",
+      "latency_ms": 1,
+      "hold_ms": null,
+      "observation": "Call to get_offers",
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": "corr-4b9-02",
+        "method": "tools/call",
+        "protocolVersion": "2026-07-28",
+        "params": {
+          "name": "get_offers",
+          "arguments": {
+            "route": "SFO -> JFK"
+          }
+        }
+      }
+    },
+    {
+      "event_id": "R02",
+      "tx_id": "skyport",
+      "seq": 3,
+      "timestamp_ms": 1794829441316,
+      "actor": "skyport.aero",
+      "direction": "seller_to_buyer",
+      "protocol": "MCP",
+      "event_name": "return_offers",
+      "epistemic_kind": "observed",
+      "hold_state": "forwarded",
+      "status_code": 200,
+      "status_label": "200",
+      "correlation_id": "corr-4b9-02",
+      "latency_ms": 1,
+      "hold_ms": null,
+      "observation": "2 fares forwarded ($438, $512)",
+      "payload": {
+        "jsonrpc": "2.0",
+        "id": "corr-4b9-02",
+        "method": "return_offers",
+        "protocolVersion": "2026-07-28",
+        "direction": "seller_to_buyer",
+        "source": "skyport.aero",
+        "recipient": "agent-4b9",
+        "offers": [
+          {
+            "offer_id": "O01",
+            "label": "Fare A",
+            "sku_title": "SFO -> JFK Nonstop Economy Flex",
+            "price_cents": 43800,
+            "currency": "USD",
+            "in_stock": true,
+            "warranty": "Trip delay protection",
+            "returns_policy": "24-hour free cancellation"
+          },
+          {
+            "offer_id": "O02",
+            "label": "Fare B",
+            "sku_title": "SFO -> JFK Main Cabin Refundable",
+            "price_cents": 51200,
+            "currency": "USD",
+            "in_stock": true,
+            "warranty": "Full travel protection",
+            "returns_policy": "Fully refundable prior to departure"
+          }
+        ]
+      }
+    },
+    {
+      "event_id": "C03",
+      "tx_id": "skyport",
+      "seq": 4,
+      "timestamp_ms": 1794829441318,
+      "actor": "agent-4b9",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "select_product",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-4b9-03",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Evaluating fare rules",
+      "payload": {}
+    },
+    {
+      "event_id": "C04",
+      "tx_id": "skyport",
+      "seq": 5,
+      "timestamp_ms": 1794829441319,
+      "actor": "agent-4b9",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "create_checkout_session",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-4b9-04",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting fare selection",
+      "payload": {}
+    },
+    {
+      "event_id": "C05",
+      "tx_id": "skyport",
+      "seq": 6,
+      "timestamp_ms": 1794829441320,
+      "actor": "agent-4b9",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "complete_checkout_session",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-4b9-05",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting payment receipt",
+      "payload": {}
+    },
+    {
+      "event_id": "C01",
+      "tx_id": "displayco",
+      "seq": 1,
+      "timestamp_ms": 1794829441324,
+      "actor": "agent-9c1",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "discover_products",
+      "epistemic_kind": "observed",
+      "hold_state": "none",
+      "status_code": 200,
+      "status_label": "200",
+      "correlation_id": "corr-9c1-01",
+      "latency_ms": 1,
+      "hold_ms": null,
+      "observation": "Displays found (6)",
+      "payload": {
+        "request": {
+          "jsonrpc": "2.0",
+          "id": "corr-9c1-01",
+          "method": "tools/call",
+          "protocolVersion": "2026-07-28",
+          "params": {
+            "name": "discover_products",
+            "arguments": {
+              "category": "studio_monitors"
+            }
+          }
+        },
+        "response": {
+          "jsonrpc": "2.0",
+          "id": "corr-9c1-01",
+          "protocolVersion": "2026-07-28",
+          "result": {
+            "seller": "displayco.hardware",
+            "total_matches": 6,
+            "featured": {
+              "sku": "DSP-27-4K",
+              "sku_title": "Studio Reference 27\" 4K",
+              "price_cents": 32900,
+              "currency": "USD",
+              "in_stock": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "event_id": "C02",
+      "tx_id": "displayco",
+      "seq": 2,
+      "timestamp_ms": 1794829441326,
+      "actor": "agent-9c1",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "get_offers",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-9c1-02",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting SKU offer query",
+      "payload": {}
+    },
+    {
+      "event_id": "C03",
+      "tx_id": "displayco",
+      "seq": 3,
+      "timestamp_ms": 1794829441327,
+      "actor": "agent-9c1",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "select_product",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-9c1-03",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting offer evaluation",
+      "payload": {}
+    },
+    {
+      "event_id": "C04",
+      "tx_id": "displayco",
+      "seq": 4,
+      "timestamp_ms": 1794829441328,
+      "actor": "agent-9c1",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "create_checkout_session",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-9c1-04",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting selection",
+      "payload": {}
+    },
+    {
+      "event_id": "C05",
+      "tx_id": "displayco",
+      "seq": 5,
+      "timestamp_ms": 1794829441329,
+      "actor": "agent-9c1",
+      "direction": "buyer_to_seller",
+      "protocol": "MCP",
+      "event_name": "complete_checkout_session",
+      "epistemic_kind": "pending",
+      "hold_state": "none",
+      "status_code": null,
+      "status_label": "PENDING",
+      "correlation_id": "corr-9c1-05",
+      "latency_ms": null,
+      "hold_ms": null,
+      "observation": "Awaiting payment receipt",
+      "payload": {}
+    },
+    {
+      "event_id": "C01",
+      "tx_id": "cloudstore",
+      "seq": 1,
+      "timestamp_ms": 1794829441334,
+      "actor": "agent-2d4",
+      "direction": "buyer_to_seller",
+      "protocol": "HTTP",
+      "event_name": "complete_checkout_session",
+      "epistemic_kind": "observed",
+      "hold_state": "none",
+      "status_code": 200,
+      "status_label": "200",
+      "correlation_id": "corr-2d4-01",
+      "latency_ms": 1,
+      "hold_ms": null,
+      "observation": "Order ord_cloudstore_2d4 fulfilled ($100.00)",
+      "payload": {
+        "request": {
+          "sku": "GPU-100H",
+          "amount_cents": 10000,
+          "currency": "USD"
+        },
+        "response": {
+          "order_id": "ord_cloudstore_2d4",
+          "seller": "cloudstore.io",
+          "buyer": "agent-2d4",
+          "sku_title": "GPU Compute Credits (100 hrs)",
+          "amount_cents": 10000,
+          "currency": "USD",
+          "status": "fulfilled"
+        }
+      }
+    }
+  ],
+  "offers": [
+    {
+      "offer_id": "O01",
+      "tx_id": "audioshop",
+      "parent_event_id": "C02",
+      "label": "Offer A",
+      "sku_title": "Studio Wireless X",
+      "price_cents": 21900,
+      "currency": "USD",
+      "in_stock": true,
+      "warranty": "2-year manufacturer",
+      "returns_policy": "30-day free returns",
+      "is_draft": false,
+      "committed": true
+    },
+    {
+      "offer_id": "O02",
+      "tx_id": "audioshop",
+      "parent_event_id": "C02",
+      "label": "Offer B",
+      "sku_title": "Studio Wireless X",
+      "price_cents": 22900,
+      "currency": "USD",
+      "in_stock": true,
+      "warranty": "3-year extended",
+      "returns_policy": "60-day free returns",
+      "is_draft": false,
+      "committed": true
+    },
+    {
+      "offer_id": "O03",
+      "tx_id": "audioshop",
+      "parent_event_id": "R02",
+      "label": "Offer C (draft)",
+      "sku_title": "Studio Wireless X",
+      "price_cents": 20900,
+      "currency": "USD",
+      "in_stock": true,
+      "warranty": "2-year manufacturer",
+      "returns_policy": "30-day free returns",
+      "is_draft": true,
+      "committed": false
+    },
+    {
+      "offer_id": "O01",
+      "tx_id": "skyport",
+      "parent_event_id": "C02",
+      "label": "Fare A",
+      "sku_title": "SFO -> JFK Nonstop Economy Flex",
+      "price_cents": 43800,
+      "currency": "USD",
+      "in_stock": true,
+      "warranty": "Trip delay protection",
+      "returns_policy": "24-hour free cancellation",
+      "is_draft": false,
+      "committed": true
+    },
+    {
+      "offer_id": "O02",
+      "tx_id": "skyport",
+      "parent_event_id": "C02",
+      "label": "Fare B",
+      "sku_title": "SFO -> JFK Main Cabin Refundable",
+      "price_cents": 51200,
+      "currency": "USD",
+      "in_stock": true,
+      "warranty": "Full travel protection",
+      "returns_policy": "Fully refundable prior to departure",
+      "is_draft": false,
+      "committed": true
+    },
+    {
+      "offer_id": "O01",
+      "tx_id": "displayco",
+      "parent_event_id": "C01",
+      "label": "Catalog MSRP",
+      "sku_title": "Studio Reference 27\" 4K",
+      "price_cents": 32900,
+      "currency": "USD",
+      "in_stock": true,
+      "warranty": "3-year panel warranty",
+      "returns_policy": "30-day free returns",
+      "is_draft": false,
+      "committed": true
+    },
+    {
+      "offer_id": "O01",
+      "tx_id": "cloudstore",
+      "parent_event_id": "C01",
+      "label": "Credit Pack",
+      "sku_title": "GPU Compute Credits (100 hrs)",
+      "price_cents": 10000,
+      "currency": "USD",
+      "in_stock": true,
+      "warranty": "SLA 99.95% uptime",
+      "returns_policy": "Unused credits roll over 12 months",
+      "is_draft": false,
+      "committed": true
+    }
+  ],
+  "drafts": [
+    {
+      "draft_id": "draft-r02",
+      "tx_id": "audioshop",
+      "target_event_id": "R02",
+      "lane": "seller_to_buyer",
+      "enabled": true,
+      "promo_offer_id": "O03",
+      "summary": "Inject promotional O03 ($209.00) into audioshop.com -> agent-7f2 response",
+      "result_preview": "Buyer agent-7f2 evaluates 3 offers and selects O03 ($209.00), saving $10.00",
+      "delivery_state": "proposed",
+      "proposed_payload": {
+        "jsonrpc": "2.0",
+        "id": "corr-7f2-02",
+        "method": "return_offers",
+        "protocolVersion": "2026-07-28",
+        "direction": "seller_to_buyer",
+        "source": "audioshop.com",
+        "recipient": "agent-7f2",
+        "offers": [
+          {
+            "offer_id": "O01",
+            "label": "Offer A",
+            "sku_title": "Studio Wireless X",
+            "price_cents": 21900,
+            "currency": "USD",
+            "in_stock": true,
+            "warranty": "2-year manufacturer",
+            "returns_policy": "30-day free returns",
+            "origin": "seller"
+          },
+          {
+            "offer_id": "O02",
+            "label": "Offer B",
+            "sku_title": "Studio Wireless X",
+            "price_cents": 22900,
+            "currency": "USD",
+            "in_stock": true,
+            "warranty": "3-year extended",
+            "returns_policy": "60-day free returns",
+            "origin": "seller"
+          },
+          {
+            "offer_id": "O03",
+            "label": "Offer C (draft)",
+            "sku_title": "Studio Wireless X",
+            "price_cents": 20900,
+            "currency": "USD",
+            "in_stock": true,
+            "warranty": "2-year manufacturer",
+            "returns_policy": "30-day free returns",
+            "origin": "conduit_proxy"
+          }
+        ]
+      },
+      "seller_floor_cents": 19900,
+      "updated_at_ms": 1794829441313,
+      "validation": {
+        "mcp_schema": "valid",
+        "mcp_schema_detail": "Conforms to MCP 2026-07-28 return_offers schema",
+        "seller_policy": "pending_validation",
+        "seller_policy_detail": "Awaiting seller floor check ($199.00 minimum)",
+        "operator_approval": "awaiting_operator",
+        "payment_auth": "unverified"
+      }
+    }
+  ]
+}
