@@ -401,6 +401,35 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
   let closeWsClient: (() => void) | null = null;
   const openServerSockets = new Set<net.Socket>();
 
+  await page.route(
+    "https://api.github.com/repos/maceip/Outrider/releases/latest",
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          tag_name: "v0.5.18",
+          assets: [
+            {
+              name: "outrider-v0.5.18-aarch64-apple-darwin.dmg",
+              browser_download_url:
+                "https://github.com/maceip/Outrider/releases/download/v0.5.18/outrider-v0.5.18-aarch64-apple-darwin.dmg",
+            },
+            {
+              name: "outrider-v0.5.18-x86_64-pc-windows-msvc.msi",
+              browser_download_url:
+                "https://github.com/maceip/Outrider/releases/download/v0.5.18/outrider-v0.5.18-x86_64-pc-windows-msvc.msi",
+            },
+            {
+              name: "outrider-v0.5.18-x86_64-unknown-linux-gnu.tar.gz",
+              browser_download_url:
+                "https://github.com/maceip/Outrider/releases/download/v0.5.18/outrider-v0.5.18-x86_64-unknown-linux-gnu.tar.gz",
+            },
+          ],
+        }),
+      }),
+  );
+
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
   const badResponses: string[] = [];
@@ -1350,6 +1379,35 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders firecrawl-minimal h
   );
   const staticPort = (staticServer.address() as net.AddressInfo).port;
   const pagesUrl = `http://127.0.0.1:${staticPort}/Outrider/`;
+
+  await page.route(
+    "https://api.github.com/repos/maceip/Outrider/releases/latest",
+    (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({
+          tag_name: "v0.5.18",
+          assets: [
+            {
+              name: "outrider-v0.5.18-aarch64-apple-darwin.dmg",
+              browser_download_url:
+                "https://github.com/maceip/Outrider/releases/download/v0.5.18/outrider-v0.5.18-aarch64-apple-darwin.dmg",
+            },
+            {
+              name: "outrider-v0.5.18-x86_64-pc-windows-msvc.msi",
+              browser_download_url:
+                "https://github.com/maceip/Outrider/releases/download/v0.5.18/outrider-v0.5.18-x86_64-pc-windows-msvc.msi",
+            },
+            {
+              name: "outrider-v0.5.18-x86_64-unknown-linux-gnu.tar.gz",
+              browser_download_url:
+                "https://github.com/maceip/Outrider/releases/download/v0.5.18/outrider-v0.5.18-x86_64-unknown-linux-gnu.tar.gz",
+            },
+          ],
+        }),
+      }),
+  );
 
   const consoleErrors: string[] = [];
   const pageErrors: string[] = [];
