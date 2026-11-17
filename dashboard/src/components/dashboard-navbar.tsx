@@ -1,14 +1,10 @@
 "use client";
 
-import type {WorkspaceSegmentId} from "../nav-items";
-
-import {Button} from "@heroui/react";
-import {Navbar, Segment} from "@heroui-pro/react";
-import {useMemo} from "react";
+import {Button, Chip} from "@heroui/react";
+import {Navbar} from "@heroui-pro/react";
 
 import {useCoreStore} from "../lib/core-store";
 import {withWwwBasePath} from "../lib/www-base-path";
-import {WORKSPACE_SEGMENTS} from "../nav-items";
 
 import {useThemeMode} from "./theme-toggle";
 
@@ -21,28 +17,19 @@ export function DashboardNavbar({
   normalizedPathname = "/",
   onNavigate,
 }: DashboardNavbarProps) {
-  const {exportHar} = useCoreStore();
+  const {connected, exportHar, snapshot, traffics} = useCoreStore();
   const theme = useThemeMode();
   const isDark = theme === "brutalism-dark";
 
-  const activeSegment = useMemo<WorkspaceSegmentId | "">(() => {
-    if (normalizedPathname === "/" || normalizedPathname === "/inspector") {
-      return "/";
-    }
-    if (
-      normalizedPathname === "/traffic" ||
-      normalizedPathname === "/orders" ||
-      normalizedPathname === "/analytics"
-    ) {
-      return normalizedPathname;
-    }
-
-    return "";
-  }, [normalizedPathname]);
+  const activePassCount = (snapshot?.capability_receipts ?? []).filter(
+    (row) => row.revoked === 0 && row.remaining_calls > 0,
+  ).length;
 
   const handleNavigate = (href: string) => {
     onNavigate?.(href);
   };
+
+  const isOnDesk = normalizedPathname === "/";
 
   return (
     <Navbar
@@ -64,23 +51,31 @@ export function DashboardNavbar({
           <span className="text-foreground text-sm font-semibold tracking-[-0.02em]">
             Conduit
           </span>
+          <Chip
+            className="hidden font-mono tabular-nums sm:inline-flex"
+            color={connected ? "success" : "default"}
+            size="sm"
+            variant="soft"
+          >
+            {connected ? "Sell-Side Desk · Live" : "Sell-Side Desk"}
+          </Chip>
         </Navbar.Brand>
 
-        <Segment
-          aria-label="Workspace navigation"
-          className="shrink-0"
-          selectedKey={activeSegment}
-          size="sm"
-          onSelectionChange={(key) => handleNavigate(String(key))}
-        >
-          {WORKSPACE_SEGMENTS.map((segment) => (
-            <Segment.Item key={segment.href} id={segment.href}>
-              {segment.label}
-            </Segment.Item>
-          ))}
-        </Segment>
-
         <Navbar.Content className="shrink-0 gap-1.5">
+          {!isOnDesk ? (
+            <Button
+              size="sm"
+              variant="secondary"
+              onPress={() => handleNavigate("/")}
+            >
+              Investigation Desk
+            </Button>
+          ) : (
+            <span className="text-muted hidden pr-2 font-mono text-xs tabular-nums md:inline">
+              {`${traffics.length} frames · ${activePassCount} active passes`}
+            </span>
+          )}
+
           <Button size="sm" variant="tertiary" onPress={exportHar}>
             Export HAR
           </Button>

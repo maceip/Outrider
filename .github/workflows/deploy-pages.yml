@@ -3,7 +3,7 @@ name: Deploy GitHub Pages Showcase
 on:
   push:
     branches:
-      - "**"
+      - main
   workflow_dispatch:
 
 permissions:
@@ -25,6 +25,25 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Build showcase static export
+        working-directory: dashboard
+        env:
+          HEROUI_AUTH_TOKEN: ${{ secrets.HEROUI_AUTH_TOKEN }}
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build:www
 
       - name: Configure GitHub Pages
         id: pages

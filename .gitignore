@@ -21,6 +21,7 @@ playwright-report/
 dashboard/node_modules/
 dashboard/.next/
 dashboard/.turbo/
+dashboard/tsconfig.tsbuildinfo
 www/node_modules/
 www/dist/
 www/test-results/
