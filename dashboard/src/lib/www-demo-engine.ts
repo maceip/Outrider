@@ -465,10 +465,10 @@ export class WwwDemoEngine {
           ? (recordedToolsMsg.body as Record<string, unknown>)
           : {tools: []};
       } else if (method === "tools/call") {
-        const toolName = String(params.name ?? "outrider_catalog");
+        const toolName = String(params.name ?? "conduit_catalog");
         const args = isRecord(params.arguments) ? params.arguments : {};
 
-        if (toolName === "outrider_catalog") {
+        if (toolName === "conduit_catalog") {
           resultBody = {
             content: [
               {
@@ -488,8 +488,8 @@ export class WwwDemoEngine {
             isError: false,
             resultType: "complete",
           };
-        } else if (toolName === "outrider_checkout_bundle") {
-          const bundleId = String(args.bundle_id ?? "outrider_session_evidence");
+        } else if (toolName === "conduit_checkout_bundle") {
+          const bundleId = String(args.bundle_id ?? "conduit_session_evidence");
           const activeReceipt = this.snapshot.capability_receipts.find(
             (r) =>
               r.bundle_id === bundleId &&

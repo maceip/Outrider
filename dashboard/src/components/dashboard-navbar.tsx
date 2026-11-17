@@ -38,8 +38,8 @@ export function DashboardNavbar({
       maxWidth="full"
       size="sm"
     >
-      <Navbar.Header className="justify-between gap-3">
-        <Navbar.Brand className="gap-2.5">
+      <Navbar.Header className="justify-between gap-2 px-3 sm:gap-3 sm:px-4">
+        <Navbar.Brand className="min-w-0 gap-2">
           {/* eslint-disable-next-line @next/next/no-img-element -- static export served under basePath */}
           <img
             alt="Conduit"
@@ -48,7 +48,7 @@ export function DashboardNavbar({
             src={withWwwBasePath(`/brand/${isDark ? "dark" : "light"}/conduit-icon-64.png`)}
             width={24}
           />
-          <span className="text-foreground text-sm font-semibold tracking-[-0.02em]">
+          <span className="text-foreground truncate text-sm font-semibold tracking-[-0.02em]">
             Conduit
           </span>
           <Chip
@@ -57,18 +57,18 @@ export function DashboardNavbar({
             size="sm"
             variant="soft"
           >
-            {connected ? "Sell-Side Desk · Live" : "Sell-Side Desk"}
+            {connected ? "Control Plane · Live" : "Control Plane"}
           </Chip>
         </Navbar.Brand>
 
-        <Navbar.Content className="shrink-0 gap-1.5">
+        <Navbar.Content className="shrink-0 gap-1 sm:gap-1.5">
           {!isOnDesk ? (
             <Button
               size="sm"
               variant="secondary"
               onPress={() => handleNavigate("/")}
             >
-              Investigation Desk
+              Control Plane
             </Button>
           ) : (
             <span className="text-muted hidden pr-2 font-mono text-xs tabular-nums md:inline">

@@ -311,9 +311,9 @@ export function WireEvidencePanel({
   );
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden p-3">
+    <div className="flex min-h-[540px] flex-1 flex-col gap-2.5 overflow-hidden p-3 lg:min-h-0">
       <div className="flex shrink-0 flex-wrap items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-wrap items-center gap-2">
+        <div className="flex min-w-0 max-w-full flex-wrap items-center gap-2">
           <SearchField
             aria-label="Filter wire frames"
             className="w-full sm:w-56"
@@ -332,19 +332,21 @@ export function WireEvidencePanel({
             </SearchField.Group>
           </SearchField>
 
-          <Segment
-            aria-label="Filter by protocol"
-            className="shrink-0"
-            selectedKey={protocolFilter}
-            size="sm"
-            onSelectionChange={(key) => setProtocolFilter(String(key) as ProtocolFilter)}
-          >
-            <Segment.Item id="all">All</Segment.Item>
-            <Segment.Item id="HTTP">HTTP</Segment.Item>
-            <Segment.Item id="HTTPS">HTTPS</Segment.Item>
-            <Segment.Item id="MCP">MCP</Segment.Item>
-            <Segment.Item id="WS">WebSocket</Segment.Item>
-          </Segment>
+          <div className="max-w-full overflow-x-auto">
+            <Segment
+              aria-label="Filter by protocol"
+              className="shrink-0"
+              selectedKey={protocolFilter}
+              size="sm"
+              onSelectionChange={(key) => setProtocolFilter(String(key) as ProtocolFilter)}
+            >
+              <Segment.Item id="all">All</Segment.Item>
+              <Segment.Item id="HTTP">HTTP</Segment.Item>
+              <Segment.Item id="HTTPS">HTTPS</Segment.Item>
+              <Segment.Item id="MCP">MCP</Segment.Item>
+              <Segment.Item id="WS">WebSocket</Segment.Item>
+            </Segment>
+          </div>
 
           <Dropdown>
             <Button className="shrink-0" size="sm" variant="tertiary">
@@ -375,7 +377,7 @@ export function WireEvidencePanel({
         </Chip>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-hidden">
+      <div className="h-[460px] min-h-0 flex-1 overflow-hidden lg:h-auto">
         <Resizable orientation="vertical">
           <Resizable.Panel className="min-h-0 overflow-hidden pb-1.5" defaultSize={46} minSize={26}>
             <Card className="h-full overflow-hidden p-0">

@@ -37,16 +37,16 @@ const WALKTHROUGH_CUES: ReadonlyArray<VideoSceneCue> = walkthroughCuesData;
 
 const VALUE_PROPS: ReadonlyArray<{body: string; title: string}> = [
   {
-    body: "Hold outbound catalog offers mid-inquiry, verify merchant margin floors, and stage counter-offers without rewriting wire history.",
-    title: "Sell-Side Offer Hold Gate",
+    body: "Hold outbound agent offers mid-flight, validate them against your margin floors, and approve or replace the response in real time.",
+    title: "Pause & Counter Live Quotes",
   },
   {
-    body: "Correlate causal buyer-agent negotiation traces, raw HTTP/MCP/WebSocket frames, and session capability passes in one desk.",
-    title: "Unified Investigation Desk",
+    body: "Turn minimal query-response traces into deep agent intelligence—identifying model versions, prompting frameworks, and tool-call behavior across application layers as agents navigate your services.",
+    title: "Active Agent Fingerprinting",
   },
   {
-    body: "Runs on your merchant workstation with one binary so catalog rules, session passes, and wire payloads stay on loopback.",
-    title: "Local Binary, Zero Cloud",
+    body: "Built around a lean native core optimized to run effortlessly on your laptop or a Xeon server. Install one app on Mac, Windows, or Linux—your pricing rules, customer payloads, and signing keys never touch a third-party cloud.",
+    title: "Runs on Your Machine, Private by Default",
   },
 ];
 
@@ -343,17 +343,17 @@ export function WwwLandingPage() {
         </Navbar.Header>
       </Navbar>
 
-      <section className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 px-6 pt-12 pb-8 text-center">
+      <section className="mx-auto flex w-full max-w-4xl flex-col items-center gap-4 px-4 pt-8 pb-6 text-center sm:px-6 sm:pt-12 sm:pb-8">
         <h1 className="text-foreground max-w-3xl text-3xl font-semibold tracking-[-0.02em] sm:text-5xl sm:leading-[1.08]">
-          Sell-side commerce investigation and offer mediation in real time.
+          Agentic Commerce Control Plane
         </h1>
         <p className="text-muted max-w-2xl font-sans text-base font-normal leading-relaxed sm:text-lg">
-          Inspect live buyer-agent inquiries on the wire, enforce merchant floor policies before
-          offers clear, and govern session capability passes from one desk.
+          Fingerprint AI agents to dynamically package and price services for their needs, stop bad
+          discounts before they leave your store, and approve high-value deals in real time.
         </p>
         <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
           <Button variant="primary" onPress={scrollToLiveInterceptor}>
-            Open Investigation Desk
+            Try Live Control Plane
           </Button>
           <Button variant="outline" onPress={() => setIsWalkthroughOpen(true)}>
             Watch Walkthrough
@@ -362,20 +362,20 @@ export function WwwLandingPage() {
       </section>
 
       <section
-        className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-4 pb-10 sm:px-6"
+        className="mx-auto flex w-full max-w-[1440px] flex-col gap-3 px-3 pb-8 sm:px-6 sm:pb-10"
         id="live-interceptor"
       >
         <InterceptorSlot embedded />
       </section>
 
-      <section className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-4 px-4 pb-12 sm:px-6 md:grid-cols-3">
+      <section className="mx-auto grid w-full max-w-[1440px] grid-cols-1 gap-4 px-3 pb-12 sm:px-6 md:grid-cols-3">
         {VALUE_PROPS.map((prop) => (
-          <Card key={prop.title} className="gap-2 p-6">
+          <Card key={prop.title} className="gap-2 p-5 sm:p-6">
             <Card.Header className="p-0">
               <Card.Title className="text-base">{prop.title}</Card.Title>
             </Card.Header>
             <Card.Content className="p-0">
-              <p className="text-muted line-clamp-2 text-sm leading-relaxed">{prop.body}</p>
+              <p className="text-muted text-sm leading-relaxed">{prop.body}</p>
             </Card.Content>
           </Card>
         ))}

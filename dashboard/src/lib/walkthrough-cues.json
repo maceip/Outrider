@@ -2,37 +2,37 @@
   {
     "id": "dashboard",
     "startSec": 0,
-    "title": "Live Dashboard",
-    "description": "Agent requests and session calls stream into the local gateway in real time."
+    "title": "Live Agent Traffic",
+    "description": "Watch AI shopping agents connect, probe capabilities, and request live catalog offers in real time."
   },
   {
     "id": "inspector-catalog",
     "startSec": 11.1,
-    "title": "Testing a Tool Call",
-    "description": "Connecting to the local server and running the catalog tool from the workbench."
+    "title": "Catalog & Offer Packaging",
+    "description": "Inspect how agents query your catalog and how Conduit packages structured offers for each session."
   },
   {
     "id": "inspector-checkout",
     "startSec": 17.6,
-    "title": "Bundle Handshake",
-    "description": "Requesting a gated bundle to inspect the exact access pass prompt returned to the agent."
+    "title": "Margin & Pass Gate",
+    "description": "Hold an outbound quote or gated bundle and inspect the exact prompt returned to the agent."
   },
   {
     "id": "traffic",
     "startSec": 27.6,
-    "title": "Wire Stream Inspection",
-    "description": "Filtering live exchanges and inspecting full request and response payloads."
+    "title": "Full Wire Payloads",
+    "description": "Filter live HTTP, MCP, and WebSocket exchanges to inspect complete request and response bodies."
   },
   {
     "id": "receipts",
     "startSec": 42.3,
-    "title": "Issuing an Access Pass",
-    "description": "Minting a scoped session pass with a call quota from the operator drawer."
+    "title": "Issuing a Checkout Pass",
+    "description": "Mint a scoped session pass with a strict call quota and instant revocation from one drawer."
   },
   {
     "id": "telemetry",
     "startSec": 50.1,
-    "title": "Activity & Configuration",
-    "description": "Reviewing host volume, gateway endpoints, and local certificate downloads."
+    "title": "Local Gateway & Certificates",
+    "description": "Configure local proxy endpoints, active capability probes, and root certificates on your machine."
   }
 ]

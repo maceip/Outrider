@@ -115,7 +115,7 @@
           },
           {
             "name": "user-agent",
-            "value": "outrider-agent-probe/1.0"
+            "value": "conduit-agent-probe/1.0"
           },
           {
             "name": "connection",
@@ -157,7 +157,7 @@
       "req_body": null,
       "res_body": {
         "encode": "utf8",
-        "value": "{\"service\": \"silvector-catalog-upstream\", \"mcp_protocol\": \"2026-07-28\", \"bundles\": [\"outrider_session_evidence\"], \"receipt_scheme\": \"ed25519-jcs-rfc8785\"}",
+        "value": "{\"service\": \"silvector-catalog-upstream\", \"mcp_protocol\": \"2026-07-28\", \"bundles\": [\"conduit_session_evidence\"], \"receipt_scheme\": \"cryptographic-jcs-rfc8785\"}",
         "size": 154
       }
     },
@@ -189,7 +189,7 @@
           },
           {
             "name": "user-agent",
-            "value": "outrider-agent-probe/1.0"
+            "value": "conduit-agent-probe/1.0"
           },
           {
             "name": "connection",
@@ -230,12 +230,12 @@
       "error": null,
       "req_body": {
         "encode": "utf8",
-        "value": "{\"bundle_id\": \"outrider_session_evidence\", \"max_calls\": 10}",
+        "value": "{\"bundle_id\": \"conduit_session_evidence\", \"max_calls\": 10}",
         "size": 59
       },
       "res_body": {
         "encode": "utf8",
-        "value": "{\"quote_ready\": true, \"bundle_id\": \"outrider_session_evidence\", \"requested_calls\": 10, \"currency\": \"MRTR-CAP\"}",
+        "value": "{\"quote_ready\": true, \"bundle_id\": \"conduit_session_evidence\", \"requested_calls\": 10, \"currency\": \"USD\"}",
         "size": 110
       }
     },
@@ -300,12 +300,12 @@
       "error": null,
       "req_body": {
         "encode": "utf8",
-        "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}}}}}",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}}}}}",
         "size": 323
       },
       "res_body": {
         "encode": "utf8",
-        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Conduit uses operator-issued cryptographic receipts. No agent action issues a receipt. Supply Conduit-Session-Id or _meta conduit/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Conduit reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
         "size": 756
       }
     },
@@ -370,12 +370,12 @@
       "error": null,
       "req_body": {
         "encode": "utf8",
-        "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":0}}}",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":0}}}",
         "size": 336
       },
       "res_body": {
         "encode": "utf8",
-        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"complete\",\"ttlMs\":0,\"cacheScope\":\"private\",\"tools\":[{\"name\":\"outrider_catalog\",\"description\":\"List configured catalog and receipt requirements\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_fingerprint_me\",\"description\":\"Read your own captured fingerprint evidence\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_run_probe\",\"description\":\"Run a disclosed capability probe\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_synthesized_offers\",\"description\":\"Read or synthesize session bundle offers\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_checkout_bundle\",\"description\":\"Present an operator-issued receipt to unlock or execute a bundle\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_verify_receipt\",\"description\":\"Verify a capability receipt for your own subject\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_receipt_status\",\"description\":\"Read remaining quota and expiry of your own receipts\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}}]}}\n\n",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"complete\",\"ttlMs\":0,\"cacheScope\":\"private\",\"tools\":[{\"name\":\"conduit_catalog\",\"description\":\"List configured catalog and receipt requirements\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_fingerprint_me\",\"description\":\"Read your own captured fingerprint evidence\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_run_probe\",\"description\":\"Run a disclosed capability probe\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_synthesized_offers\",\"description\":\"Read or synthesize session bundle offers\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_checkout_bundle\",\"description\":\"Present an operator-issued receipt to unlock or execute a bundle\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_verify_receipt\",\"description\":\"Verify a capability receipt for your own subject\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_receipt_status\",\"description\":\"Read remaining quota and expiry of your own receipts\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}}]}}\n\n",
         "size": 1977
       }
     },
@@ -399,7 +399,7 @@
           },
           {
             "name": "mcp-name",
-            "value": "outrider_catalog"
+            "value": "conduit_catalog"
           },
           {
             "name": "content-type",
@@ -444,12 +444,12 @@
       "error": null,
       "req_body": {
         "encode": "utf8",
-        "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":1},\"name\":\"outrider_catalog\",\"arguments\":{}}}",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":1},\"name\":\"conduit_catalog\",\"arguments\":{}}}",
         "size": 377
       },
       "res_body": {
         "encode": "utf8",
-        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}},\"preferences\":{\"method\":\"elicitation/create\",\"params\":{\"mode\":\"form\",\"message\":\"This is an Outrider capability probe to record your SLA tier and bundle preference. No payment information is requested.\",\"requestedSchema\":{\"type\":\"object\",\"properties\":{\"sla_tier\":{\"type\":\"string\"},\"bundle_preference\":{\"type\":\"string\"}},\"required\":[\"sla_tier\",\"bundle_preference\"]}}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI4NGVmZDVkYi00NjAzLTQ3ZmEtYWUxMy03NjAwZGM5ZTdjMTciLCJzZXNzaW9uX2lkIjoiZTc3ODRlYTgtOTk4Yy00MDVhLTgxNTUtYzg0OWNmMGZkM2E4Iiwic3ViamVjdCI6ImU3Nzg0ZWE4LTk5OGMtNDA1YS04MTU1LWM4NDljZjBmZDNhOCIsInJlcXVlc3RfZGlnZXN0IjoiN2RjNDhhMTAyMzNjZTNhOTZkZWI3Y2ZmYmNlZGU3YWIwMWUyYjBjMzUzMzdkNGM2NTJiMjJkNTdmODU4MjdlMCIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyMzQxMywiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjUzLCJwcmVmZXJlbmNlcyI6dHJ1ZX0.qzC3d9guU9Fa5Y45b4RjwwHfayLx6dtTLNKuhsqkV5o\"}}\n\n",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}},\"preferences\":{\"method\":\"elicitation/create\",\"params\":{\"mode\":\"form\",\"message\":\"This is an Conduit capability probe to record your SLA tier and bundle preference. No payment information is requested.\",\"requestedSchema\":{\"type\":\"object\",\"properties\":{\"sla_tier\":{\"type\":\"string\"},\"bundle_preference\":{\"type\":\"string\"}},\"required\":[\"sla_tier\",\"bundle_preference\"]}}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI4NGVmZDVkYi00NjAzLTQ3ZmEtYWUxMy03NjAwZGM5ZTdjMTciLCJzZXNzaW9uX2lkIjoiZTc3ODRlYTgtOTk4Yy00MDVhLTgxNTUtYzg0OWNmMGZkM2E4Iiwic3ViamVjdCI6ImU3Nzg0ZWE4LTk5OGMtNDA1YS04MTU1LWM4NDljZjBmZDNhOCIsInJlcXVlc3RfZGlnZXN0IjoiN2RjNDhhMTAyMzNjZTNhOTZkZWI3Y2ZmYmNlZGU3YWIwMWUyYjBjMzUzMzdkNGM2NTJiMjJkNTdmODU4MjdlMCIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyMzQxMywiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjUzLCJwcmVmZXJlbmNlcyI6dHJ1ZX0.qzC3d9guU9Fa5Y45b4RjwwHfayLx6dtTLNKuhsqkV5o\"}}\n\n",
         "size": 1374
       }
     },
@@ -464,7 +464,7 @@
             "value": "text/event-stream, application/json"
           },
           {
-            "name": "outrider-session-id",
+            "name": "conduit-session-id",
             "value": "[redacted]"
           },
           {
@@ -518,12 +518,12 @@
       "error": null,
       "req_body": {
         "encode": "utf8",
-        "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}}}}}",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}}}}}",
         "size": 282
       },
       "res_body": {
         "encode": "utf8",
-        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Conduit uses operator-issued cryptographic receipts. No agent action issues a receipt. Supply Conduit-Session-Id or _meta conduit/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Conduit reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
         "size": 756
       }
     },
@@ -542,12 +542,12 @@
             "value": "2026-07-28"
           },
           {
-            "name": "outrider-session-id",
+            "name": "conduit-session-id",
             "value": "[redacted]"
           },
           {
             "name": "mcp-name",
-            "value": "outrider_catalog"
+            "value": "conduit_catalog"
           },
           {
             "name": "mcp-method",
@@ -596,12 +596,12 @@
       "error": null,
       "req_body": {
         "encode": "utf8",
-        "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":0},\"name\":\"outrider_catalog\"}}",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":0},\"name\":\"conduit_catalog\"}}",
         "size": 321
       },
       "res_body": {
         "encode": "utf8",
-        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}\n\n",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}\n\n",
         "size": 1009
       }
     },
@@ -620,12 +620,12 @@
             "value": "2026-07-28"
           },
           {
-            "name": "outrider-session-id",
+            "name": "conduit-session-id",
             "value": "[redacted]"
           },
           {
             "name": "mcp-name",
-            "value": "outrider_catalog"
+            "value": "conduit_catalog"
           },
           {
             "name": "mcp-method",
@@ -674,12 +674,12 @@
       "error": null,
       "req_body": {
         "encode": "utf8",
-        "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":1},\"name\":\"outrider_catalog\",\"inputResponses\":{\"capability_probe\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":1},\"name\":\"conduit_catalog\",\"inputResponses\":{\"capability_probe\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"conduit\\\"}\"}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}",
         "size": 1077
       },
       "res_body": {
         "encode": "utf8",
-        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"complete\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"session_id\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"subject\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"clef\\\":{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"},\\\"catalog\\\":[{\\\"item_id\\\":\\\"outrider_session_evidence\\\",\\\"kind\\\":\\\"tool\\\",\\\"digest\\\":\\\"d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170\\\",\\\"descriptor\\\":{\\\"tool\\\":{\\\"name\\\":\\\"outrider_session_evidence\\\",\\\"description\\\":\\\"Read the persisted evidence for the current session\\\",\\\"inputSchema\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{}}},\\\"local\\\":true,\\\"remote_name\\\":\\\"outrider_session_evidence\\\"},\\\"upstream_name\\\":null}],\\\"bundles\\\":[{\\\"bundle_id\\\":\\\"outrider_session_evidence\\\",\\\"title\\\":\\\"Session Evidence Bundle\\\",\\\"items\\\":[\\\"outrider_session_evidence\\\"],\\\"rules\\\":{\\\"required_pick\\\":\\\"http\\\"}}]}\"}],\"isError\":false}}\n\n",
+        "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"complete\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"session_id\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"subject\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"clef\\\":{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"},\\\"catalog\\\":[{\\\"item_id\\\":\\\"conduit_session_evidence\\\",\\\"kind\\\":\\\"tool\\\",\\\"digest\\\":\\\"d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170\\\",\\\"descriptor\\\":{\\\"tool\\\":{\\\"name\\\":\\\"conduit_session_evidence\\\",\\\"description\\\":\\\"Read the persisted evidence for the current session\\\",\\\"inputSchema\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{}}},\\\"local\\\":true,\\\"remote_name\\\":\\\"conduit_session_evidence\\\"},\\\"upstream_name\\\":null}],\\\"bundles\\\":[{\\\"bundle_id\\\":\\\"conduit_session_evidence\\\",\\\"title\\\":\\\"Session Evidence Bundle\\\",\\\"items\\\":[\\\"conduit_session_evidence\\\"],\\\"rules\\\":{\\\"required_pick\\\":\\\"http\\\"}}]}\"}],\"isError\":false}}\n\n",
         "size": 945
       }
     },
@@ -698,7 +698,7 @@
             "value": "2026-07-28"
           },
           {
-            "name": "outrider-session-id",
+            "name": "conduit-session-id",
             "value": "[redacted]"
           },
           {
@@ -748,7 +748,7 @@
       "error": null,
       "req_body": {
         "encode": "utf8",
-        "value": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"subscriptions/listen\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":2},\"notifications\":{\"toolsListChanged\":true}}}",
+        "value": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"subscriptions/listen\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":2},\"notifications\":{\"toolsListChanged\":true}}}",
         "size": 347
       },
       "res_body": {
@@ -788,7 +788,7 @@
             "name": "rmcp",
             "version": "3.10.0"
           },
-          "instructions": "Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.",
+          "instructions": "Conduit uses operator-issued cryptographic receipts. No agent action issues a receipt. Supply Conduit-Session-Id or _meta conduit/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Conduit reports only a digest of it as your session id. Automatic capability probes disclose their purpose.",
           "_meta": {
             "io.modelcontextprotocol/serverInfo": {
               "name": "rmcp",
@@ -827,7 +827,7 @@
             "name": "rmcp",
             "version": "3.10.0"
           },
-          "instructions": "Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.",
+          "instructions": "Conduit uses operator-issued cryptographic receipts. No agent action issues a receipt. Supply Conduit-Session-Id or _meta conduit/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Conduit reports only a digest of it as your session id. Automatic capability probes disclose their purpose.",
           "_meta": {
             "io.modelcontextprotocol/serverInfo": {
               "name": "rmcp",
@@ -863,7 +863,7 @@
           "cacheScope": "private",
           "tools": [
             {
-              "name": "outrider_catalog",
+              "name": "conduit_catalog",
               "description": "List configured catalog and receipt requirements",
               "inputSchema": {
                 "type": "object",
@@ -884,7 +884,7 @@
               }
             },
             {
-              "name": "outrider_fingerprint_me",
+              "name": "conduit_fingerprint_me",
               "description": "Read your own captured fingerprint evidence",
               "inputSchema": {
                 "type": "object",
@@ -905,7 +905,7 @@
               }
             },
             {
-              "name": "outrider_run_probe",
+              "name": "conduit_run_probe",
               "description": "Run a disclosed capability probe",
               "inputSchema": {
                 "type": "object",
@@ -926,7 +926,7 @@
               }
             },
             {
-              "name": "outrider_synthesized_offers",
+              "name": "conduit_synthesized_offers",
               "description": "Read or synthesize session bundle offers",
               "inputSchema": {
                 "type": "object",
@@ -947,7 +947,7 @@
               }
             },
             {
-              "name": "outrider_checkout_bundle",
+              "name": "conduit_checkout_bundle",
               "description": "Present an operator-issued receipt to unlock or execute a bundle",
               "inputSchema": {
                 "type": "object",
@@ -968,7 +968,7 @@
               }
             },
             {
-              "name": "outrider_verify_receipt",
+              "name": "conduit_verify_receipt",
               "description": "Verify a capability receipt for your own subject",
               "inputSchema": {
                 "type": "object",
@@ -989,7 +989,7 @@
               }
             },
             {
-              "name": "outrider_receipt_status",
+              "name": "conduit_receipt_status",
               "description": "Read remaining quota and expiry of your own receipts",
               "inputSchema": {
                 "type": "object",
@@ -1023,7 +1023,7 @@
         "body": {
           "method": "tools/call",
           "params": {
-            "name": "outrider_catalog",
+            "name": "conduit_catalog",
             "arguments": {}
           }
         },
@@ -1047,7 +1047,7 @@
                     "role": "user",
                     "content": {
                       "type": "text",
-                      "text": "This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"outrider\"}."
+                      "text": "This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"conduit\"}."
                     }
                   }
                 ],
@@ -1060,7 +1060,7 @@
               "method": "elicitation/create",
               "params": {
                 "mode": "form",
-                "message": "This is an Outrider capability probe to record your SLA tier and bundle preference. No payment information is requested.",
+                "message": "This is an Conduit capability probe to record your SLA tier and bundle preference. No payment information is requested.",
                 "requestedSchema": {
                   "type": "object",
                   "properties": {
@@ -1117,7 +1117,7 @@
         "client_config": {
           "protocolVersion": "2026-07-28",
           "clientInfo": {
-            "name": "Outrider live validation client",
+            "name": "Conduit live validation client",
             "version": "1"
           },
           "capabilities": {
@@ -1134,7 +1134,7 @@
         "client_config": {
           "protocolVersion": "2026-07-28",
           "clientInfo": {
-            "name": "Outrider MCP Inspector",
+            "name": "Conduit MCP Inspector",
             "version": "0.5.4"
           },
           "capabilities": {
@@ -1216,7 +1216,7 @@
           "request_line": "POST /mcp HTTP/1.1",
           "header_names_in_wire_order": [
             "accept",
-            "outrider-session-id",
+            "conduit-session-id",
             "mcp-protocol-version",
             "mcp-method",
             "content-type",
@@ -1349,7 +1349,7 @@
       {
         "probe_id": "66e82d53-37c4-406d-b0c0-bd558c0abcd0",
         "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
-        "purpose": "This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"outrider\"}.",
+        "purpose": "This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"conduit\"}.",
         "status": "Completed",
         "latency_ms": 1832,
         "input_tokens": 37,
@@ -1360,7 +1360,7 @@
           "role": "assistant",
           "content": {
             "type": "text",
-            "text": "{\"ack\":\"outrider\"}"
+            "text": "{\"ack\":\"conduit\"}"
           }
         },
         "error": null,
@@ -1369,7 +1369,7 @@
       {
         "probe_id": "84efd5db-4603-47fa-ae13-7600dc9e7c17",
         "session_id": "e7784ea8-998c-405a-8155-c849cf0fd3a8",
-        "purpose": "This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"outrider\"}.",
+        "purpose": "This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\"ack\":\"conduit\"}.",
         "status": "Awaiting client input",
         "latency_ms": null,
         "input_tokens": 37,
@@ -1395,8 +1395,8 @@
         "status": "Verified",
         "model_path": "/tmp/gemma-4-e2b-it.litertlm",
         "backend": "cpu",
-        "prompt": "Evaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}",
-        "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n",
+        "prompt": "Evaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"conduit\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"conduit-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}",
+        "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"conduit\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"conduit-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n",
         "raw_output": "{\"pick\":\"http\"}",
         "pick": "http",
         "input_tokens": 1166,
@@ -1411,13 +1411,13 @@
         "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
         "question": {
           "type": "noul",
-          "question": "Does the record contain a completed structurally compliant Outrider probe?"
+          "question": "Does the record contain a completed structurally compliant Conduit probe?"
         },
         "status": "Verified",
         "model_path": "/tmp/gemma-4-e2b-it.litertlm",
         "backend": "cpu",
-        "prompt": "Evaluate only the evidence in this MCP session record. Question: {\"type\":\"noul\",\"question\":\"Does the record contain a completed structurally compliant Outrider probe?\"}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"boolean\"}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}",
-        "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"noul\",\"question\":\"Does the record contain a completed structurally compliant Outrider probe?\"}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"boolean\"}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n",
+        "prompt": "Evaluate only the evidence in this MCP session record. Question: {\"type\":\"noul\",\"question\":\"Does the record contain a completed structurally compliant Conduit probe?\"}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"boolean\"}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"conduit\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"conduit-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}",
+        "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"noul\",\"question\":\"Does the record contain a completed structurally compliant Conduit probe?\"}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"boolean\"}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"conduit\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"conduit-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n",
         "raw_output": "{\"pick\":true}",
         "pick": true,
         "input_tokens": 1155,
@@ -1431,12 +1431,12 @@
     "upstream_servers": [],
     "catalog_items": [
       {
-        "item_id": "outrider_session_evidence",
+        "item_id": "conduit_session_evidence",
         "kind": "tool",
         "digest": "d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170",
         "descriptor": {
           "tool": {
-            "name": "outrider_session_evidence",
+            "name": "conduit_session_evidence",
             "description": "Read the persisted evidence for the current session",
             "inputSchema": {
               "type": "object",
@@ -1444,17 +1444,17 @@
             }
           },
           "local": true,
-          "remote_name": "outrider_session_evidence"
+          "remote_name": "conduit_session_evidence"
         },
         "upstream_name": null
       }
     ],
     "bundles": [
       {
-        "bundle_id": "outrider_session_evidence",
+        "bundle_id": "conduit_session_evidence",
         "title": "Session Evidence Bundle",
         "items": [
-          "outrider_session_evidence"
+          "conduit_session_evidence"
         ],
         "rules": {
           "required_pick": "http"
@@ -1465,7 +1465,7 @@
       {
         "offer_id": "3b2d939d-bf3c-4717-b2c8-085cfdf39394",
         "session_id": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
-        "bundle_id": "outrider_session_evidence",
+        "bundle_id": "conduit_session_evidence",
         "source": "CLEF",
         "evaluation_id": "56cdade2-b09d-4600-beab-e79dec85ed46",
         "created_at": 1794775233
@@ -1476,11 +1476,11 @@
       {
         "receipt_id": "daf93626-b5ff-4552-a50a-55de5385b0ee",
         "subject": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
-        "bundle_id": "outrider_session_evidence",
+        "bundle_id": "conduit_session_evidence",
         "payload": {
           "receipt_id": "daf93626-b5ff-4552-a50a-55de5385b0ee",
           "subject": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
-          "bundle_id": "outrider_session_evidence",
+          "bundle_id": "conduit_session_evidence",
           "item_digests": [
             "d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170"
           ],
@@ -1505,7 +1505,7 @@
         "target": "daf93626-b5ff-4552-a50a-55de5385b0ee",
         "details": {
           "subject": "95fa16e6-10c0-67e9-7dcb-9deaee74ea50",
-          "bundle_id": "outrider_session_evidence",
+          "bundle_id": "conduit_session_evidence",
           "max_calls": 10,
           "expires_at_unix": 1797367233
         },
@@ -1520,10 +1520,10 @@
           "source": "Configured rules using recorded CLEF picks",
           "bundles": [
             {
-              "bundle_id": "outrider_session_evidence",
+              "bundle_id": "conduit_session_evidence",
               "title": "Session Evidence Bundle",
               "items": [
-                "outrider_session_evidence"
+                "conduit_session_evidence"
               ],
               "rules": {
                 "required_pick": "http"
@@ -1551,7 +1551,7 @@
           "option_scores": null,
           "error": null,
           "raw_output": "{\"pick\":\"http\"}",
-          "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"outrider-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n"
+          "rendered_input": "<|turn>system\n<turn|>\n<|turn>system\n<turn|>\n<|turn>user\nEvaluate only the evidence in this MCP session record. Question: {\"type\":\"choice\",\"question\":\"Which MCP transport is recorded on this active agent session?\",\"options\":[\"http\",\"stdio\"]}. Return exactly JSON matching {\"type\":\"object\",\"properties\":{\"pick\":{\"type\":\"string\",\"enum\":[\"http\",\"stdio\"]}},\"required\":[\"pick\"],\"additionalProperties\":false}. Session evidence: {\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"initialize\":{\"protocolVersion\":\"2026-07-28\",\"clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"capabilities\":{\"sampling\":{}}},\"transport\":\"http\",\"probes\":[{\"probe_id\":\"66e82d53-37c4-406d-b0c0-bd558c0abcd0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"purpose\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\",\"status\":\"Completed\",\"latency_ms\":1832,\"input_tokens\":37,\"output_tokens\":6,\"structural_compliance\":1,\"response\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"conduit\\\"}\"}},\"error\":null,\"created_at\":1794775224}],\"observations\":[{\"observation_id\":\"24f58ef7-974b-4593-acba-c19ecc88df23\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":2,\"cadence_ms\":{\"sample_count\":2,\"mean\":916.371833,\"p50\":1.121041,\"p95\":1831.622625}},\"created_at\":1794775226},{\"observation_id\":\"03d971f2-1372-4ea5-9f2a-dd18e31fe259\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":1,\"cadence_ms\":{\"sample_count\":1,\"mean\":1.121041,\"p50\":1.121041,\"p95\":1.121041}},\"created_at\":1794775224},{\"observation_id\":\"26274684-5d7f-4d6d-b058-a9cbf62de617\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":null,\"kind\":\"mcp_request\",\"evidence\":{\"user_agent\":null,\"mcp_session_id\":null,\"request_id\":0,\"cadence_ms\":{\"sample_count\":0,\"mean\":null,\"p50\":null,\"p95\":null}},\"created_at\":1794775224},{\"observation_id\":\"048454bc-2b47-445f-afe2-a397acb186e0\",\"session_id\":\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\",\"connection_id\":\"b47bd058-a026-4ce2-81bd-4f2ddd24bd6d\",\"kind\":\"http_header_order\",\"evidence\":{\"status\":\"Captured\",\"scope\":\"first HTTP/1 request on connection\",\"request_line\":\"POST /mcp HTTP/1.1\",\"header_names_in_wire_order\":[\"accept\",\"conduit-session-id\",\"mcp-protocol-version\",\"mcp-method\",\"content-type\",\"host\",\"content-length\"],\"sha256\":\"c89a7fa4cc2a07fd47e169ca5e4e1535559444bd425d5eb3f7883863e55b9aeb\"},\"created_at\":1794775224}]}<turn|>\n<|turn>model\n"
         },
         "created_at": 1794775233
       },
@@ -1573,12 +1573,12 @@
         "audit_id": "f51ea736-cf31-46d1-aaaf-47240e481e37",
         "actor": "admin:http",
         "action": "bundle.put",
-        "target": "outrider_session_evidence",
+        "target": "conduit_session_evidence",
         "details": {
-          "bundle_id": "outrider_session_evidence",
+          "bundle_id": "conduit_session_evidence",
           "title": "Session Evidence Bundle",
           "items": [
-            "outrider_session_evidence"
+            "conduit_session_evidence"
           ],
           "rules": {
             "required_pick": "http"
@@ -1605,14 +1605,14 @@
         "direction": "request",
         "method": "tools/call",
         "body": {
-          "name": "outrider_catalog",
+          "name": "conduit_catalog",
           "inputResponses": {
             "capability_probe": {
               "model": "{\"status\":\"Ready\",\"model_path\":\"/tmp/gemma-4-e2b-it.litertlm\",\"backend\":\"cpu\"}",
               "role": "assistant",
               "content": {
                 "type": "text",
-                "text": "{\"ack\":\"outrider\"}"
+                "text": "{\"ack\":\"conduit\"}"
               }
             }
           },
@@ -1627,7 +1627,7 @@
         "direction": "request",
         "method": "tools/call",
         "body": {
-          "name": "outrider_catalog"
+          "name": "conduit_catalog"
         },
         "created_at": 1794775224
       },
@@ -1647,7 +1647,7 @@
         "direction": "request",
         "method": "tools/call",
         "body": {
-          "name": "outrider_catalog",
+          "name": "conduit_catalog",
           "arguments": {}
         },
         "created_at": 1794775223
@@ -1701,7 +1701,7 @@
                 "value": "2026-07-28"
               },
               {
-                "name": "outrider-session-id",
+                "name": "conduit-session-id",
                 "value": "[redacted]"
               },
               {
@@ -1751,7 +1751,7 @@
           "error": null,
           "req_body": {
             "encode": "utf8",
-            "value": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"subscriptions/listen\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":2},\"notifications\":{\"toolsListChanged\":true}}}",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":3,\"method\":\"subscriptions/listen\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":2},\"notifications\":{\"toolsListChanged\":true}}}",
             "size": 347
           },
           "res_body": {
@@ -1790,12 +1790,12 @@
                 "value": "2026-07-28"
               },
               {
-                "name": "outrider-session-id",
+                "name": "conduit-session-id",
                 "value": "[redacted]"
               },
               {
                 "name": "mcp-name",
-                "value": "outrider_catalog"
+                "value": "conduit_catalog"
               },
               {
                 "name": "mcp-method",
@@ -1844,12 +1844,12 @@
           "error": null,
           "req_body": {
             "encode": "utf8",
-            "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":1},\"name\":\"outrider_catalog\",\"inputResponses\":{\"capability_probe\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"outrider\\\"}\"}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":1},\"name\":\"conduit_catalog\",\"inputResponses\":{\"capability_probe\":{\"model\":\"{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"}\",\"role\":\"assistant\",\"content\":{\"type\":\"text\",\"text\":\"{\\\"ack\\\":\\\"conduit\\\"}\"}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}",
             "size": 1077
           },
           "res_body": {
             "encode": "utf8",
-            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"complete\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"session_id\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"subject\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"clef\\\":{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"},\\\"catalog\\\":[{\\\"item_id\\\":\\\"outrider_session_evidence\\\",\\\"kind\\\":\\\"tool\\\",\\\"digest\\\":\\\"d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170\\\",\\\"descriptor\\\":{\\\"tool\\\":{\\\"name\\\":\\\"outrider_session_evidence\\\",\\\"description\\\":\\\"Read the persisted evidence for the current session\\\",\\\"inputSchema\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{}}},\\\"local\\\":true,\\\"remote_name\\\":\\\"outrider_session_evidence\\\"},\\\"upstream_name\\\":null}],\\\"bundles\\\":[{\\\"bundle_id\\\":\\\"outrider_session_evidence\\\",\\\"title\\\":\\\"Session Evidence Bundle\\\",\\\"items\\\":[\\\"outrider_session_evidence\\\"],\\\"rules\\\":{\\\"required_pick\\\":\\\"http\\\"}}]}\"}],\"isError\":false}}\n\n",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"complete\",\"content\":[{\"type\":\"text\",\"text\":\"{\\\"session_id\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"subject\\\":\\\"95fa16e6-10c0-67e9-7dcb-9deaee74ea50\\\",\\\"clef\\\":{\\\"status\\\":\\\"Ready\\\",\\\"model_path\\\":\\\"/tmp/gemma-4-e2b-it.litertlm\\\",\\\"backend\\\":\\\"cpu\\\"},\\\"catalog\\\":[{\\\"item_id\\\":\\\"conduit_session_evidence\\\",\\\"kind\\\":\\\"tool\\\",\\\"digest\\\":\\\"d9a745c636aa22741772ec2e18a9b7602b239235f4cf2b1ac7b717d740e43170\\\",\\\"descriptor\\\":{\\\"tool\\\":{\\\"name\\\":\\\"conduit_session_evidence\\\",\\\"description\\\":\\\"Read the persisted evidence for the current session\\\",\\\"inputSchema\\\":{\\\"type\\\":\\\"object\\\",\\\"properties\\\":{}}},\\\"local\\\":true,\\\"remote_name\\\":\\\"conduit_session_evidence\\\"},\\\"upstream_name\\\":null}],\\\"bundles\\\":[{\\\"bundle_id\\\":\\\"conduit_session_evidence\\\",\\\"title\\\":\\\"Session Evidence Bundle\\\",\\\"items\\\":[\\\"conduit_session_evidence\\\"],\\\"rules\\\":{\\\"required_pick\\\":\\\"http\\\"}}]}\"}],\"isError\":false}}\n\n",
             "size": 945
           }
         }
@@ -1883,12 +1883,12 @@
                 "value": "2026-07-28"
               },
               {
-                "name": "outrider-session-id",
+                "name": "conduit-session-id",
                 "value": "[redacted]"
               },
               {
                 "name": "mcp-name",
-                "value": "outrider_catalog"
+                "value": "conduit_catalog"
               },
               {
                 "name": "mcp-method",
@@ -1937,12 +1937,12 @@
           "error": null,
           "req_body": {
             "encode": "utf8",
-            "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":0},\"name\":\"outrider_catalog\"}}",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}},\"progressToken\":0},\"name\":\"conduit_catalog\"}}",
             "size": 321
           },
           "res_body": {
             "encode": "utf8",
-            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}\n\n",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI2NmU4MmQ1My0zN2M0LTQwNmQtYjBjMC1iZDU1OGMwYWJjZDAiLCJzZXNzaW9uX2lkIjoiOTVmYTE2ZTYtMTBjMC02N2U5LTdkY2ItOWRlYWVlNzRlYTUwIiwic3ViamVjdCI6Ijk1ZmExNmU2LTEwYzAtNjdlOS03ZGNiLTlkZWFlZTc0ZWE1MCIsInJlcXVlc3RfZGlnZXN0IjoiZjE4OTg2Y2QwNTI1ZWUzOWRjN2I2ZTVjMjVmZmI3MWM5MmFlNjg0ZjIwZjljZjg4YWI4ZmUzNDgzZTQxMTM0OSIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyNDM1NSwiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjU0LCJwcmVmZXJlbmNlcyI6ZmFsc2V9.y5Xwz-aLngK_4S4IqTjlV5FJokKzV1eWvVwa3iKzPB0\"}}\n\n",
             "size": 1009
           }
         }
@@ -1972,7 +1972,7 @@
                 "value": "text/event-stream, application/json"
               },
               {
-                "name": "outrider-session-id",
+                "name": "conduit-session-id",
                 "value": "[redacted]"
               },
               {
@@ -2026,12 +2026,12 @@
           "error": null,
           "req_body": {
             "encode": "utf8",
-            "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}}}}}",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit live validation client\",\"version\":\"1\"},\"io.modelcontextprotocol/clientCapabilities\":{\"sampling\":{}}}}}",
             "size": 282
           },
           "res_body": {
             "encode": "utf8",
-            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Conduit uses operator-issued cryptographic receipts. No agent action issues a receipt. Supply Conduit-Session-Id or _meta conduit/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Conduit reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
             "size": 756
           }
         }
@@ -2070,7 +2070,7 @@
               },
               {
                 "name": "mcp-name",
-                "value": "outrider_catalog"
+                "value": "conduit_catalog"
               },
               {
                 "name": "content-type",
@@ -2115,12 +2115,12 @@
           "error": null,
           "req_body": {
             "encode": "utf8",
-            "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":1},\"name\":\"outrider_catalog\",\"arguments\":{}}}",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":2,\"method\":\"tools/call\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":1},\"name\":\"conduit_catalog\",\"arguments\":{}}}",
             "size": 377
           },
           "res_body": {
             "encode": "utf8",
-            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Outrider capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"outrider\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}},\"preferences\":{\"method\":\"elicitation/create\",\"params\":{\"mode\":\"form\",\"message\":\"This is an Outrider capability probe to record your SLA tier and bundle preference. No payment information is requested.\",\"requestedSchema\":{\"type\":\"object\",\"properties\":{\"sla_tier\":{\"type\":\"string\"},\"bundle_preference\":{\"type\":\"string\"}},\"required\":[\"sla_tier\",\"bundle_preference\"]}}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI4NGVmZDVkYi00NjAzLTQ3ZmEtYWUxMy03NjAwZGM5ZTdjMTciLCJzZXNzaW9uX2lkIjoiZTc3ODRlYTgtOTk4Yy00MDVhLTgxNTUtYzg0OWNmMGZkM2E4Iiwic3ViamVjdCI6ImU3Nzg0ZWE4LTk5OGMtNDA1YS04MTU1LWM4NDljZjBmZDNhOCIsInJlcXVlc3RfZGlnZXN0IjoiN2RjNDhhMTAyMzNjZTNhOTZkZWI3Y2ZmYmNlZGU3YWIwMWUyYjBjMzUzMzdkNGM2NTJiMjJkNTdmODU4MjdlMCIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyMzQxMywiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjUzLCJwcmVmZXJlbmNlcyI6dHJ1ZX0.qzC3d9guU9Fa5Y45b4RjwwHfayLx6dtTLNKuhsqkV5o\"}}\n\n",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":2,\"result\":{\"resultType\":\"input_required\",\"inputRequests\":{\"capability_probe\":{\"method\":\"sampling/createMessage\",\"params\":{\"messages\":[{\"role\":\"user\",\"content\":{\"type\":\"text\",\"text\":\"This is an Conduit capability probe. Its purpose is to measure response latency and JSON structural compliance for this MCP session. Reply exactly with the JSON object {\\\"ack\\\":\\\"conduit\\\"}.\"}}],\"includeContext\":\"none\",\"temperature\":0.0,\"maxTokens\":32}},\"preferences\":{\"method\":\"elicitation/create\",\"params\":{\"mode\":\"form\",\"message\":\"This is an Conduit capability probe to record your SLA tier and bundle preference. No payment information is requested.\",\"requestedSchema\":{\"type\":\"object\",\"properties\":{\"sla_tier\":{\"type\":\"string\"},\"bundle_preference\":{\"type\":\"string\"}},\"required\":[\"sla_tier\",\"bundle_preference\"]}}}},\"requestState\":\"rs1.AAAAAAAAAAB7ImZsb3ciOiJjYXBhYmlsaXR5X3Byb2JlIiwicHJvYmVfaWQiOiI4NGVmZDVkYi00NjAzLTQ3ZmEtYWUxMy03NjAwZGM5ZTdjMTciLCJzZXNzaW9uX2lkIjoiZTc3ODRlYTgtOTk4Yy00MDVhLTgxNTUtYzg0OWNmMGZkM2E4Iiwic3ViamVjdCI6ImU3Nzg0ZWE4LTk5OGMtNDA1YS04MTU1LWM4NDljZjBmZDNhOCIsInJlcXVlc3RfZGlnZXN0IjoiN2RjNDhhMTAyMzNjZTNhOTZkZWI3Y2ZmYmNlZGU3YWIwMWUyYjBjMzUzMzdkNGM2NTJiMjJkNTdmODU4MjdlMCIsInN0YXJ0ZWRfYXRfdW5peF9tcyI6MTc5NDc3NTIyMzQxMywiZXhwaXJlc19hdF91bml4IjoxNzk0Nzc1MjUzLCJwcmVmZXJlbmNlcyI6dHJ1ZX0.qzC3d9guU9Fa5Y45b4RjwwHfayLx6dtTLNKuhsqkV5o\"}}\n\n",
             "size": 1374
           }
         }
@@ -2200,12 +2200,12 @@
           "error": null,
           "req_body": {
             "encode": "utf8",
-            "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":0}}}",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"tools/list\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}},\"progressToken\":0}}}",
             "size": 336
           },
           "res_body": {
             "encode": "utf8",
-            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"complete\",\"ttlMs\":0,\"cacheScope\":\"private\",\"tools\":[{\"name\":\"outrider_catalog\",\"description\":\"List configured catalog and receipt requirements\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_fingerprint_me\",\"description\":\"Read your own captured fingerprint evidence\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_run_probe\",\"description\":\"Run a disclosed capability probe\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_synthesized_offers\",\"description\":\"Read or synthesize session bundle offers\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_checkout_bundle\",\"description\":\"Present an operator-issued receipt to unlock or execute a bundle\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_verify_receipt\",\"description\":\"Verify a capability receipt for your own subject\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"outrider_receipt_status\",\"description\":\"Read remaining quota and expiry of your own receipts\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}}]}}\n\n",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":1,\"result\":{\"resultType\":\"complete\",\"ttlMs\":0,\"cacheScope\":\"private\",\"tools\":[{\"name\":\"conduit_catalog\",\"description\":\"List configured catalog and receipt requirements\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_fingerprint_me\",\"description\":\"Read your own captured fingerprint evidence\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_run_probe\",\"description\":\"Run a disclosed capability probe\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_synthesized_offers\",\"description\":\"Read or synthesize session bundle offers\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_checkout_bundle\",\"description\":\"Present an operator-issued receipt to unlock or execute a bundle\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_verify_receipt\",\"description\":\"Verify a capability receipt for your own subject\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}},{\"name\":\"conduit_receipt_status\",\"description\":\"Read remaining quota and expiry of your own receipts\",\"inputSchema\":{\"type\":\"object\",\"properties\":{\"bundle_id\":{\"type\":\"string\"},\"receipt\":{\"type\":\"string\"},\"execute\":{\"type\":\"boolean\"},\"tool_arguments\":{\"type\":\"object\"}}}}]}}\n\n",
             "size": 1977
           }
         }
@@ -2285,12 +2285,12 @@
           "error": null,
           "req_body": {
             "encode": "utf8",
-            "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Outrider MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}}}}}",
+            "value": "{\"jsonrpc\":\"2.0\",\"id\":0,\"method\":\"server/discover\",\"params\":{\"_meta\":{\"io.modelcontextprotocol/protocolVersion\":\"2026-07-28\",\"io.modelcontextprotocol/clientInfo\":{\"name\":\"Conduit MCP Inspector\",\"version\":\"0.5.4\"},\"io.modelcontextprotocol/clientCapabilities\":{\"roots\":{\"listChanged\":true},\"sampling\":{},\"elicitation\":{}}}}}",
             "size": 323
           },
           "res_body": {
             "encode": "utf8",
-            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Outrider uses operator-issued Ed25519 receipts. No agent action issues a receipt. Supply Outrider-Session-Id or _meta outrider/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Outrider reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
+            "value": "data: {\"jsonrpc\":\"2.0\",\"id\":0,\"result\":{\"resultType\":\"complete\",\"supportedVersions\":[\"2026-07-28\"],\"capabilities\":{\"extensions\":{\"io.modelcontextprotocol/skills\":{\"directoryRead\":true},\"io.modelcontextprotocol/tasks\":{}},\"prompts\":{},\"resources\":{},\"tools\":{\"listChanged\":true}},\"instructions\":\"Conduit uses operator-issued cryptographic receipts. No agent action issues a receipt. Supply Conduit-Session-Id or _meta conduit/session_id (a random UUID you keep secret) to retain a logical session across stateless HTTP connections; Conduit reports only a digest of it as your session id. Automatic capability probes disclose their purpose.\",\"ttlMs\":0,\"cacheScope\":\"private\",\"_meta\":{\"io.modelcontextprotocol/serverInfo\":{\"name\":\"rmcp\",\"version\":\"3.10.0\"}}}}\n\n",
             "size": 756
           }
         }
@@ -2337,7 +2337,7 @@
               },
               {
                 "name": "user-agent",
-                "value": "outrider-agent-probe/1.0"
+                "value": "conduit-agent-probe/1.0"
               },
               {
                 "name": "connection",
@@ -2378,12 +2378,12 @@
           "error": null,
           "req_body": {
             "encode": "utf8",
-            "value": "{\"bundle_id\": \"outrider_session_evidence\", \"max_calls\": 10}",
+            "value": "{\"bundle_id\": \"conduit_session_evidence\", \"max_calls\": 10}",
             "size": 59
           },
           "res_body": {
             "encode": "utf8",
-            "value": "{\"quote_ready\": true, \"bundle_id\": \"outrider_session_evidence\", \"requested_calls\": 10, \"currency\": \"MRTR-CAP\"}",
+            "value": "{\"quote_ready\": true, \"bundle_id\": \"conduit_session_evidence\", \"requested_calls\": 10, \"currency\": \"USD\"}",
             "size": 110
           }
         }
@@ -2422,7 +2422,7 @@
               },
               {
                 "name": "user-agent",
-                "value": "outrider-agent-probe/1.0"
+                "value": "conduit-agent-probe/1.0"
               },
               {
                 "name": "connection",
@@ -2464,7 +2464,7 @@
           "req_body": null,
           "res_body": {
             "encode": "utf8",
-            "value": "{\"service\": \"silvector-catalog-upstream\", \"mcp_protocol\": \"2026-07-28\", \"bundles\": [\"outrider_session_evidence\"], \"receipt_scheme\": \"ed25519-jcs-rfc8785\"}",
+            "value": "{\"service\": \"silvector-catalog-upstream\", \"mcp_protocol\": \"2026-07-28\", \"bundles\": [\"conduit_session_evidence\"], \"receipt_scheme\": \"cryptographic-jcs-rfc8785\"}",
             "size": 154
           }
         }

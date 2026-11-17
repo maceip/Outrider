@@ -18,7 +18,7 @@ export type NavItem = {
 export const GITHUB_REPO_URL = "https://github.com/maceip/Outrider";
 
 export const NAV_ITEMS: readonly NavItem[] = [
-  {href: "/", icon: ShieldCheck, label: "Investigation Desk"},
+  {href: "/", icon: ShieldCheck, label: "Control Plane"},
   {href: "/settings", icon: Gear, label: "Settings"},
 ] as const;
 

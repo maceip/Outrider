@@ -26,6 +26,7 @@ import {
   Card,
   Chip,
   Drawer,
+  Dropdown,
   Label,
   ListBox,
   ScrollShadow,
@@ -57,7 +58,25 @@ export interface CommerceInterceptorViewProps {
 }
 
 type EventFilterKey = "all" | "mcp" | "http" | "held_pending" | "errors";
-type InvestigationViewMode = "both" | "graph" | "wire" | "orders";
+type InvestigationViewMode = "both" | "graph" | "approve" | "wire" | "orders";
+
+function useIsCompactViewport(): boolean {
+  const [isCompact, setIsCompact] = useState(false);
+
+  useEffect(() => {
+    const mql = window.matchMedia("(max-width: 1023px)");
+    const sync = () => setIsCompact(mql.matches);
+
+    sync();
+    mql.addEventListener("change", sync);
+
+    return () => {
+      mql.removeEventListener("change", sync);
+    };
+  }, []);
+
+  return isCompact;
+}
 
 const PHASE_STEPS: ReadonlyArray<{id: CommercePhase; label: string}> = [
   {id: "discover", label: "Discover"},
@@ -880,586 +899,563 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
     [activeTx, passes],
   );
 
-  const rootHeightClass = embedded
-    ? "border-border bg-surface flex h-[740px] w-full min-w-0 flex-col overflow-hidden rounded-xl border"
-    : "border-border bg-surface flex h-[calc(100dvh-6.75rem)] min-h-[620px] w-full min-w-0 flex-col overflow-hidden border-b";
+  const isCompactViewport = useIsCompactViewport();
+  const desktopViewMode = viewMode === "approve" ? "both" : viewMode;
+  const mobileViewMode = viewMode === "graph" ? "both" : viewMode;
+
+  const rootHeightClass = isCompactViewport
+    ? embedded
+      ? "border-border bg-surface flex w-full min-w-0 flex-col overflow-hidden rounded-xl border"
+      : "border-border bg-surface flex min-h-[calc(100dvh-6.75rem)] w-full min-w-0 flex-col overflow-hidden border-b"
+    : embedded
+      ? "border-border bg-surface flex h-[740px] w-full min-w-0 flex-col overflow-hidden rounded-xl border"
+      : "border-border bg-surface flex h-[calc(100dvh-6.75rem)] min-h-[620px] w-full min-w-0 flex-col overflow-hidden border-b";
+
+  const renderInspectDrawer = () => (
+    <Drawer isOpen={isInspectOpen} onOpenChange={setIsInspectOpen}>
+      <Button
+        isDisabled={!inspectOriginalEvent && !activeDraft}
+        size="sm"
+        variant="ghost"
+      >
+        Inspect
+      </Button>
+      <Drawer.Backdrop>
+        <Drawer.Content className="sm:max-w-xl" placement="right">
+          <Drawer.Dialog aria-label="Inspect Payload">
+            <Drawer.CloseTrigger />
+            <Drawer.Header className="flex-col items-start gap-1">
+              <Drawer.Heading className="text-foreground text-base font-semibold">
+                Inspect Payload
+              </Drawer.Heading>
+              {inspectOriginalEvent ? (
+                <p className="text-muted font-mono text-xs">
+                  {`${inspectOriginalEvent.event_id} · ${inspectOriginalEvent.event_name}`}
+                </p>
+              ) : null}
+            </Drawer.Header>
+            <Drawer.Body className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <span className="text-foreground text-xs font-semibold">
+                  Original Wire Payload
+                </span>
+                <CodeBlock className="my-0 rounded-lg">
+                  <CodeBlock.Header>
+                    <span className="text-muted font-mono text-xs">Original JSON</span>
+                    <CodeBlock.CopyButton code={originalPayloadCode} />
+                  </CodeBlock.Header>
+                  <CodeBlock.Code code={originalPayloadCode} language="json" />
+                </CodeBlock>
+              </div>
+
+              {activeDraft ? (
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-foreground text-xs font-semibold">
+                    Proposed Replacement Payload
+                  </span>
+                  <CodeBlock className="my-0 rounded-lg">
+                    <CodeBlock.Header>
+                      <span className="text-muted font-mono text-xs">Proposed JSON</span>
+                      <CodeBlock.CopyButton code={proposedPayloadCode} />
+                    </CodeBlock.Header>
+                    <CodeBlock.Code code={proposedPayloadCode} language="json" />
+                  </CodeBlock>
+                </div>
+              ) : null}
+            </Drawer.Body>
+            <Drawer.Footer>
+              <Button
+                size="sm"
+                variant="tertiary"
+                onPress={() => setIsInspectOpen(false)}
+              >
+                Close
+              </Button>
+            </Drawer.Footer>
+          </Drawer.Dialog>
+        </Drawer.Content>
+      </Drawer.Backdrop>
+    </Drawer>
+  );
+
+  const renderPhaseTimeline = (scrollable: boolean) => {
+    if (!activeTx) return null;
+
+    const listEl = (
+      <div
+        aria-label="Transaction phase timeline"
+        className={scrollable ? "flex gap-1.5 pb-0.5" : "grid grid-cols-5 gap-1.5"}
+        role="list"
+      >
+        {PHASE_STEPS.map((step, idx) => {
+          const isCompletedStep = idx < activePhaseIndex || activeTx.status === "complete";
+          const isCurrentStep = idx === activePhaseIndex && activeTx.status !== "complete";
+          const isHeldStep = isCurrentStep && activeTx.status === "held";
+          const isDownstream = idx > activePhaseIndex && activeTx.status !== "complete";
+
+          let stepSurface = "border border-border bg-surface-secondary/40 text-muted opacity-55";
+
+          if (isHeldStep) {
+            stepSurface = "border border-warning/50 bg-warning-soft text-foreground";
+          } else if (isCurrentStep) {
+            stepSurface = "border border-accent/60 bg-accent-soft text-foreground";
+          } else if (isCompletedStep) {
+            stepSurface = "border border-success/35 bg-success-soft text-foreground";
+          }
+
+          return (
+            <div
+              key={step.id}
+              className={`flex flex-col justify-center gap-0.5 rounded-lg px-2.5 py-1.5 ${
+                scrollable ? "min-w-[136px] shrink-0" : "min-w-0"
+              } ${stepSurface}`}
+              role="listitem"
+            >
+              <div className="flex items-center gap-1.5">
+                {isHeldStep ? (
+                  <CirclePause className="text-warning size-3.5 shrink-0" />
+                ) : isCompletedStep ? (
+                  <CircleCheck className="text-success size-3.5 shrink-0" />
+                ) : null}
+                <span className="truncate text-xs font-semibold">{step.label}</span>
+              </div>
+              <span
+                className={`truncate font-mono text-[10px] ${
+                  isHeldStep
+                    ? "text-warning-soft-foreground font-medium"
+                    : isDownstream
+                      ? "text-muted"
+                      : "text-muted"
+                }`}
+              >
+                {isHeldStep
+                  ? "HELD — Awaiting operator"
+                  : isCompletedStep
+                    ? "Verified"
+                    : isCurrentStep
+                      ? activeTx.status_detail || "In progress"
+                      : "Pending"}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    );
+
+    if (scrollable) {
+      return (
+        <ScrollShadow className="w-full overflow-x-auto" orientation="horizontal">
+          {listEl}
+        </ScrollShadow>
+      );
+    }
+
+    return listEl;
+  };
+
+  const renderVerificationGates = () => (
+    <div
+      aria-label="Verification gates"
+      className="border-separator bg-surface-secondary/40 grid shrink-0 grid-cols-1 gap-2 border-t px-3 py-2 sm:grid-cols-2"
+      role="region"
+    >
+      <div className="border-border bg-surface flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5">
+        <span className="text-foreground truncate text-xs font-medium">MCP schema</span>
+        <Chip color={mcpSchemaValid ? "success" : "danger"} size="sm" variant="soft">
+          {mcpSchemaValid ? "Valid" : "Invalid"}
+        </Chip>
+      </div>
+
+      <div className="border-border bg-surface flex items-center justify-between gap-1.5 rounded-lg border px-2.5 py-1.5">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-foreground truncate text-xs font-medium">Seller policy</span>
+          <span
+            className={`truncate font-mono text-[10px] ${
+              sellerPolicyState === "valid"
+                ? "text-success"
+                : sellerPolicyState === "rejected"
+                  ? "text-danger"
+                  : "text-warning-soft-foreground"
+            }`}
+          >
+            {formatSellerPolicyLabel(sellerPolicyState)}
+          </span>
+        </div>
+        <Button
+          isDisabled={!activeDraft}
+          isPending={actionBusy === "validate"}
+          size="sm"
+          variant="tertiary"
+          onPress={() => void handleValidatePolicy()}
+        >
+          Validate Policy
+        </Button>
+      </div>
+
+      <div className="border-border bg-surface flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5">
+        <span className="text-foreground truncate text-xs font-medium">Operator approval</span>
+        <Chip
+          color={
+            operatorApprovalState === "approved"
+              ? "success"
+              : operatorApprovalState === "rejected"
+                ? "danger"
+                : "warning"
+          }
+          size="sm"
+          variant="soft"
+        >
+          {formatOperatorApprovalLabel(operatorApprovalState)}
+        </Chip>
+      </div>
+
+      <div className="border-border bg-surface flex items-center justify-between gap-1.5 rounded-lg border px-2.5 py-1.5">
+        <div className="flex min-w-0 flex-col">
+          <span className="text-foreground truncate text-xs font-medium">
+            Payment authorization
+          </span>
+          <span
+            className={`truncate font-mono text-[10px] ${
+              paymentAuthState === "authorized" ? "text-success" : "text-muted"
+            }`}
+          >
+            {paymentAuthState === "authorized" ? "Authorized" : "Unverified"}
+          </span>
+        </div>
+        <Button
+          isDisabled={!activeTx || paymentAuthState === "authorized"}
+          isPending={actionBusy === "authorize"}
+          size="sm"
+          variant="secondary"
+          onPress={() => void handleAuthorizePayment()}
+        >
+          Authorize Payment
+        </Button>
+      </div>
+    </div>
+  );
+
+  const renderEmptySessionState = () => (
+    <div className="flex h-full min-h-[340px] flex-1 items-center justify-center p-6">
+      <EmptyState size="md">
+        <EmptyState.Header>
+          <EmptyState.Media variant="icon">
+            <ShieldCheck />
+          </EmptyState.Media>
+          <EmptyState.Title>Waiting for Agent Traffic</EmptyState.Title>
+          <EmptyState.Description>
+            Start a live scenario or connect an AI agent to fingerprint sessions, counter outbound
+            quotes against your margin floors, and issue checkout passes.
+          </EmptyState.Description>
+        </EmptyState.Header>
+        <EmptyState.Content>
+          <Button
+            isPending={actionBusy === "scenario"}
+            variant="primary"
+            onPress={() => void handleRunScenario()}
+          >
+            <Play className="size-3.5" />
+            Start Live Scenario
+          </Button>
+        </EmptyState.Content>
+      </EmptyState>
+    </div>
+  );
 
   return (
     <div className={rootHeightClass} data-slot="commerce-interceptor">
-      <div className="min-h-0 flex-1 overflow-hidden">
-        <Resizable orientation="horizontal">
-          {/* 1. LEFT COLUMN: Buyer Inquiries + Surfaces + Trace Filters */}
-          <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={17} minSize={13}>
-            <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
-              <span className="text-foreground text-xs font-semibold">Buyer Inquiries</span>
+      {isCompactViewport ? (
+        <div className="flex min-w-0 flex-1 flex-col">
+          {/* Mobile Full-Width Control Plane Header */}
+          <div className="border-separator flex flex-col gap-2.5 border-b p-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                <h2 className="text-foreground truncate text-sm font-semibold">
+                  {activeTx ? activeTx.title : "Agentic Commerce Control Plane"}
+                </h2>
+                <p className="text-muted truncate font-mono text-[11px]">
+                  {activeTx
+                    ? `Merchant: ${activeTx.seller_host} ← Buyer: ${activeTx.buyer_agent} · ${activeTx.protocol}`
+                    : `${traffics.length} wire frames · ${activePasses.length} active passes`}
+                </p>
+              </div>
+
               <Button
+                className="shrink-0"
                 isPending={actionBusy === "scenario"}
                 size="sm"
                 variant="secondary"
                 onPress={() => void handleRunScenario()}
               >
                 <Play className="size-3" />
-                Start Scenario
+                Scenario
               </Button>
             </div>
 
-            <ScrollShadow className="min-h-0 flex-1 overflow-y-auto p-2">
-              <div className="flex flex-col gap-4">
-                {workspaceState.transactions.length === 0 ? (
-                  <p className="text-muted px-2 py-3 text-xs leading-relaxed">
-                    No active buyer inquiries. Start a live scenario or route buyer traffic to mediate offers.
-                  </p>
-                ) : (
-                  <ListBox
+            {workspaceState.transactions.length > 0 ? (
+              <Dropdown>
+                <Button
+                  aria-label="Switch commerce session"
+                  className="w-full justify-between gap-2 px-3"
+                  size="sm"
+                  variant="tertiary"
+                >
+                  <span className="truncate text-xs font-medium">
+                    {activeTx
+                      ? `Session: ${activeTx.short_title || activeTx.title}`
+                      : "Select session"}
+                  </span>
+                  <span className="text-muted flex shrink-0 items-center gap-1 font-mono text-[11px]">
+                    {activeTx ? formatPhaseSubStatus(activeTx) : ""}
+                    <ChevronDown className="size-3.5" />
+                  </span>
+                </Button>
+                <Dropdown.Popover className="w-[min(22rem,calc(100vw-1.5rem))]" placement="bottom start">
+                  <Dropdown.Menu
                     disallowEmptySelection
                     aria-label="Commerce sessions"
-                    className="gap-1 p-0"
                     selectedKeys={activeTx ? new Set([activeTx.tx_id]) : new Set()}
                     selectionMode="single"
                     onSelectionChange={handleSessionSelectionChange}
                   >
-                    {workspaceState.transactions.map((tx) => {
-                      const isHeldTx = tx.status === "held";
-                      const isSelectedTx = activeTx?.tx_id === tx.tx_id;
-                      const subLabel = formatPhaseSubStatus(tx);
-
-                      let itemSurface = "border border-transparent hover:bg-surface-secondary/70";
-
-                      if (isHeldTx) {
-                        itemSurface = "border border-warning/50 bg-warning-soft";
-                      } else if (isSelectedTx) {
-                        itemSurface = "border border-border-secondary bg-surface-secondary";
-                      }
-
-                      return (
-                        <ListBox.Item
-                          key={tx.tx_id}
-                          className={`flex flex-col items-start gap-1 rounded-lg px-2.5 py-2 normal-case ${itemSurface}`}
-                          id={tx.tx_id}
-                          textValue={tx.short_title || tx.title}
-                        >
-                          <div className="flex w-full items-center justify-between gap-1.5">
-                            <Label className="text-foreground truncate text-xs font-semibold normal-case">
-                              {tx.short_title || tx.title}
-                            </Label>
-                            <span className="text-muted shrink-0 font-mono text-[11px] tabular-nums">
-                              {tx.category_label}
-                            </span>
-                          </div>
-                          <span
-                            className={`truncate font-mono text-[11px] ${
-                              isHeldTx
-                                ? "text-warning-soft-foreground font-medium"
-                                : tx.status === "complete"
-                                  ? "text-success"
-                                  : "text-muted"
-                            }`}
-                          >
-                            {subLabel}
-                          </span>
-                        </ListBox.Item>
-                      );
-                    })}
-                  </ListBox>
-                )}
-
-                <div className="flex flex-col gap-1.5">
-                  <span className="text-muted px-2 text-xs font-semibold">Surfaces</span>
-                  <ListBox
-                    disallowEmptySelection
-                    aria-label="Investigation surfaces"
-                    className="gap-0.5 p-0"
-                    selectedKeys={new Set([viewMode === "graph" ? "both" : viewMode])}
-                    selectionMode="single"
-                    onSelectionChange={(keys) => {
-                      if (keys === "all") return;
-                      const first = Array.from(keys)[0];
-
-                      if (typeof first === "string") {
-                        setViewMode(first as InvestigationViewMode);
-                      }
-                    }}
-                  >
-                    {(
-                      [
-                        {count: txEvents.length, id: "both", label: "Offer Mediation"},
-                        {count: traffics.length, id: "wire", label: "Wire Frames"},
-                        {count: passes.length, id: "orders", label: "Passes & Bundles"},
-                      ] as const
-                    ).map((surfaceItem) => (
-                      <ListBox.Item
-                        key={surfaceItem.id}
-                        className="items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 normal-case data-[selected=true]:bg-surface-secondary"
-                        id={surfaceItem.id}
-                        textValue={surfaceItem.label}
+                    {workspaceState.transactions.map((tx) => (
+                      <Dropdown.Item
+                        key={tx.tx_id}
+                        id={tx.tx_id}
+                        textValue={tx.short_title || tx.title}
                       >
-                        <Label className="text-foreground text-xs font-medium normal-case">
-                          {surfaceItem.label}
+                        <Label className="min-w-0 flex-1 truncate text-xs font-medium">
+                          {tx.title}
                         </Label>
-                        <span className="text-muted font-mono text-xs tabular-nums">
-                          {surfaceItem.count}
+                        <span className="text-muted shrink-0 font-mono text-[11px]">
+                          {formatPhaseSubStatus(tx)}
                         </span>
-                      </ListBox.Item>
+                        <Dropdown.ItemIndicator />
+                      </Dropdown.Item>
                     ))}
-                  </ListBox>
-                </div>
+                  </Dropdown.Menu>
+                </Dropdown.Popover>
+              </Dropdown>
+            ) : null}
 
+            <Segment
+              aria-label="Investigation view"
+              className="w-full"
+              selectedKey={mobileViewMode}
+              size="sm"
+              onSelectionChange={(key) => setViewMode(String(key) as InvestigationViewMode)}
+            >
+              <Segment.Item className="flex-1 text-xs" id="both">
+                Overview
+              </Segment.Item>
+              <Segment.Item className="flex-1 text-xs" id="approve">
+                {streamStats.heldCount > 0 ? `Approve (${streamStats.heldCount})` : "Approve"}
+              </Segment.Item>
+              <Segment.Item className="flex-1 text-xs" id="wire">
+                Wire
+              </Segment.Item>
+              <Segment.Item className="flex-1 text-xs" id="orders">
+                Passes
+              </Segment.Item>
+            </Segment>
+
+            {activeTx && (mobileViewMode === "both" || mobileViewMode === "approve")
+              ? renderPhaseTimeline(true)
+              : null}
+          </div>
+
+          {/* Mobile Active Surface Body */}
+          {mobileViewMode === "wire" ? (
+            <WireEvidencePanel
+              selectedPacketId={selectedWirePacketId}
+              onSelectPacketId={setSelectedWirePacketId}
+            />
+          ) : mobileViewMode === "orders" ? (
+            <PassesLedgerPanel activeBuyerAgent={activeTx?.buyer_agent ?? null} />
+          ) : !activeTx ? (
+            renderEmptySessionState()
+          ) : mobileViewMode === "approve" ? (
+            <div className="flex flex-col">
+              <div className="flex flex-col gap-3.5 p-3">
+                {/* Catalog Offer */}
                 <div className="flex flex-col gap-1.5">
-                  <span className="text-muted px-2 text-xs font-semibold">Trace Filters</span>
-                  <ListBox
-                    disallowEmptySelection
-                    aria-label="Trace filters"
-                    className="gap-0.5 p-0"
-                    selectedKeys={new Set([eventFilter])}
-                    selectionMode="single"
-                    onSelectionChange={handleFilterSelectionChange}
-                  >
-                    {(
-                      [
-                        {count: filterCounts.all, id: "all", label: "All"},
-                        {count: filterCounts.mcp, id: "mcp", label: "MCP"},
-                        {count: filterCounts.http, id: "http", label: "HTTP"},
-                        {count: filterCounts.held_pending, id: "held_pending", label: "Held / Pending"},
-                        {count: filterCounts.errors, id: "errors", label: "Errors"},
-                      ] as const
-                    ).map((filterItem) => (
-                      <ListBox.Item
-                        key={filterItem.id}
-                        className="items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 normal-case data-[selected=true]:bg-surface-secondary"
-                        id={filterItem.id}
-                        textValue={filterItem.label}
-                      >
-                        <Label className="text-foreground text-xs font-medium normal-case">
-                          {filterItem.label}
-                        </Label>
-                        <span className="text-muted font-mono text-xs tabular-nums">
-                          {filterItem.count}
+                  <span className="text-muted text-xs font-semibold">Catalog Offer</span>
+                  {primaryOffer ? (
+                    <div className="border-border bg-surface-secondary/50 flex flex-col gap-1.5 rounded-lg border p-3">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-foreground truncate text-xs font-semibold">
+                          {primaryOffer.sku_title}
                         </span>
-                      </ListBox.Item>
-                    ))}
-                  </ListBox>
-                </div>
-              </div>
-            </ScrollShadow>
-          </Resizable.Panel>
-
-          <Resizable.Handle aria-label="Resize sessions column" variant="secondary" />
-
-          {/* 2. CENTER COLUMN: Sell-Side Investigation Stage (Investigation / Graph / Wire / Passes) */}
-          <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={49} minSize={34}>
-            <div className="border-separator flex shrink-0 flex-col gap-2.5 border-b px-3.5 py-2.5">
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex min-w-0 flex-col gap-0.5">
-                  <h2 className="text-foreground truncate text-sm font-semibold">
-                    {activeTx ? activeTx.title : "Sell-Side Investigation Desk"}
-                  </h2>
-                  <p className="text-muted truncate font-mono text-xs">
-                    {activeTx
-                      ? `Merchant: ${activeTx.seller_host} ← Buyer: ${activeTx.buyer_agent} · ${activeTx.protocol}`
-                      : `${traffics.length} wire frames · ${activePasses.length} active passes`}
-                  </p>
-                </div>
-
-                <Segment
-                  aria-label="Investigation view"
-                  className="shrink-0"
-                  selectedKey={viewMode}
-                  size="sm"
-                  onSelectionChange={(key) => setViewMode(String(key) as InvestigationViewMode)}
-                >
-                  <Segment.Item id="both">Investigation</Segment.Item>
-                  <Segment.Item id="graph">Graph</Segment.Item>
-                  <Segment.Item id="wire">Wire</Segment.Item>
-                  <Segment.Item id="orders">Passes</Segment.Item>
-                </Segment>
-              </div>
-
-              {activeTx && (viewMode === "both" || viewMode === "graph") ? (
-                <div
-                  aria-label="Transaction phase timeline"
-                  className="grid grid-cols-5 gap-1.5"
-                  role="list"
-                >
-                  {PHASE_STEPS.map((step, idx) => {
-                    const isCompletedStep =
-                      idx < activePhaseIndex || activeTx.status === "complete";
-                    const isCurrentStep =
-                      idx === activePhaseIndex && activeTx.status !== "complete";
-                    const isHeldStep = isCurrentStep && activeTx.status === "held";
-                    const isDownstream = idx > activePhaseIndex && activeTx.status !== "complete";
-
-                    let stepSurface =
-                      "border border-border bg-surface-secondary/40 text-muted opacity-55";
-
-                    if (isHeldStep) {
-                      stepSurface =
-                        "border border-warning/50 bg-warning-soft text-foreground";
-                    } else if (isCurrentStep) {
-                      stepSurface =
-                        "border border-accent/60 bg-accent-soft text-foreground";
-                    } else if (isCompletedStep) {
-                      stepSurface =
-                        "border border-success/35 bg-success-soft text-foreground";
-                    }
-
-                    return (
-                      <div
-                        key={step.id}
-                        className={`flex min-w-0 flex-col justify-center gap-0.5 rounded-lg px-2.5 py-1.5 ${stepSurface}`}
-                        role="listitem"
-                      >
-                        <div className="flex items-center gap-1.5">
-                          {isHeldStep ? (
-                            <CirclePause className="text-warning size-3.5 shrink-0" />
-                          ) : isCompletedStep ? (
-                            <CircleCheck className="text-success size-3.5 shrink-0" />
-                          ) : null}
-                          <span className="truncate text-xs font-semibold">{step.label}</span>
-                        </div>
-                        <span
-                          className={`truncate font-mono text-[10px] ${
-                            isHeldStep
-                              ? "text-warning-soft-foreground font-medium"
-                              : isDownstream
-                                ? "text-muted"
-                                : "text-muted"
-                          }`}
-                        >
-                          {isHeldStep
-                            ? "HELD — Awaiting operator"
-                            : isCompletedStep
-                              ? "Verified"
-                              : isCurrentStep
-                                ? activeTx.status_detail || "In progress"
-                                : "Pending"}
+                        <span className="text-foreground shrink-0 font-mono text-sm font-semibold tabular-nums">
+                          {formatMoneyExact(primaryOffer.price_cents, primaryOffer.currency)}
                         </span>
                       </div>
-                    );
-                  })}
-                </div>
-              ) : null}
-            </div>
-
-            {viewMode === "wire" ? (
-              <WireEvidencePanel
-                selectedPacketId={selectedWirePacketId}
-                onSelectPacketId={setSelectedWirePacketId}
-              />
-            ) : viewMode === "orders" ? (
-              <PassesLedgerPanel activeBuyerAgent={activeTx?.buyer_agent ?? null} />
-            ) : !activeTx ? (
-              <div className="flex h-full min-h-0 flex-1 items-center justify-center p-6">
-                <EmptyState size="md">
-                  <EmptyState.Header>
-                    <EmptyState.Media variant="icon">
-                      <ShieldCheck />
-                    </EmptyState.Media>
-                    <EmptyState.Title>No Active Commerce Session</EmptyState.Title>
-                    <EmptyState.Description>
-                      Simulate or connect a live buyer-agent inquiry to hold outbound catalog
-                      offers, verify merchant floor policies, and issue session passes.
-                    </EmptyState.Description>
-                  </EmptyState.Header>
-                  <EmptyState.Content>
-                    <Button
-                      isPending={actionBusy === "scenario"}
-                      variant="primary"
-                      onPress={() => void handleRunScenario()}
-                    >
-                      <Play className="size-3.5" />
-                      Start Live Scenario
-                    </Button>
-                  </EmptyState.Content>
-                </EmptyState>
-              </div>
-            ) : (
-              <>
-                <ScrollShadow className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
-                  <CausalCradledGraph
-                    draft={activeDraft}
-                    events={txEvents}
-                    offers={txOffers}
-                    selectedEventId={effectiveSelectedEventId}
-                    onSelectEvent={setSelectedEventId}
-                  />
-
-                  {viewMode === "both" ? (
-                    <Card className="min-h-[210px] shrink-0 overflow-hidden p-0">
-                      <DataGrid
-                        stickyHeader
-                        aria-label="Execution trace"
-                        className={`w-full [&_.table__column]:rounded-none! [&_.table__row]:cursor-[var(--cursor-interactive)] ${
-                          selectedEventIsHeld
-                            ? "[&_.table__row[data-selected=true]_.table__cell]:bg-warning-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground"
-                            : "[&_.table__row[data-selected=true]_.table__cell]:bg-accent-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground"
-                        }`}
-                        columns={traceColumns}
-                        contentClassName="min-w-[660px]"
-                        data={filteredTraceEvents}
-                        getRowId={(item) => item.event_id}
-                        renderEmptyState={() => (
-                          <div className="py-6">
-                            <EmptyState size="sm">
-                              <EmptyState.Header>
-                                <EmptyState.Title>No Matching Events</EmptyState.Title>
-                                <EmptyState.Description>
-                                  Select another filter in the left rail to view recorded events.
-                                </EmptyState.Description>
-                              </EmptyState.Header>
-                            </EmptyState>
-                          </div>
-                        )}
-                        selectedKeys={selectedTraceKeys}
-                        selectionBehavior="replace"
-                        selectionMode="single"
-                        variant="secondary"
-                        onRowAction={(key) => setSelectedEventId(String(key))}
-                        onSelectionChange={handleTraceSelectionChange}
-                      />
-                    </Card>
-                  ) : null}
-                </ScrollShadow>
-
-                {/* 4-Gate Split-State Verification Bar */}
-                <div
-                  aria-label="Verification gates"
-                  className="border-separator bg-surface-secondary/40 grid shrink-0 grid-cols-1 gap-2 border-t px-3 py-2 sm:grid-cols-2"
-                  role="region"
-                >
-                  <div className="border-border bg-surface flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5">
-                    <span className="text-foreground truncate text-xs font-medium">MCP schema</span>
-                    <Chip
-                      color={mcpSchemaValid ? "success" : "danger"}
-                      size="sm"
-                      variant="soft"
-                    >
-                      {mcpSchemaValid ? "Valid" : "Invalid"}
-                    </Chip>
-                  </div>
-
-                  <div className="border-border bg-surface flex items-center justify-between gap-1.5 rounded-lg border px-2.5 py-1.5">
-                    <div className="flex min-w-0 flex-col">
-                      <span className="text-foreground truncate text-xs font-medium">
-                        Seller policy
+                      <span className="text-muted font-mono text-[11px]">
+                        {`${primaryOffer.in_stock ? "In stock" : "Backorder"} · ${primaryOffer.warranty || "Standard warranty"}`}
                       </span>
-                      <span
-                        className={`truncate font-mono text-[10px] ${
-                          sellerPolicyState === "valid"
-                            ? "text-success"
-                            : sellerPolicyState === "rejected"
-                              ? "text-danger"
-                              : "text-warning-soft-foreground"
-                        }`}
-                      >
-                        {formatSellerPolicyLabel(sellerPolicyState)}
-                      </span>
+                      {promoOffer && promoOffer.offer_id !== primaryOffer.offer_id ? (
+                        <span className="text-warning-soft-foreground font-mono text-[11px] tabular-nums">
+                          {`Staged promo: ${formatMoneyExact(promoOffer.price_cents, promoOffer.currency)}`}
+                        </span>
+                      ) : null}
+                      {primaryOffer.returns_policy ? (
+                        <span className="text-muted text-[11px]">{primaryOffer.returns_policy}</span>
+                      ) : null}
                     </div>
-                    <Button
-                      isDisabled={!activeDraft}
-                      isPending={actionBusy === "validate"}
-                      size="sm"
-                      variant="tertiary"
-                      onPress={() => void handleValidatePolicy()}
-                    >
-                      Validate Policy
-                    </Button>
-                  </div>
-
-                  <div className="border-border bg-surface flex items-center justify-between gap-2 rounded-lg border px-2.5 py-1.5">
-                    <span className="text-foreground truncate text-xs font-medium">
-                      Operator approval
-                    </span>
-                    <Chip
-                      color={
-                        operatorApprovalState === "approved"
-                          ? "success"
-                          : operatorApprovalState === "rejected"
-                            ? "danger"
-                            : "warning"
-                      }
-                      size="sm"
-                      variant="soft"
-                    >
-                      {formatOperatorApprovalLabel(operatorApprovalState)}
-                    </Chip>
-                  </div>
-
-                  <div className="border-border bg-surface flex items-center justify-between gap-1.5 rounded-lg border px-2.5 py-1.5">
-                    <div className="flex min-w-0 flex-col">
-                      <span className="text-foreground truncate text-xs font-medium">
-                        Payment authorization
-                      </span>
-                      <span
-                        className={`truncate font-mono text-[10px] ${
-                          paymentAuthState === "authorized" ? "text-success" : "text-muted"
-                        }`}
-                      >
-                        {paymentAuthState === "authorized" ? "Authorized" : "Unverified"}
-                      </span>
-                    </div>
-                    <Button
-                      isDisabled={!activeTx || paymentAuthState === "authorized"}
-                      isPending={actionBusy === "authorize"}
-                      size="sm"
-                      variant="secondary"
-                      onPress={() => void handleAuthorizePayment()}
-                    >
-                      Authorize Payment
-                    </Button>
-                  </div>
-                </div>
-              </>
-            )}
-          </Resizable.Panel>
-
-          <Resizable.Handle aria-label="Resize seller context column" variant="secondary" />
-
-          {/* 3. MIDDLE-RIGHT COLUMN: Merchant Desk */}
-          <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={16} minSize={13}>
-            <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
-              <span className="text-foreground truncate text-xs font-semibold">
-                {activeTx ? `Merchant (${activeTx.seller_host})` : "Merchant Desk"}
-              </span>
-            </div>
-
-            <ScrollShadow className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-3">
-              {/* Catalog Offer */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-muted text-xs font-semibold">Catalog Offer</span>
-                {primaryOffer ? (
-                  <div className="border-border bg-surface-secondary/50 flex flex-col gap-1.5 rounded-lg border p-2.5">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="text-foreground truncate text-xs font-semibold">
-                        {primaryOffer.sku_title}
-                      </span>
-                      <span className="text-foreground shrink-0 font-mono text-sm font-semibold tabular-nums">
-                        {formatMoneyExact(primaryOffer.price_cents, primaryOffer.currency)}
-                      </span>
-                    </div>
-                    <span className="text-muted font-mono text-[11px]">
-                      {`${primaryOffer.in_stock ? "In stock" : "Backorder"} · ${primaryOffer.warranty || "Standard warranty"}`}
-                    </span>
-                    {promoOffer && promoOffer.offer_id !== primaryOffer.offer_id ? (
-                      <span className="text-warning-soft-foreground font-mono text-[11px] tabular-nums">
-                        {`Staged promo: ${formatMoneyExact(promoOffer.price_cents, promoOffer.currency)}`}
-                      </span>
-                    ) : null}
-                    {primaryOffer.returns_policy ? (
-                      <span className="text-muted text-[11px]">{primaryOffer.returns_policy}</span>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="text-muted text-xs">No catalog offers recorded.</p>
-                )}
-              </div>
-
-              {/* Session Passes Summary */}
-              <div className="flex flex-col gap-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-muted text-xs font-semibold">Session Passes</span>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onPress={() => setViewMode("orders")}
-                  >
-                    Manage
-                  </Button>
-                </div>
-                <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border p-2.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-foreground font-mono text-xs font-medium tabular-nums">
-                      {`${activePasses.length} active`}
-                    </span>
-                    <span className="text-muted font-mono text-[11px] tabular-nums">
-                      {`${bundles.length} bundles`}
-                    </span>
-                  </div>
-                  {buyerPasses[0] ? (
-                    <span className="text-muted truncate font-mono text-[11px] tabular-nums">
-                      {`${buyerPasses[0].subject} · ${buyerPasses[0].remaining_calls}/${buyerPasses[0].max_calls} calls`}
-                    </span>
                   ) : (
-                    <span className="text-muted text-[11px]">
-                      Authorize payment or issue a buyer pass.
-                    </span>
+                    <p className="text-muted text-xs">No catalog offers recorded.</p>
                   )}
                 </div>
-              </div>
 
-              {/* Outbound MCP Responses */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-muted text-xs font-semibold">Outbound MCP Responses</span>
-                {sellerResponses.length === 0 ? (
-                  <p className="text-muted text-xs">No responses recorded.</p>
-                ) : (
-                  <ListBox
-                    disallowEmptySelection
-                    aria-label="Seller MCP responses"
-                    className="gap-1 p-0"
-                    selectedKeys={
-                      effectiveSelectedEventId &&
-                      sellerResponses.some((ev) => ev.event_id === effectiveSelectedEventId)
-                        ? new Set([effectiveSelectedEventId])
-                        : new Set()
+                {/* Direction & Parties */}
+                <div className="flex flex-col gap-2">
+                  <span className="text-muted text-xs font-semibold">Interception Direction</span>
+                  <Segment
+                    aria-label="Interception direction"
+                    className="w-full"
+                    isDisabled={!activeTx}
+                    selectedKey={effectiveLane}
+                    size="sm"
+                    onSelectionChange={(key) =>
+                      void handleLaneChange(String(key) as InterceptionDirection)
                     }
-                    selectionMode="single"
-                    onSelectionChange={handleTraceSelectionChange}
                   >
-                    {sellerResponses.map((ev) => {
-                      const isHeld = ev.hold_state === "held" || ev.epistemic_kind === "held";
-                      const isSelected = effectiveSelectedEventId === ev.event_id;
-                      const statusReadout = isHeld
-                        ? `HELD · ${formatHoldDurationSec(ev.hold_ms, extraHoldElapsedMs)}`
-                        : ev.epistemic_kind === "pending"
-                          ? "PENDING"
-                          : String(ev.status_code ?? (ev.status_label || "200"));
+                    <Segment.Item className="flex-1 text-xs" id="buyer_to_seller">
+                      Buyer → Seller
+                    </Segment.Item>
+                    <Segment.Item className="flex-1 text-xs" id="seller_to_buyer">
+                      Seller → Buyer
+                    </Segment.Item>
+                  </Segment>
 
-                      let rowClass = "border border-border bg-surface hover:bg-surface-hover";
+                  <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border px-3 py-2 font-mono text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">Source</span>
+                      <span className="text-foreground truncate font-medium">{sourceParty}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">Recipient</span>
+                      <span className="text-foreground truncate font-medium">{recipientParty}</span>
+                    </div>
+                  </div>
+                </div>
 
-                      if (isHeld) {
-                        rowClass = "border border-warning/50 bg-warning-soft";
-                      } else if (isSelected) {
-                        rowClass = "border border-accent bg-accent-soft";
-                      }
+                {/* Held / Selected Original Packet + Inspect Payload Drawer */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted text-xs font-semibold">Original</span>
+                    {renderInspectDrawer()}
+                  </div>
+                  <div className="border-border bg-surface-secondary/40 rounded-lg border px-3 py-2 text-xs">
+                    {inspectOriginalEvent ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-foreground font-mono font-semibold">
+                          {`${inspectOriginalEvent.event_id} · ${inspectOriginalEvent.event_name}`}
+                        </span>
+                        <span className="text-muted text-[11px]">
+                          {inspectOriginalEvent.observation}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted">No held packet selected.</span>
+                    )}
+                  </div>
+                </div>
 
-                      return (
-                        <ListBox.Item
-                          key={ev.event_id}
-                          className={`flex flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 normal-case ${rowClass}`}
-                          id={ev.event_id}
-                          textValue={`${ev.event_id} ${ev.event_name}`}
-                        >
-                          <div className="flex w-full items-center justify-between gap-1.5">
-                            <Label className="text-foreground truncate font-mono text-xs font-semibold normal-case">
-                              {`${ev.event_id} · ${ev.event_name}`}
-                            </Label>
-                            <span
-                              className={`shrink-0 font-mono text-[10px] font-medium tabular-nums ${
-                                isHeld
-                                  ? "text-warning-soft-foreground"
-                                  : ev.epistemic_kind === "pending"
-                                    ? "text-muted"
-                                    : "text-success"
-                              }`}
-                            >
-                              {statusReadout}
-                            </span>
-                          </div>
-                          <span className="text-muted w-full truncate text-[11px]">
-                            {ev.observation}
-                          </span>
-                        </ListBox.Item>
-                      );
-                    })}
-                  </ListBox>
-                )}
+                {/* Proposed Replacement Switch */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted text-xs font-semibold">Proposed Replacement</span>
+                  <div
+                    className={`flex flex-col gap-1.5 rounded-lg p-3 ${
+                      activeDraft?.enabled
+                        ? "border border-warning/50 bg-warning-soft"
+                        : "border border-border bg-surface-secondary/40"
+                    }`}
+                  >
+                    <Switch
+                      isDisabled={!activeDraft || activeDraft.delivery_state !== "proposed"}
+                      isSelected={Boolean(activeDraft?.enabled)}
+                      size="sm"
+                      onChange={(enabled) => void handleToggleDraft(enabled)}
+                    >
+                      <Switch.Content className="font-mono text-xs font-medium">
+                        <Switch.Control>
+                          <Switch.Thumb />
+                        </Switch.Control>
+                        {promoSwitchText}
+                      </Switch.Content>
+                    </Switch>
+                    {activeDraft?.result_preview ? (
+                      <span className="text-muted text-[11px] leading-snug">
+                        {activeDraft.result_preview}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Primary Quote Decision Actions */}
+                <div className="flex flex-col gap-2 pt-0.5">
+                  <Button
+                    fullWidth
+                    isDisabled={!canReleaseIntercept}
+                    isPending={actionBusy === "release-replacement"}
+                    size="sm"
+                    variant="primary"
+                    onPress={() => void handleRelease("replacement")}
+                  >
+                    Review & Send Response
+                  </Button>
+                  <Button
+                    fullWidth
+                    isDisabled={!canReleaseIntercept}
+                    isPending={actionBusy === "release-original"}
+                    size="sm"
+                    variant="tertiary"
+                    onPress={() => void handleRelease("original")}
+                  >
+                    Forward Original
+                  </Button>
+                </div>
               </div>
 
-              {/* Selected Event Summary */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-muted text-xs font-semibold">Selected Event</span>
+              {renderVerificationGates()}
+            </div>
+          ) : (
+            <div className="flex flex-col">
+              <div className="flex flex-col gap-3 p-3">
+                {canReleaseIntercept && heldTargetEvent ? (
+                  <div className="border-warning/50 bg-warning-soft flex flex-wrap items-center justify-between gap-2.5 rounded-lg border px-3 py-2.5">
+                    <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+                      <span className="text-foreground font-mono text-xs font-semibold">
+                        {`${heldTargetEvent.event_id} · ${heldTargetEvent.event_name} held`}
+                      </span>
+                      <span className="text-muted text-[11px] leading-snug">
+                        {promoOffer
+                          ? `Counter-offer ${promoOffer.offer_id} (${formatMoneyCompact(promoOffer.price_cents, promoOffer.currency)}) staged against margin floor.`
+                          : heldTargetEvent.observation}
+                      </span>
+                    </div>
+                    <Button
+                      className="shrink-0"
+                      size="sm"
+                      variant="primary"
+                      onPress={() => setViewMode("approve")}
+                    >
+                      Review Quote
+                    </Button>
+                  </div>
+                ) : null}
+
+                <CausalCradledGraph
+                  draft={activeDraft}
+                  events={txEvents}
+                  offers={txOffers}
+                  selectedEventId={effectiveSelectedEventId}
+                  onSelectEvent={setSelectedEventId}
+                />
+
                 {selectedEvent ? (
-                  <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border p-2.5">
+                  <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border px-3 py-2">
                     <div className="flex items-center justify-between gap-1.5">
                       <span className="text-foreground truncate font-mono text-xs font-semibold">
                         {`${selectedEvent.event_id} · ${selectedEvent.event_name}`}
@@ -1472,249 +1468,643 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
                       {selectedEvent.observation}
                     </span>
                   </div>
-                ) : (
-                  <p className="text-muted text-xs">Select any graph node or trace row.</p>
-                )}
+                ) : null}
+
+                <Card className="overflow-x-auto p-0">
+                  <DataGrid
+                    stickyHeader
+                    aria-label="Execution trace"
+                    className={`w-full [&_.table__column]:rounded-none! [&_.table__row]:cursor-[var(--cursor-interactive)] ${
+                      selectedEventIsHeld
+                        ? "[&_.table__row[data-selected=true]_.table__cell]:bg-warning-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground"
+                        : "[&_.table__row[data-selected=true]_.table__cell]:bg-accent-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground"
+                    }`}
+                    columns={traceColumns}
+                    contentClassName="min-w-[660px]"
+                    data={filteredTraceEvents}
+                    getRowId={(item) => item.event_id}
+                    renderEmptyState={() => (
+                      <div className="py-6">
+                        <EmptyState size="sm">
+                          <EmptyState.Header>
+                            <EmptyState.Title>No Matching Events</EmptyState.Title>
+                            <EmptyState.Description>
+                              No recorded events match the active trace filter.
+                            </EmptyState.Description>
+                          </EmptyState.Header>
+                        </EmptyState>
+                      </div>
+                    )}
+                    selectedKeys={selectedTraceKeys}
+                    selectionBehavior="replace"
+                    selectionMode="single"
+                    variant="secondary"
+                    onRowAction={(key) => setSelectedEventId(String(key))}
+                    onSelectionChange={handleTraceSelectionChange}
+                  />
+                </Card>
               </div>
-            </ScrollShadow>
-          </Resizable.Panel>
 
-          <Resizable.Handle aria-label="Resize intervention column" variant="secondary" />
-
-          {/* 4. FAR-RIGHT COLUMN: Intervention */}
-          <Resizable.Panel className="flex min-w-0 flex-col" defaultSize={18} minSize={15}>
-            <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2">
-              <span className="text-foreground text-xs font-semibold">Intervention</span>
-
-              <Drawer isOpen={isInspectOpen} onOpenChange={setIsInspectOpen}>
-                <Button
-                  isDisabled={!inspectOriginalEvent && !activeDraft}
-                  size="sm"
-                  variant="ghost"
-                >
-                  Inspect
-                </Button>
-                <Drawer.Backdrop>
-                  <Drawer.Content className="sm:max-w-xl" placement="right">
-                    <Drawer.Dialog aria-label="Inspect Payload">
-                      <Drawer.CloseTrigger />
-                      <Drawer.Header className="flex-col items-start gap-1">
-                        <Drawer.Heading className="text-foreground text-base font-semibold">
-                          Inspect Payload
-                        </Drawer.Heading>
-                        {inspectOriginalEvent ? (
-                          <p className="text-muted font-mono text-xs">
-                            {`${inspectOriginalEvent.event_id} · ${inspectOriginalEvent.event_name}`}
-                          </p>
-                        ) : null}
-                      </Drawer.Header>
-                      <Drawer.Body className="flex flex-col gap-4">
-                        <div className="flex flex-col gap-1.5">
-                          <span className="text-foreground text-xs font-semibold">
-                            Original Wire Payload
-                          </span>
-                          <CodeBlock className="my-0 rounded-lg">
-                            <CodeBlock.Header>
-                              <span className="text-muted font-mono text-xs">Original JSON</span>
-                              <CodeBlock.CopyButton code={originalPayloadCode} />
-                            </CodeBlock.Header>
-                            <CodeBlock.Code code={originalPayloadCode} language="json" />
-                          </CodeBlock>
-                        </div>
-
-                        {activeDraft ? (
-                          <div className="flex flex-col gap-1.5">
-                            <span className="text-foreground text-xs font-semibold">
-                              Proposed Replacement Payload
-                            </span>
-                            <CodeBlock className="my-0 rounded-lg">
-                              <CodeBlock.Header>
-                                <span className="text-muted font-mono text-xs">Proposed JSON</span>
-                                <CodeBlock.CopyButton code={proposedPayloadCode} />
-                              </CodeBlock.Header>
-                              <CodeBlock.Code code={proposedPayloadCode} language="json" />
-                            </CodeBlock>
-                          </div>
-                        ) : null}
-                      </Drawer.Body>
-                      <Drawer.Footer>
-                        <Button
-                          size="sm"
-                          variant="tertiary"
-                          onPress={() => setIsInspectOpen(false)}
-                        >
-                          Close
-                        </Button>
-                      </Drawer.Footer>
-                    </Drawer.Dialog>
-                  </Drawer.Content>
-                </Drawer.Backdrop>
-              </Drawer>
+              {renderVerificationGates()}
             </div>
-
-            <ScrollShadow className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-3">
-              {/* Inline Multidirectional Segment Toggle */}
-              <div className="flex flex-col gap-2">
-                <Segment
-                  aria-label="Interception direction"
-                  className="w-full"
-                  isDisabled={!activeTx}
-                  selectedKey={effectiveLane}
+          )}
+        </div>
+      ) : (
+        <div className="min-h-0 flex-1 overflow-hidden">
+          <Resizable orientation="horizontal">
+            {/* 1. LEFT COLUMN: Live Sessions + Surfaces + Trace Filters */}
+            <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={17} minSize={13}>
+              <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
+                <span className="text-foreground text-xs font-semibold">Live Sessions</span>
+                <Button
+                  isPending={actionBusy === "scenario"}
                   size="sm"
-                  onSelectionChange={(key) =>
-                    void handleLaneChange(String(key) as InterceptionDirection)
-                  }
+                  variant="secondary"
+                  onPress={() => void handleRunScenario()}
                 >
-                  <Segment.Item className="flex-1 text-xs" id="buyer_to_seller">
-                    Buyer → Seller
-                  </Segment.Item>
-                  <Segment.Item className="flex-1 text-xs" id="seller_to_buyer">
-                    Seller → Buyer
-                  </Segment.Item>
-                </Segment>
+                  <Play className="size-3" />
+                  Start Scenario
+                </Button>
+              </div>
 
-                <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border px-2.5 py-2 font-mono text-[11px]">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted">Source</span>
-                    <span className="text-foreground truncate font-medium">{sourceParty}</span>
+              <ScrollShadow className="min-h-0 flex-1 overflow-y-auto p-2">
+                <div className="flex flex-col gap-4">
+                  {workspaceState.transactions.length === 0 ? (
+                    <p className="text-muted px-2 py-3 text-xs leading-relaxed">
+                      No active sessions. Start a live scenario or route an AI agent through Conduit to package and price offers.
+                    </p>
+                  ) : (
+                    <ListBox
+                      disallowEmptySelection
+                      aria-label="Commerce sessions"
+                      className="gap-1 p-0"
+                      selectedKeys={activeTx ? new Set([activeTx.tx_id]) : new Set()}
+                      selectionMode="single"
+                      onSelectionChange={handleSessionSelectionChange}
+                    >
+                      {workspaceState.transactions.map((tx) => {
+                        const isHeldTx = tx.status === "held";
+                        const isSelectedTx = activeTx?.tx_id === tx.tx_id;
+                        const subLabel = formatPhaseSubStatus(tx);
+
+                        let itemSurface = "border border-transparent hover:bg-surface-secondary/70";
+
+                        if (isHeldTx) {
+                          itemSurface = "border border-warning/50 bg-warning-soft";
+                        } else if (isSelectedTx) {
+                          itemSurface = "border border-border-secondary bg-surface-secondary";
+                        }
+
+                        return (
+                          <ListBox.Item
+                            key={tx.tx_id}
+                            className={`flex flex-col items-start gap-1 rounded-lg px-2.5 py-2 normal-case ${itemSurface}`}
+                            id={tx.tx_id}
+                            textValue={tx.short_title || tx.title}
+                          >
+                            <div className="flex w-full items-center justify-between gap-1.5">
+                              <Label className="text-foreground truncate text-xs font-semibold normal-case">
+                                {tx.short_title || tx.title}
+                              </Label>
+                              <span className="text-muted shrink-0 font-mono text-[11px] tabular-nums">
+                                {tx.category_label}
+                              </span>
+                            </div>
+                            <span
+                              className={`truncate font-mono text-[11px] ${
+                                isHeldTx
+                                  ? "text-warning-soft-foreground font-medium"
+                                  : tx.status === "complete"
+                                    ? "text-success"
+                                    : "text-muted"
+                              }`}
+                            >
+                              {subLabel}
+                            </span>
+                          </ListBox.Item>
+                        );
+                      })}
+                    </ListBox>
+                  )}
+
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted px-2 text-xs font-semibold">Surfaces</span>
+                    <ListBox
+                      disallowEmptySelection
+                      aria-label="Investigation surfaces"
+                      className="gap-0.5 p-0"
+                      selectedKeys={new Set([desktopViewMode === "graph" ? "both" : desktopViewMode])}
+                      selectionMode="single"
+                      onSelectionChange={(keys) => {
+                        if (keys === "all") return;
+                        const first = Array.from(keys)[0];
+
+                        if (typeof first === "string") {
+                          setViewMode(first as InvestigationViewMode);
+                        }
+                      }}
+                    >
+                      {(
+                        [
+                          {count: txEvents.length, id: "both", label: "Deal Control"},
+                          {count: traffics.length, id: "wire", label: "Wire Frames"},
+                          {count: passes.length, id: "orders", label: "Passes & Bundles"},
+                        ] as const
+                      ).map((surfaceItem) => (
+                        <ListBox.Item
+                          key={surfaceItem.id}
+                          className="items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 normal-case data-[selected=true]:bg-surface-secondary"
+                          id={surfaceItem.id}
+                          textValue={surfaceItem.label}
+                        >
+                          <Label className="text-foreground text-xs font-medium normal-case">
+                            {surfaceItem.label}
+                          </Label>
+                          <span className="text-muted font-mono text-xs tabular-nums">
+                            {surfaceItem.count}
+                          </span>
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted">Recipient</span>
-                    <span className="text-foreground truncate font-medium">{recipientParty}</span>
+
+                  <div className="flex flex-col gap-1.5">
+                    <span className="text-muted px-2 text-xs font-semibold">Trace Filters</span>
+                    <ListBox
+                      disallowEmptySelection
+                      aria-label="Trace filters"
+                      className="gap-0.5 p-0"
+                      selectedKeys={new Set([eventFilter])}
+                      selectionMode="single"
+                      onSelectionChange={handleFilterSelectionChange}
+                    >
+                      {(
+                        [
+                          {count: filterCounts.all, id: "all", label: "All"},
+                          {count: filterCounts.mcp, id: "mcp", label: "MCP"},
+                          {count: filterCounts.http, id: "http", label: "HTTP"},
+                          {count: filterCounts.held_pending, id: "held_pending", label: "Held / Pending"},
+                          {count: filterCounts.errors, id: "errors", label: "Errors"},
+                        ] as const
+                      ).map((filterItem) => (
+                        <ListBox.Item
+                          key={filterItem.id}
+                          className="items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 normal-case data-[selected=true]:bg-surface-secondary"
+                          id={filterItem.id}
+                          textValue={filterItem.label}
+                        >
+                          <Label className="text-foreground text-xs font-medium normal-case">
+                            {filterItem.label}
+                          </Label>
+                          <span className="text-muted font-mono text-xs tabular-nums">
+                            {filterItem.count}
+                          </span>
+                        </ListBox.Item>
+                      ))}
+                    </ListBox>
                   </div>
                 </div>
+              </ScrollShadow>
+            </Resizable.Panel>
+
+            <Resizable.Handle aria-label="Resize sessions column" variant="secondary" />
+
+            {/* 2. CENTER COLUMN: Control Plane Stage (Overview / Graph / Wire / Passes) */}
+            <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={49} minSize={34}>
+              <div className="border-separator flex shrink-0 flex-col gap-2.5 border-b px-3.5 py-2.5">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div className="flex min-w-0 flex-col gap-0.5">
+                    <h2 className="text-foreground truncate text-sm font-semibold">
+                      {activeTx ? activeTx.title : "Agentic Commerce Control Plane"}
+                    </h2>
+                    <p className="text-muted truncate font-mono text-xs">
+                      {activeTx
+                        ? `Merchant: ${activeTx.seller_host} ← Buyer: ${activeTx.buyer_agent} · ${activeTx.protocol}`
+                        : `${traffics.length} wire frames · ${activePasses.length} active passes`}
+                    </p>
+                  </div>
+
+                  <Segment
+                    aria-label="Investigation view"
+                    className="shrink-0"
+                    selectedKey={desktopViewMode}
+                    size="sm"
+                    onSelectionChange={(key) => setViewMode(String(key) as InvestigationViewMode)}
+                  >
+                    <Segment.Item id="both">Overview</Segment.Item>
+                    <Segment.Item id="graph">Graph</Segment.Item>
+                    <Segment.Item id="wire">Wire</Segment.Item>
+                    <Segment.Item id="orders">Passes</Segment.Item>
+                  </Segment>
+                </div>
+
+                {activeTx && (desktopViewMode === "both" || desktopViewMode === "graph")
+                  ? renderPhaseTimeline(false)
+                  : null}
               </div>
 
-              {/* Original Summary */}
-              <div className="flex flex-col gap-1">
-                <span className="text-muted text-xs font-semibold">Original</span>
-                <div className="border-border bg-surface-secondary/40 rounded-lg border px-2.5 py-2 text-xs">
-                  {inspectOriginalEvent ? (
-                    <div className="flex flex-col gap-0.5">
-                      <span className="text-foreground font-mono font-semibold">
-                        {`${inspectOriginalEvent.event_id} · ${inspectOriginalEvent.event_name}`}
+              {desktopViewMode === "wire" ? (
+                <WireEvidencePanel
+                  selectedPacketId={selectedWirePacketId}
+                  onSelectPacketId={setSelectedWirePacketId}
+                />
+              ) : desktopViewMode === "orders" ? (
+                <PassesLedgerPanel activeBuyerAgent={activeTx?.buyer_agent ?? null} />
+              ) : !activeTx ? (
+                renderEmptySessionState()
+              ) : (
+                <>
+                  <ScrollShadow className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
+                    <CausalCradledGraph
+                      draft={activeDraft}
+                      events={txEvents}
+                      offers={txOffers}
+                      selectedEventId={effectiveSelectedEventId}
+                      onSelectEvent={setSelectedEventId}
+                    />
+
+                    {desktopViewMode === "both" ? (
+                      <Card className="min-h-[210px] shrink-0 overflow-hidden p-0">
+                        <DataGrid
+                          stickyHeader
+                          aria-label="Execution trace"
+                          className={`w-full [&_.table__column]:rounded-none! [&_.table__row]:cursor-[var(--cursor-interactive)] ${
+                            selectedEventIsHeld
+                              ? "[&_.table__row[data-selected=true]_.table__cell]:bg-warning-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground"
+                              : "[&_.table__row[data-selected=true]_.table__cell]:bg-accent-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground"
+                          }`}
+                          columns={traceColumns}
+                          contentClassName="min-w-[660px]"
+                          data={filteredTraceEvents}
+                          getRowId={(item) => item.event_id}
+                          renderEmptyState={() => (
+                            <div className="py-6">
+                              <EmptyState size="sm">
+                                <EmptyState.Header>
+                                  <EmptyState.Title>No Matching Events</EmptyState.Title>
+                                  <EmptyState.Description>
+                                    Select another filter in the left rail to view recorded events.
+                                  </EmptyState.Description>
+                                </EmptyState.Header>
+                              </EmptyState>
+                            </div>
+                          )}
+                          selectedKeys={selectedTraceKeys}
+                          selectionBehavior="replace"
+                          selectionMode="single"
+                          variant="secondary"
+                          onRowAction={(key) => setSelectedEventId(String(key))}
+                          onSelectionChange={handleTraceSelectionChange}
+                        />
+                      </Card>
+                    ) : null}
+                  </ScrollShadow>
+
+                  {renderVerificationGates()}
+                </>
+              )}
+            </Resizable.Panel>
+
+            <Resizable.Handle aria-label="Resize seller context column" variant="secondary" />
+
+            {/* 3. MIDDLE-RIGHT COLUMN: Merchant Desk */}
+            <Resizable.Panel className="border-separator flex min-w-0 flex-col border-r" defaultSize={16} minSize={13}>
+              <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2.5">
+                <span className="text-foreground truncate text-xs font-semibold">
+                  {activeTx ? `Merchant (${activeTx.seller_host})` : "Merchant"}
+                </span>
+              </div>
+
+              <ScrollShadow className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-3">
+                {/* Catalog Offer */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted text-xs font-semibold">Catalog Offer</span>
+                  {primaryOffer ? (
+                    <div className="border-border bg-surface-secondary/50 flex flex-col gap-1.5 rounded-lg border p-2.5">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="text-foreground truncate text-xs font-semibold">
+                          {primaryOffer.sku_title}
+                        </span>
+                        <span className="text-foreground shrink-0 font-mono text-sm font-semibold tabular-nums">
+                          {formatMoneyExact(primaryOffer.price_cents, primaryOffer.currency)}
+                        </span>
+                      </div>
+                      <span className="text-muted font-mono text-[11px]">
+                        {`${primaryOffer.in_stock ? "In stock" : "Backorder"} · ${primaryOffer.warranty || "Standard warranty"}`}
                       </span>
+                      {promoOffer && promoOffer.offer_id !== primaryOffer.offer_id ? (
+                        <span className="text-warning-soft-foreground font-mono text-[11px] tabular-nums">
+                          {`Staged promo: ${formatMoneyExact(promoOffer.price_cents, promoOffer.currency)}`}
+                        </span>
+                      ) : null}
+                      {primaryOffer.returns_policy ? (
+                        <span className="text-muted text-[11px]">{primaryOffer.returns_policy}</span>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="text-muted text-xs">No catalog offers recorded.</p>
+                  )}
+                </div>
+
+                {/* Session Passes Summary */}
+                <div className="flex flex-col gap-1.5">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-muted text-xs font-semibold">Session Passes</span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onPress={() => setViewMode("orders")}
+                    >
+                      Manage
+                    </Button>
+                  </div>
+                  <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border p-2.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-foreground font-mono text-xs font-medium tabular-nums">
+                        {`${activePasses.length} active`}
+                      </span>
+                      <span className="text-muted font-mono text-[11px] tabular-nums">
+                        {`${bundles.length} bundles`}
+                      </span>
+                    </div>
+                    {buyerPasses[0] ? (
+                      <span className="text-muted truncate font-mono text-[11px] tabular-nums">
+                        {`${buyerPasses[0].subject} · ${buyerPasses[0].remaining_calls}/${buyerPasses[0].max_calls} calls`}
+                      </span>
+                    ) : (
                       <span className="text-muted text-[11px]">
-                        {inspectOriginalEvent.observation}
+                        Authorize payment or issue a buyer pass.
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Outbound MCP Responses */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted text-xs font-semibold">Outbound MCP Responses</span>
+                  {sellerResponses.length === 0 ? (
+                    <p className="text-muted text-xs">No responses recorded.</p>
+                  ) : (
+                    <ListBox
+                      disallowEmptySelection
+                      aria-label="Seller MCP responses"
+                      className="gap-1 p-0"
+                      selectedKeys={
+                        effectiveSelectedEventId &&
+                        sellerResponses.some((ev) => ev.event_id === effectiveSelectedEventId)
+                          ? new Set([effectiveSelectedEventId])
+                          : new Set()
+                      }
+                      selectionMode="single"
+                      onSelectionChange={handleTraceSelectionChange}
+                    >
+                      {sellerResponses.map((ev) => {
+                        const isHeld = ev.hold_state === "held" || ev.epistemic_kind === "held";
+                        const isSelected = effectiveSelectedEventId === ev.event_id;
+                        const statusReadout = isHeld
+                          ? `HELD · ${formatHoldDurationSec(ev.hold_ms, extraHoldElapsedMs)}`
+                          : ev.epistemic_kind === "pending"
+                            ? "PENDING"
+                            : String(ev.status_code ?? (ev.status_label || "200"));
+
+                        let rowClass = "border border-border bg-surface hover:bg-surface-hover";
+
+                        if (isHeld) {
+                          rowClass = "border border-warning/50 bg-warning-soft";
+                        } else if (isSelected) {
+                          rowClass = "border border-accent bg-accent-soft";
+                        }
+
+                        return (
+                          <ListBox.Item
+                            key={ev.event_id}
+                            className={`flex flex-col items-start gap-0.5 rounded-lg px-2.5 py-2 normal-case ${rowClass}`}
+                            id={ev.event_id}
+                            textValue={`${ev.event_id} ${ev.event_name}`}
+                          >
+                            <div className="flex w-full items-center justify-between gap-1.5">
+                              <Label className="text-foreground truncate font-mono text-xs font-semibold normal-case">
+                                {`${ev.event_id} · ${ev.event_name}`}
+                              </Label>
+                              <span
+                                className={`shrink-0 font-mono text-[10px] font-medium tabular-nums ${
+                                  isHeld
+                                    ? "text-warning-soft-foreground"
+                                    : ev.epistemic_kind === "pending"
+                                      ? "text-muted"
+                                      : "text-success"
+                                }`}
+                              >
+                                {statusReadout}
+                              </span>
+                            </div>
+                            <span className="text-muted w-full truncate text-[11px]">
+                              {ev.observation}
+                            </span>
+                          </ListBox.Item>
+                        );
+                      })}
+                    </ListBox>
+                  )}
+                </div>
+
+                {/* Selected Event Summary */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted text-xs font-semibold">Selected Event</span>
+                  {selectedEvent ? (
+                    <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border p-2.5">
+                      <div className="flex items-center justify-between gap-1.5">
+                        <span className="text-foreground truncate font-mono text-xs font-semibold">
+                          {`${selectedEvent.event_id} · ${selectedEvent.event_name}`}
+                        </span>
+                        <span className="text-muted shrink-0 font-mono text-[11px] tabular-nums">
+                          {selectedEvent.correlation_id}
+                        </span>
+                      </div>
+                      <span className="text-muted text-xs leading-snug">
+                        {selectedEvent.observation}
                       </span>
                     </div>
                   ) : (
-                    <span className="text-muted">No held packet selected.</span>
+                    <p className="text-muted text-xs">Select any graph node or trace row.</p>
                   )}
                 </div>
+              </ScrollShadow>
+            </Resizable.Panel>
+
+            <Resizable.Handle aria-label="Resize intervention column" variant="secondary" />
+
+            {/* 4. FAR-RIGHT COLUMN: Quote Approval & Intervention */}
+            <Resizable.Panel className="flex min-w-0 flex-col" defaultSize={18} minSize={15}>
+              <div className="border-separator flex shrink-0 items-center justify-between gap-2 border-b px-3 py-2">
+                <span className="text-foreground text-xs font-semibold">Quote Approval</span>
+                {renderInspectDrawer()}
               </div>
 
-              {/* Proposed Replacement Switch (HeroUI v3 dot-notation) */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-muted text-xs font-semibold">Proposed Replacement</span>
-                <div
-                  className={`flex flex-col gap-1.5 rounded-lg p-2.5 ${
-                    activeDraft?.enabled
-                      ? "border border-warning/50 bg-warning-soft"
-                      : "border border-border bg-surface-secondary/40"
-                  }`}
-                >
-                  <Switch
-                    isDisabled={!activeDraft || activeDraft.delivery_state !== "proposed"}
-                    isSelected={Boolean(activeDraft?.enabled)}
+              <ScrollShadow className="flex min-h-0 flex-1 flex-col gap-3.5 overflow-y-auto p-3">
+                {/* Inline Multidirectional Segment Toggle */}
+                <div className="flex flex-col gap-2">
+                  <Segment
+                    aria-label="Interception direction"
+                    className="w-full"
+                    isDisabled={!activeTx}
+                    selectedKey={effectiveLane}
                     size="sm"
-                    onChange={(enabled) => void handleToggleDraft(enabled)}
+                    onSelectionChange={(key) =>
+                      void handleLaneChange(String(key) as InterceptionDirection)
+                    }
                   >
-                    <Switch.Content className="font-mono text-xs font-medium">
-                      <Switch.Control>
-                        <Switch.Thumb />
-                      </Switch.Control>
-                      {promoSwitchText}
-                    </Switch.Content>
-                  </Switch>
-                  {activeDraft?.result_preview ? (
-                    <span className="text-muted text-[11px] leading-snug">
-                      {activeDraft.result_preview}
-                    </span>
-                  ) : null}
-                </div>
-              </div>
+                    <Segment.Item className="flex-1 text-xs" id="buyer_to_seller">
+                      Buyer → Seller
+                    </Segment.Item>
+                    <Segment.Item className="flex-1 text-xs" id="seller_to_buyer">
+                      Seller → Buyer
+                    </Segment.Item>
+                  </Segment>
 
-              {/* Split-State Validation Rows */}
-              <div className="flex flex-col gap-1.5">
-                <span className="text-muted text-xs font-semibold">Validation</span>
-                <div className="border-border bg-surface-secondary/40 flex flex-col gap-1.5 rounded-lg border px-2.5 py-2 text-xs">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted">MCP schema</span>
-                    <span
-                      className={`font-mono text-[11px] font-medium ${
-                        mcpSchemaValid ? "text-success" : "text-danger"
-                      }`}
-                    >
-                      {mcpSchemaValid ? "Valid" : "Invalid"}
-                    </span>
+                  <div className="border-border bg-surface-secondary/50 flex flex-col gap-1 rounded-lg border px-2.5 py-2 font-mono text-[11px]">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">Source</span>
+                      <span className="text-foreground truncate font-medium">{sourceParty}</span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">Recipient</span>
+                      <span className="text-foreground truncate font-medium">{recipientParty}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted">Seller policy</span>
-                    <span
-                      className={`font-mono text-[11px] font-medium ${
-                        sellerPolicyState === "valid"
-                          ? "text-success"
-                          : sellerPolicyState === "rejected"
-                            ? "text-danger"
+                </div>
+
+                {/* Original Summary */}
+                <div className="flex flex-col gap-1">
+                  <span className="text-muted text-xs font-semibold">Original</span>
+                  <div className="border-border bg-surface-secondary/40 rounded-lg border px-2.5 py-2 text-xs">
+                    {inspectOriginalEvent ? (
+                      <div className="flex flex-col gap-0.5">
+                        <span className="text-foreground font-mono font-semibold">
+                          {`${inspectOriginalEvent.event_id} · ${inspectOriginalEvent.event_name}`}
+                        </span>
+                        <span className="text-muted text-[11px]">
+                          {inspectOriginalEvent.observation}
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted">No held packet selected.</span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Proposed Replacement Switch (HeroUI v3 dot-notation) */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted text-xs font-semibold">Proposed Replacement</span>
+                  <div
+                    className={`flex flex-col gap-1.5 rounded-lg p-2.5 ${
+                      activeDraft?.enabled
+                        ? "border border-warning/50 bg-warning-soft"
+                        : "border border-border bg-surface-secondary/40"
+                    }`}
+                  >
+                    <Switch
+                      isDisabled={!activeDraft || activeDraft.delivery_state !== "proposed"}
+                      isSelected={Boolean(activeDraft?.enabled)}
+                      size="sm"
+                      onChange={(enabled) => void handleToggleDraft(enabled)}
+                    >
+                      <Switch.Content className="font-mono text-xs font-medium">
+                        <Switch.Control>
+                          <Switch.Thumb />
+                        </Switch.Control>
+                        {promoSwitchText}
+                      </Switch.Content>
+                    </Switch>
+                    {activeDraft?.result_preview ? (
+                      <span className="text-muted text-[11px] leading-snug">
+                        {activeDraft.result_preview}
+                      </span>
+                    ) : null}
+                  </div>
+                </div>
+
+                {/* Split-State Validation Rows */}
+                <div className="flex flex-col gap-1.5">
+                  <span className="text-muted text-xs font-semibold">Validation</span>
+                  <div className="border-border bg-surface-secondary/40 flex flex-col gap-1.5 rounded-lg border px-2.5 py-2 text-xs">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">MCP schema</span>
+                      <span
+                        className={`font-mono text-[11px] font-medium ${
+                          mcpSchemaValid ? "text-success" : "text-danger"
+                        }`}
+                      >
+                        {mcpSchemaValid ? "Valid" : "Invalid"}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">Seller policy</span>
+                      <span
+                        className={`font-mono text-[11px] font-medium ${
+                          sellerPolicyState === "valid"
+                            ? "text-success"
+                            : sellerPolicyState === "rejected"
+                              ? "text-danger"
+                              : "text-warning-soft-foreground"
+                        }`}
+                      >
+                        {formatSellerPolicyLabel(sellerPolicyState)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">Operator approval</span>
+                      <span
+                        className={`font-mono text-[11px] font-medium ${
+                          operatorApprovalState === "approved"
+                            ? "text-success"
                             : "text-warning-soft-foreground"
-                      }`}
-                    >
-                      {formatSellerPolicyLabel(sellerPolicyState)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted">Operator approval</span>
-                    <span
-                      className={`font-mono text-[11px] font-medium ${
-                        operatorApprovalState === "approved"
-                          ? "text-success"
-                          : "text-warning-soft-foreground"
-                      }`}
-                    >
-                      {formatOperatorApprovalLabel(operatorApprovalState)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-muted">Payment pass</span>
-                    <span
-                      className={`font-mono text-[11px] font-medium ${
-                        paymentAuthState === "authorized" ? "text-success" : "text-muted"
-                      }`}
-                    >
-                      {paymentAuthState === "authorized" ? "Authorized" : "Unverified"}
-                    </span>
+                        }`}
+                      >
+                        {formatOperatorApprovalLabel(operatorApprovalState)}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-muted">Payment pass</span>
+                      <span
+                        className={`font-mono text-[11px] font-medium ${
+                          paymentAuthState === "authorized" ? "text-success" : "text-muted"
+                        }`}
+                      >
+                        {paymentAuthState === "authorized" ? "Authorized" : "Unverified"}
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              {/* Primary Action Stack */}
-              <div className="mt-auto flex flex-col gap-2 pt-1">
-                <Button
-                  fullWidth
-                  isDisabled={!canReleaseIntercept}
-                  isPending={actionBusy === "release-replacement"}
-                  size="sm"
-                  variant="primary"
-                  onPress={() => void handleRelease("replacement")}
-                >
-                  Review & Send Response
-                </Button>
-                <Button
-                  fullWidth
-                  isDisabled={!canReleaseIntercept}
-                  isPending={actionBusy === "release-original"}
-                  size="sm"
-                  variant="tertiary"
-                  onPress={() => void handleRelease("original")}
-                >
-                  Forward Original
-                </Button>
-              </div>
-            </ScrollShadow>
-          </Resizable.Panel>
-        </Resizable>
-      </div>
+                {/* Primary Action Stack */}
+                <div className="mt-auto flex flex-col gap-2 pt-1">
+                  <Button
+                    fullWidth
+                    isDisabled={!canReleaseIntercept}
+                    isPending={actionBusy === "release-replacement"}
+                    size="sm"
+                    variant="primary"
+                    onPress={() => void handleRelease("replacement")}
+                  >
+                    Review & Send Response
+                  </Button>
+                  <Button
+                    fullWidth
+                    isDisabled={!canReleaseIntercept}
+                    isPending={actionBusy === "release-original"}
+                    size="sm"
+                    variant="tertiary"
+                    onPress={() => void handleRelease("original")}
+                  >
+                    Forward Original
+                  </Button>
+                </div>
+              </ScrollShadow>
+            </Resizable.Panel>
+          </Resizable>
+        </div>
+      )}
 
       {/* Compact Dual-Speed Live Stream Bar (div role="region", zero <footer> tag) */}
       <div
@@ -1722,15 +2112,15 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
         className="border-separator bg-background-secondary flex shrink-0 flex-col border-t"
         role="region"
       >
-        <div className="flex h-9 items-center justify-between gap-3 px-3">
-          <div className="flex min-w-0 items-center gap-2.5">
+        <div className="flex h-9 items-center justify-between gap-2 px-3">
+          <div className="flex min-w-0 items-center gap-2">
             <Pulse
               aria-hidden="true"
               className={`size-3.5 shrink-0 ${
                 streamStats.heldCount > 0 ? "text-warning" : "text-accent"
               }`}
             />
-            <span className="text-foreground shrink-0 font-mono text-xs font-medium tabular-nums">
+            <span className="text-foreground truncate font-mono text-[11px] font-medium tabular-nums sm:text-xs">
               {`${streamStats.totalEvents} events · ${streamStats.heldCount} held · ${streamStats.avgMs} ms avg`}
             </span>
             {streamPackets[0] ? (
@@ -1741,6 +2131,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
           </div>
 
           <Button
+            className="shrink-0"
             size="sm"
             variant="ghost"
             onPress={() => setStreamExpanded((prev) => !prev)}
