@@ -8,6 +8,7 @@ export default defineConfig({
   use: {
     viewport: { width: 1500, height: 960 },
     headless: true,
+    ignoreHTTPSErrors: true,
     permissions: ["clipboard-read", "clipboard-write"],
   },
   reporter: "list",

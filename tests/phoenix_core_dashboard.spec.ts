@@ -503,19 +503,21 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
     expect(
       await page.evaluate(() => document.documentElement.dataset.theme),
     ).toBe("brutalism-light");
-    expect(
-      await page.evaluate(() => {
-        const logo = document.querySelector(
-          'img[alt="Conduit"]',
-        ) as HTMLImageElement | null;
-        return Boolean(
-          logo &&
-            logo.complete &&
-            logo.naturalWidth > 0 &&
-            (logo.getAttribute("src") ?? "").includes("/brand/light/"),
-        );
-      }),
-    ).toBe(true);
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const logo = document.querySelector(
+            'img[alt="Conduit"]',
+          ) as HTMLImageElement | null;
+          return Boolean(
+            logo &&
+              logo.complete &&
+              logo.naturalWidth > 0 &&
+              (logo.getAttribute("src") ?? "").includes("/brand/light/"),
+          );
+        }),
+      )
+      .toBe(true);
     await page
       .locator('[aria-label="Color theme"]')
       .getByText("Dark", { exact: true })
