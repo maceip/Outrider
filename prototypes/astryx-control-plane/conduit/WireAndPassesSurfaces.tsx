@@ -69,7 +69,14 @@ export function WireSurface({
           flexWrap: 'wrap',
           flexShrink: 0,
         }}>
-        <HStack gap={2.5} vAlign="center">
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 10,
+            maxWidth: '100%',
+          }}>
           <Heading level={5}>Wire Evidence Capture</Heading>
           <SegmentedControl
             size="sm"
@@ -80,7 +87,7 @@ export function WireSurface({
             <SegmentedControlItem value="MCP" label="MCP" />
             <SegmentedControlItem value="HTTP" label="HTTP" />
           </SegmentedControl>
-        </HStack>
+        </div>
         <Text type="supporting" size="2xs" hasTabularNumbers>
           Host: {session.merchantHost} · {frames.length} captured packets
         </Text>
@@ -269,7 +276,14 @@ export function PassesSurface({
           flexWrap: 'wrap',
           flexShrink: 0,
         }}>
-        <HStack gap={2.5} vAlign="center">
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 10,
+            maxWidth: '100%',
+          }}>
           <Heading level={5}>Scoped Capability Passes Ledger</Heading>
           <SegmentedControl
             size="sm"
@@ -282,7 +296,7 @@ export function PassesSurface({
             <SegmentedControlItem value="Exhausted" label="Exhausted" />
             <SegmentedControlItem value="Revoked" label="Revoked" />
           </SegmentedControl>
-        </HStack>
+        </div>
         <Text type="supporting" size="2xs">
           Ed25519 single-use checkout capabilities bound to SKU, amount cap, and
           TTL

@@ -629,11 +629,13 @@ export function ConduitWorkbench() {
                     gap: 10,
                     flexWrap: 'wrap',
                   }}>
-                  <HStack gap={2.5} vAlign="center" wrap>
+                  <HStack gap={2} vAlign="center" wrap>
                     <HStack gap={1.5} vAlign="center">
                       <StatusDot variant="accent" isPulsing />
                       <Heading level={5}>Conduit</Heading>
-                      <Badge variant="neutral" label="MCP Control Plane" />
+                      {!isMobile && (
+                        <Badge variant="neutral" label="MCP Control Plane" />
+                      )}
                     </HStack>
 
                     {/* Mobile Session Switcher */}
@@ -643,7 +645,7 @@ export function ConduitWorkbench() {
                         button={{
                           size: 'sm',
                           variant: 'secondary',
-                          label: `Session: ${activeSession.merchantName}`,
+                          label: activeSession.merchantName,
                         }}
                         items={sessions.map(s => {
                           const sm = deriveWorkspaceMetrics(
@@ -664,7 +666,9 @@ export function ConduitWorkbench() {
                       button={{
                         size: 'sm',
                         variant: 'secondary',
-                        label: SCENARIO_LABELS[scenario],
+                        label: isMobile
+                          ? 'Scenarios'
+                          : SCENARIO_LABELS[scenario],
                       }}
                       items={(
                         Object.keys(SCENARIO_LABELS) as ScenarioPresetId[]
@@ -674,12 +678,14 @@ export function ConduitWorkbench() {
                       }))}
                     />
 
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      label="Reset Scenario"
-                      onClick={() => applyScenarioPreset(scenario)}
-                    />
+                    {!isMobile && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        label="Reset Scenario"
+                        onClick={() => applyScenarioPreset(scenario)}
+                      />
+                    )}
                   </HStack>
 
                   <HStack gap={2} vAlign="center" wrap>
@@ -688,11 +694,17 @@ export function ConduitWorkbench() {
                       button={{
                         size: 'sm',
                         variant: 'ghost',
-                        label: `Astryx Theme: ${
-                          PLAYGROUND_THEME_OPTIONS.find(
-                            t => t.value === themeKey,
-                          )?.label ?? themeKey
-                        }`,
+                        label: isMobile
+                          ? `${
+                              PLAYGROUND_THEME_OPTIONS.find(
+                                t => t.value === themeKey,
+                              )?.label ?? themeKey
+                            }`
+                          : `Astryx Theme: ${
+                              PLAYGROUND_THEME_OPTIONS.find(
+                                t => t.value === themeKey,
+                              )?.label ?? themeKey
+                            }`,
                       }}
                       items={PLAYGROUND_THEME_OPTIONS.map(opt => ({
                         label: opt.label,
@@ -1051,7 +1063,7 @@ export function ConduitWorkbench() {
                       {/* Top Pane: Compact Causal Observatory Graph */}
                       <div
                         style={{
-                          height: isMobile ? 250 : graphHeightResize.size,
+                          height: isMobile ? 315 : graphHeightResize.size,
                           flexShrink: 0,
                           minHeight: 0,
                           overflow: 'hidden',
@@ -1208,6 +1220,7 @@ export function ConduitWorkbench() {
             height="lg"
             padding="none">
             <CanonicalInspectorPanel
+              inBottomSheet
               session={activeSession}
               event={selectedEvent}
               onToggleMutation={handleToggleMutation}

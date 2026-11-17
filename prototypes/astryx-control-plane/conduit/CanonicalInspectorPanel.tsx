@@ -20,6 +20,7 @@ import type {MerchantSession, TraceEvent} from './conduitState';
 interface CanonicalInspectorPanelProps {
   session: MerchantSession;
   event: TraceEvent | null;
+  inBottomSheet?: boolean;
   onToggleMutation: (eventId: string, nextEnabled: boolean) => void;
   onTransmitModified: (eventId: string) => void;
   onForwardOriginal: (eventId: string) => void;
@@ -31,6 +32,7 @@ interface CanonicalInspectorPanelProps {
 export function CanonicalInspectorPanel({
   session,
   event,
+  inBottomSheet = false,
   onToggleMutation,
   onTransmitModified,
   onForwardOriginal,
@@ -92,7 +94,8 @@ export function CanonicalInspectorPanel({
     <div
       data-testid="canonical-inspector-panel"
       style={{
-        height: '100%',
+        height: inBottomSheet ? '76dvh' : '100%',
+        maxHeight: inBottomSheet ? '76dvh' : undefined,
         width: '100%',
         display: 'flex',
         flexDirection: 'column',
@@ -433,16 +436,21 @@ export function CanonicalInspectorPanel({
                       gap: 8,
                     }}>
                     <div style={{minWidth: 0}}>
-                      <StatusDot
-                        variant={
-                          v.status === 'pass'
-                            ? 'success'
-                            : v.status === 'warn'
-                              ? 'warning'
-                              : 'error'
-                        }
-                        label={v.gate}
-                      />
+                      <HStack gap={1.5} vAlign="center">
+                        <StatusDot
+                          variant={
+                            v.status === 'pass'
+                              ? 'success'
+                              : v.status === 'warn'
+                                ? 'warning'
+                                : 'error'
+                          }
+                          label={v.gate}
+                        />
+                        <Text type="body" size="xs" weight="medium">
+                          {v.gate}
+                        </Text>
+                      </HStack>
                       <div style={{paddingLeft: 16}}>
                         <Text type="supporting" size="2xs">
                           {v.detail}

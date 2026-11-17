@@ -2486,7 +2486,14 @@ export function WireSurface({
           flexWrap: 'wrap',
           flexShrink: 0,
         }}>
-        <HStack gap={2.5} vAlign="center">
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 10,
+            maxWidth: '100%',
+          }}>
           <Heading level={5}>Wire Evidence Capture</Heading>
           <SegmentedControl
             size="sm"
@@ -2497,7 +2504,7 @@ export function WireSurface({
             <SegmentedControlItem value="MCP" label="MCP" />
             <SegmentedControlItem value="HTTP" label="HTTP" />
           </SegmentedControl>
-        </HStack>
+        </div>
         <Text type="supporting" size="2xs" hasTabularNumbers>
           Host: {session.merchantHost} · {frames.length} captured packets
         </Text>
@@ -2686,7 +2693,14 @@ export function PassesSurface({
           flexWrap: 'wrap',
           flexShrink: 0,
         }}>
-        <HStack gap={2.5} vAlign="center">
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            alignItems: 'center',
+            gap: 10,
+            maxWidth: '100%',
+          }}>
           <Heading level={5}>Scoped Capability Passes Ledger</Heading>
           <SegmentedControl
             size="sm"
@@ -2699,7 +2713,7 @@ export function PassesSurface({
             <SegmentedControlItem value="Exhausted" label="Exhausted" />
             <SegmentedControlItem value="Revoked" label="Revoked" />
           </SegmentedControl>
-        </HStack>
+        </div>
         <Text type="supporting" size="2xs">
           Ed25519 single-use checkout capabilities bound to SKU, amount cap, and
           TTL
@@ -3320,11 +3334,13 @@ export default function ConduitMcpWorkbench() {
                     gap: 10,
                     flexWrap: 'wrap',
                   }}>
-                  <HStack gap={2.5} vAlign="center" wrap>
+                  <HStack gap={2} vAlign="center" wrap>
                     <HStack gap={1.5} vAlign="center">
                       <StatusDot variant="accent" isPulsing />
                       <Heading level={5}>Conduit</Heading>
-                      <Badge variant="neutral" label="MCP Control Plane" />
+                      {!isMobile && (
+                        <Badge variant="neutral" label="MCP Control Plane" />
+                      )}
                     </HStack>
 
                     {/* Mobile Session Switcher */}
@@ -3334,7 +3350,7 @@ export default function ConduitMcpWorkbench() {
                         button={{
                           size: 'sm',
                           variant: 'secondary',
-                          label: `Session: ${activeSession.merchantName}`,
+                          label: activeSession.merchantName,
                         }}
                         items={sessions.map(s => {
                           const sm = deriveWorkspaceMetrics(
@@ -3355,7 +3371,9 @@ export default function ConduitMcpWorkbench() {
                       button={{
                         size: 'sm',
                         variant: 'secondary',
-                        label: SCENARIO_LABELS[scenario],
+                        label: isMobile
+                          ? 'Scenarios'
+                          : SCENARIO_LABELS[scenario],
                       }}
                       items={(
                         Object.keys(SCENARIO_LABELS) as ScenarioPresetId[]
@@ -3365,12 +3383,14 @@ export default function ConduitMcpWorkbench() {
                       }))}
                     />
 
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      label="Reset Scenario"
-                      onClick={() => applyScenarioPreset(scenario)}
-                    />
+                    {!isMobile && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        label="Reset Scenario"
+                        onClick={() => applyScenarioPreset(scenario)}
+                      />
+                    )}
                   </HStack>
 
                   
@@ -3717,7 +3737,7 @@ export default function ConduitMcpWorkbench() {
                       {/* Top Pane: Compact Causal Observatory Graph */}
                       <div
                         style={{
-                          height: isMobile ? 250 : graphHeightResize.size,
+                          height: isMobile ? 315 : graphHeightResize.size,
                           flexShrink: 0,
                           minHeight: 0,
                           overflow: 'hidden',
