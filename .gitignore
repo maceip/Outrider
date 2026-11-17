@@ -25,3 +25,4 @@ dashboard/tsconfig.tsbuildinfo
 www/node_modules/
 www/dist/
 www/test-results/
+vendor/
