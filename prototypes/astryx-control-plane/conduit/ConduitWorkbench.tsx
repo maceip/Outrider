@@ -27,11 +27,12 @@ import {StatusDot} from '@astryxdesign/core/StatusDot';
 import {Heading, Text} from '@astryxdesign/core/Text';
 import {useMediaQuery} from '@astryxdesign/core/hooks';
 import {Theme} from '@astryxdesign/core/theme';
+import {CONDUIT_MARK_DATA_URI} from './conduitMark';
 import {
-  DEFAULT_PLAYGROUND_THEME,
-  PLAYGROUND_THEME_OPTIONS,
-  themeByValue,
-} from '../playground/previewThemes';
+  CONDUIT_THEME_OPTIONS,
+  DEFAULT_CONDUIT_THEME,
+  conduitThemeByValue,
+} from './conduitThemes';
 import {
   STAGE_ORDER,
   buildInitialPasses,
@@ -105,7 +106,7 @@ const styles: Record<string, CSSProperties> = {
 };
 
 export function ConduitWorkbench() {
-  const [themeKey, setThemeKey] = useState<string>(DEFAULT_PLAYGROUND_THEME);
+  const [themeKey, setThemeKey] = useState<string>(DEFAULT_CONDUIT_THEME);
   const [colorMode, setColorMode] = useState<'dark' | 'light'>('dark');
   const [scenario, setScenario] = useState<ScenarioPresetId>('live_hold_r02');
 
@@ -153,9 +154,9 @@ export function ConduitWorkbench() {
   });
 
   const activeTheme =
-    themeByValue[themeKey] ??
-    themeByValue[DEFAULT_PLAYGROUND_THEME] ??
-    Object.values(themeByValue)[0];
+    conduitThemeByValue[themeKey] ??
+    conduitThemeByValue[DEFAULT_CONDUIT_THEME] ??
+    Object.values(conduitThemeByValue)[0];
 
   const activeSession = useMemo(
     () => sessions.find(s => s.id === activeSessionId) ?? sessions[0],
@@ -643,7 +644,7 @@ export function ConduitWorkbench() {
     (activeSurface === 'overview' || activeSurface === 'graph');
 
   const activeThemeLabel =
-    PLAYGROUND_THEME_OPTIONS.find(t => t.value === themeKey)?.label ?? themeKey;
+    CONDUIT_THEME_OPTIONS.find(t => t.value === themeKey)?.label ?? themeKey;
 
   return (
     <Theme theme={activeTheme} mode={colorMode}>
@@ -661,7 +662,7 @@ export function ConduitWorkbench() {
                     <HStack gap={2} vAlign="center" wrap="wrap">
                       <HStack gap={1.5} vAlign="center">
                         <img
-                          src="/conduit-mark.png"
+                          src={CONDUIT_MARK_DATA_URI}
                           alt=""
                           width={20}
                           height={20}
@@ -735,7 +736,7 @@ export function ConduitWorkbench() {
                           ? activeThemeLabel
                           : `Theme: ${activeThemeLabel}`,
                       }}
-                      items={PLAYGROUND_THEME_OPTIONS.map(opt => ({
+                      items={CONDUIT_THEME_OPTIONS.map(opt => ({
                         label: opt.label,
                         onClick: () => setThemeKey(opt.value),
                       }))}
