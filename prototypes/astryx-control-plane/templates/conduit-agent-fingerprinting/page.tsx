@@ -5,12 +5,14 @@
 /**
  * Conduit — Active Agent Fingerprinting & Dynamic Service Packaging (Mobile)
  *
- * Uses behavioral LLMmap probe telemetry to identify model versions and
- * prompting frameworks in <= 3 turns, then dynamically packages and prices
- * services per agent session.
+ * Edge-to-edge list + bottom-sheet inspector following Astryx incident-console.
  */
 
 import {useMemo, useState, type CSSProperties} from 'react';
+import {BottomSheet} from '@astryxdesign/core/BottomSheet';
+import {Button} from '@astryxdesign/core/Button';
+import {CodeBlock} from '@astryxdesign/core/CodeBlock';
+import {Divider} from '@astryxdesign/core/Divider';
 import {
   HStack,
   Layout,
@@ -19,10 +21,6 @@ import {
   StackItem,
   VStack,
 } from '@astryxdesign/core/Layout';
-import {Heading, Text} from '@astryxdesign/core/Text';
-import {Button} from '@astryxdesign/core/Button';
-import {Card} from '@astryxdesign/core/Card';
-import {Divider} from '@astryxdesign/core/Divider';
 import {List, ListItem} from '@astryxdesign/core/List';
 import {MetadataList, MetadataListItem} from '@astryxdesign/core/MetadataList';
 import {
@@ -31,11 +29,8 @@ import {
 } from '@astryxdesign/core/SegmentedControl';
 import {StatusDot} from '@astryxdesign/core/StatusDot';
 import {Switch} from '@astryxdesign/core/Switch';
-import {Token} from '@astryxdesign/core/Token';
-import {BottomSheet} from '@astryxdesign/core/BottomSheet';
-import {CodeBlock} from '@astryxdesign/core/CodeBlock';
+import {Heading, Text} from '@astryxdesign/core/Text';
 import {useToast} from '@astryxdesign/core/Toast';
-import {Fingerprint, Layers, Shield, Zap} from 'lucide-react';
 
 type AgentClass = 'all' | 'shopping' | 'procurement' | 'guarded';
 
@@ -145,9 +140,10 @@ const AGENTS: LiveAgent[] = [
 ];
 
 const styles: Record<string, CSSProperties> = {
-  scrollArea: {
-    height: '100%',
-    overflowY: 'auto',
+  summaryBand: {
+    padding: 'var(--spacing-3) var(--spacing-4)',
+    backgroundColor: 'var(--color-background-muted)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
   },
 };
 
@@ -175,13 +171,19 @@ export default function ConduitAgentFingerprintingPage() {
       height="fill"
       header={
         <LayoutHeader hasDivider>
-          <VStack gap={2.5} width="100%">
-            <HStack justify="between" align="center" width="100%">
-              <HStack gap={2} align="center">
-                <Fingerprint size={18} />
-                <Heading level={3}>Agent Fingerprints</Heading>
-              </HStack>
-              <Token label="LLMmap Active" size="sm" color="purple" />
+          <VStack gap={2}>
+            <HStack gap={2} vAlign="center">
+              <StackItem size="fill">
+                <HStack gap={2} vAlign="center">
+                  <Heading level={3}>Agent Fingerprints</Heading>
+                  <Text type="supporting" color="secondary">
+                    LLMmap · &lt;= 3 turns
+                  </Text>
+                </HStack>
+              </StackItem>
+              <Text type="supporting" color="secondary" hasTabularNumbers>
+                +$1,420 saved
+              </Text>
             </HStack>
 
             <SegmentedControl
@@ -199,122 +201,80 @@ export default function ConduitAgentFingerprintingPage() {
         </LayoutHeader>
       }
       content={
-        <LayoutContent role="main" padding={3} style={styles.scrollArea}>
-          <VStack gap={3}>
-            <HStack gap={2} width="100%">
-              <StackItem size="fill">
-                <Card variant="muted" padding={2.5}>
-                  <VStack gap={0.5}>
-                    <Text type="supporting" color="secondary">
-                      Probe Window
+        <LayoutContent role="main" padding={0}>
+          <div style={styles.summaryBand}>
+            <Text type="supporting" color="secondary">
+              Select a session to inspect probe telemetry and calibrate outbound
+              packaging.
+            </Text>
+          </div>
+          <List density="compact" hasDividers>
+            {visibleAgents.map(agent => {
+              const price = appliedMap[agent.id] ?? agent.dynamicPrice;
+              return (
+                <ListItem
+                  key={agent.id}
+                  align="first-line"
+                  label={`${agent.model} · ${agent.confidence}`}
+                  description={`${agent.handle} · ${agent.framework} · ${agent.packageName}`}
+                  startContent={
+                    <StatusDot
+                      variant={
+                        agent.category === 'guarded'
+                          ? 'error'
+                          : agent.category === 'procurement'
+                            ? 'accent'
+                            : 'success'
+                      }
+                      label={agent.category}
+                    />
+                  }
+                  endContent={
+                    <Text type="code" size="2xs" hasTabularNumbers>
+                      ${price}.00
                     </Text>
-                    <Heading level={3}>&lt;= 3 turns</Heading>
-                  </VStack>
-                </Card>
-              </StackItem>
-              <StackItem size="fill">
-                <Card variant="muted" padding={2.5}>
-                  <VStack gap={0.5}>
-                    <Text type="supporting" color="secondary">
-                      Margin Saved
-                    </Text>
-                    <Heading level={3}>+$1,420</Heading>
-                  </VStack>
-                </Card>
-              </StackItem>
-            </HStack>
+                  }
+                  onClick={() => setSelected(agent)}
+                />
+              );
+            })}
+          </List>
 
-            <Card padding={3}>
-              <VStack gap={2}>
-                <HStack justify="between" align="center">
-                  <Heading level={4}>Live Agent Sessions</Heading>
-                  <Text type="supporting" color="secondary">
-                    Tap to package
-                  </Text>
-                </HStack>
-                <Divider />
-                <List density="compact">
-                  {visibleAgents.map(agent => {
-                    const price = appliedMap[agent.id] ?? agent.dynamicPrice;
-                    return (
-                      <ListItem
-                        key={agent.id}
-                        align="first-line"
-                        label={`${agent.model} · ${agent.confidence}`}
-                        description={`${agent.framework} — ${agent.packageName}`}
-                        startContent={
-                          <StatusDot
-                            variant={
-                              agent.category === 'guarded'
-                                ? 'error'
-                                : agent.category === 'procurement'
-                                  ? 'accent'
-                                  : 'success'
-                            }
-                            label={agent.category}
-                            isPulsing={agent.category !== 'guarded'}
-                          />
-                        }
-                        endContent={
-                          <Token
-                            label={`$${price}`}
-                            size="sm"
-                            color={
-                              agent.category === 'guarded'
-                                ? 'red'
-                                : appliedMap[agent.id]
-                                  ? 'green'
-                                  : 'blue'
-                            }
-                          />
-                        }
-                        onClick={() => setSelected(agent)}
-                      />
-                    );
-                  })}
-                </List>
-              </VStack>
-            </Card>
-          </VStack>
-
-          <BottomSheet
-            isOpen={selected != null}
-            onOpenChange={open => {
-              if (!open) setSelected(null);
-            }}
-            label={selected ? selected.handle : 'Dynamic Service Packaging'}
-            padding={4}>
-            {selected && (
+          {selected && (
+            <BottomSheet
+              isOpen={Boolean(selected)}
+              onOpenChange={open => {
+                if (!open) setSelected(null);
+              }}
+              label={selected.handle}
+              padding={4}>
               <VStack gap={3}>
-                <HStack justify="between" align="center">
-                  <VStack gap={0.5}>
-                    <Heading level={3}>{selected.model}</Heading>
-                    <Text type="supporting" color="secondary">
-                      {selected.handle} · {selected.cadence}
-                    </Text>
-                  </VStack>
-                  <Token
-                    label={`${selected.confidence} match`}
-                    size="sm"
-                    color="purple"
-                  />
-                </HStack>
+                <VStack gap={0.5}>
+                  <Text type="supporting" color="secondary">
+                    {selected.handle} · {selected.cadence}
+                  </Text>
+                  <Heading level={4}>{selected.model}</Heading>
+                </VStack>
 
                 <MetadataList
                   columns="single"
-                  label={{position: 'start', width: 116}}>
+                  label={{position: 'start', width: 96}}>
                   <MetadataListItem label="Framework">
-                    <Token label={selected.framework} size="sm" color="blue" />
+                    <Text type="body">{selected.framework}</Text>
                   </MetadataListItem>
-                  <MetadataListItem label="Base Package">
-                    <Text type="body" weight="medium">
-                      {selected.packageName}
+                  <MetadataListItem label="Confidence">
+                    <Text type="body" hasTabularNumbers>
+                      {selected.confidence}
                     </Text>
                   </MetadataListItem>
-                  <MetadataListItem label="Floor / Offer">
+                  <MetadataListItem label="SKU floor">
                     <Text type="body" hasTabularNumbers>
-                      ${selected.floorPrice} floor -&gt; $
-                      {computePrice(selected)} dynamic
+                      ${selected.floorPrice}.00 USD
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Target quote">
+                    <Text type="body" weight="semibold" hasTabularNumbers>
+                      ${computePrice(selected)}.00 USD
                     </Text>
                   </MetadataListItem>
                 </MetadataList>
@@ -322,56 +282,46 @@ export default function ConduitAgentFingerprintingPage() {
                 <Divider />
 
                 <Switch
-                  label="Attach Priority SLA & Express Fulfillment (+$12)"
-                  description="Tailored for tool-calling agents optimizing delivery certainty"
+                  width="100%"
+                  labelSpacing="spread"
+                  label="Attach express SLA (+$12.00)"
                   value={bundlePriority}
                   onChange={setBundlePriority}
-                  labelSpacing="spread"
                 />
-
                 <Switch
-                  label="Block Unscoped Promo & Coupon Probing"
-                  description="Strip brute-forced discount parameters at proxy edge"
+                  width="100%"
+                  labelSpacing="spread"
+                  label="Enforce hard margin floor"
                   value={strictFloor}
                   onChange={setStrictFloor}
-                  labelSpacing="spread"
                 />
 
                 <CodeBlock
-                  title="llmmap_probe_trace.json"
+                  code={selected.probeSignature}
                   language="json"
                   size="sm"
                   width="100%"
                   isWrapped
-                  code={selected.probeSignature}
+                  title="LLMmap probe telemetry"
                 />
 
-                <HStack gap={2} width="100%">
-                  <StackItem size="fill">
-                    <Button
-                      label={`Publish $${computePrice(selected)} Package`}
-                      variant="primary"
-                      width="100%"
-                      icon={<Layers size={16} />}
-                      onClick={() => {
-                        const nextPrice = computePrice(selected);
-                        setAppliedMap(prev => ({
-                          ...prev,
-                          [selected.id]: nextPrice,
-                        }));
-                        showToast({
-                          body: `Assigned $${nextPrice} dynamic package to ${selected.handle}`,
-                          type: 'success',
-                          uniqueID: `pkg-${selected.id}`,
-                        });
-                        setSelected(null);
-                      }}
-                    />
-                  </StackItem>
-                </HStack>
+                <Button
+                  width="100%"
+                  size="sm"
+                  label={`Apply $${computePrice(selected)}.00 package`}
+                  onClick={() => {
+                    const next = computePrice(selected);
+                    setAppliedMap(prev => ({...prev, [selected.id]: next}));
+                    showToast({
+                      body: `Updated ${selected.handle} package to $${next}.00`,
+                      uniqueID: `pkg-${selected.id}`,
+                    });
+                    setSelected(null);
+                  }}
+                />
               </VStack>
-            )}
-          </BottomSheet>
+            </BottomSheet>
+          )}
         </LayoutContent>
       }
     />

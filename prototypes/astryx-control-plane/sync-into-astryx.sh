@@ -12,9 +12,18 @@ if [ ! -d "${ASTRYX_DIR}" ]; then
   (cd "${ASTRYX_DIR}" && pnpm install && pnpm build)
 fi
 
-echo "Syncing Conduit MCP Control Plane route & Playground templates into ${ASTRYX_DIR}..."
+echo "Syncing Conduit MCP Control Plane route, theme & Playground templates into ${ASTRYX_DIR}..."
 mkdir -p "${ASTRYX_DIR}/apps/docsite/src/app/conduit"
 cp -R "${PROTO_DIR}/conduit/"* "${ASTRYX_DIR}/apps/docsite/src/app/conduit/"
+
+if [ -f "${PROTO_DIR}/conduit/conduit-mark.png" ]; then
+  mkdir -p "${ASTRYX_DIR}/apps/docsite/public"
+  cp "${PROTO_DIR}/conduit/conduit-mark.png" "${ASTRYX_DIR}/apps/docsite/public/conduit-mark.png"
+fi
+
+if [ -f "${PROTO_DIR}/playground/previewThemes.ts" ]; then
+  cp "${PROTO_DIR}/playground/previewThemes.ts" "${ASTRYX_DIR}/apps/docsite/src/app/playground/previewThemes.ts"
+fi
 
 mkdir -p "${ASTRYX_DIR}/packages/cli/assets/templates/pages"
 cp -R "${PROTO_DIR}/templates/"* "${ASTRYX_DIR}/packages/cli/assets/templates/pages/"

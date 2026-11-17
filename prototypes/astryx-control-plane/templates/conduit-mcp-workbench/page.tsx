@@ -2,7 +2,15 @@
 
 'use client';
 
-import React, {useEffect, useMemo, useState} from 'react';
+import React, {useMemo, useState, type CSSProperties} from 'react';
+import {BottomSheet} from '@astryxdesign/core/BottomSheet';
+import {Button} from '@astryxdesign/core/Button';
+import {ClickableCard} from '@astryxdesign/core/ClickableCard';
+import {CodeBlock} from '@astryxdesign/core/CodeBlock';
+import {Divider} from '@astryxdesign/core/Divider';
+import {DropdownMenu} from '@astryxdesign/core/DropdownMenu';
+import {EmptyState} from '@astryxdesign/core/EmptyState';
+import {Grid} from '@astryxdesign/core/Grid';
 import {
   HStack,
   Layout,
@@ -10,18 +18,9 @@ import {
   LayoutFooter,
   LayoutHeader,
   LayoutPanel,
+  StackItem,
   VStack,
 } from '@astryxdesign/core/Layout';
-import {Heading, Text} from '@astryxdesign/core/Text';
-import {Badge} from '@astryxdesign/core/Badge';
-import {Banner} from '@astryxdesign/core/Banner';
-import {BottomSheet} from '@astryxdesign/core/BottomSheet';
-import {Button} from '@astryxdesign/core/Button';
-import {Card} from '@astryxdesign/core/Card';
-import {CodeBlock} from '@astryxdesign/core/CodeBlock';
-import {Divider} from '@astryxdesign/core/Divider';
-import {DropdownMenu} from '@astryxdesign/core/DropdownMenu';
-import {EmptyState} from '@astryxdesign/core/EmptyState';
 import {List, ListItem} from '@astryxdesign/core/List';
 import {MetadataList, MetadataListItem} from '@astryxdesign/core/MetadataList';
 import {ResizeHandle, useResizable} from '@astryxdesign/core/Resizable';
@@ -31,19 +30,20 @@ import {
 } from '@astryxdesign/core/SegmentedControl';
 import {StatusDot} from '@astryxdesign/core/StatusDot';
 import {Switch} from '@astryxdesign/core/Switch';
-import {Token} from '@astryxdesign/core/Token';
+import {Heading, Text} from '@astryxdesign/core/Text';
+import {useMediaQuery} from '@astryxdesign/core/hooks';
 
 
-export type SurfaceId = 'overview' | 'graph' | 'wire' | 'passes';
-export type TraceFilterId = 'all' | 'mcp' | 'http' | 'attention' | 'modified';
-export type CommerceStage =
+type SurfaceId = 'overview' | 'graph' | 'wire' | 'passes';
+type TraceFilterId = 'all' | 'mcp' | 'http' | 'attention' | 'modified';
+type CommerceStage =
   | 'Discover'
   | 'Negotiate'
   | 'Cart'
   | 'Payment'
   | 'Fulfill';
 
-export type DeliveryPhase =
+type DeliveryPhase =
   | 'observed_inbound'
   | 'delivered_original'
   | 'held_at_proxy'
@@ -51,7 +51,7 @@ export type DeliveryPhase =
   | 'awaiting_pass'
   | 'pass_authorized';
 
-export interface OfferQuote {
+interface OfferQuote {
   id: string;
   label: string;
   price: number;
@@ -60,14 +60,14 @@ export interface OfferQuote {
   marginDelta: number; // relative to marginFloor
 }
 
-export interface ValidationCheck {
+interface ValidationCheck {
   id: string;
   gate: string;
   status: 'pass' | 'warn' | 'fail';
   detail: string;
 }
 
-export interface TraceEvent {
+interface TraceEvent {
   id: string;
   seq: number;
   code: string; // e.g. 'C01', 'C02', 'R02', 'C03', 'C04', 'C05'
@@ -113,7 +113,7 @@ export interface TraceEvent {
   };
 }
 
-export interface CapabilityPassRecord {
+interface CapabilityPassRecord {
   id: string;
   sessionId: string;
   merchantHost: string;
@@ -127,7 +127,7 @@ export interface CapabilityPassRecord {
   status: 'Active' | 'Awaiting Approval' | 'Exhausted' | 'Revoked';
 }
 
-export interface MerchantSession {
+interface MerchantSession {
   id: string;
   merchantName: string;
   merchantHost: string;
@@ -144,13 +144,13 @@ export interface MerchantSession {
   events: TraceEvent[];
 }
 
-export type ScenarioPresetId =
+type ScenarioPresetId =
   | 'live_hold_r02'
   | 'floor_leak_blocked'
   | 'post_release_pass'
   | 'discovery_95pct';
 
-export interface CanonicalWorkspaceMetrics {
+interface CanonicalWorkspaceMetrics {
   stage: CommerceStage;
   stageHeadline: string;
   stageIndex: number; // 0..4
@@ -166,7 +166,7 @@ export interface CanonicalWorkspaceMetrics {
   awaitingPassEventId: string | null;
 }
 
-export const STAGE_ORDER: readonly CommerceStage[] = [
+const STAGE_ORDER: readonly CommerceStage[] = [
   'Discover',
   'Negotiate',
   'Cart',
@@ -181,7 +181,7 @@ export const STAGE_ORDER: readonly CommerceStage[] = [
  * 3. Right Canonical Inspector Banner & Action Controls
  * 4. Bottom Status Bar
  */
-export function deriveWorkspaceMetrics(
+function deriveWorkspaceMetrics(
   session: MerchantSession,
   allSessions: MerchantSession[],
   passes: CapabilityPassRecord[],
@@ -264,7 +264,7 @@ export function deriveWorkspaceMetrics(
   };
 }
 
-export function buildInitialPasses(): CapabilityPassRecord[] {
+function buildInitialPasses(): CapabilityPassRecord[] {
   return [
     {
       id: 'pass_sky_904_await',
@@ -308,7 +308,7 @@ export function buildInitialPasses(): CapabilityPassRecord[] {
   ];
 }
 
-export function buildInitialSessions(
+function buildInitialSessions(
   preset: ScenarioPresetId = 'live_hold_r02',
 ): MerchantSession[] {
   const isFloorLeak = preset === 'floor_leak_blocked';
@@ -1100,8 +1100,6 @@ export function buildInitialSessions(
   return [audioSession, displayCoSession, skyportSession, cloudstoreSession];
 }
 
-
-
 interface CausalObservatoryGraphProps {
   session: MerchantSession;
   selectedEventId: string | null;
@@ -1109,69 +1107,76 @@ interface CausalObservatoryGraphProps {
   expanded?: boolean;
 }
 
-function getNodeStateMeta(ev: TraceEvent): {
-  badgeVariant: 'warning' | 'success' | 'info' | 'neutral' | 'purple';
-  badgeLabel: string;
-  borderVar: string;
-  bgTint: string;
-  actorLane: 'buyer' | 'proxy' | 'seller';
-} {
-  if (ev.deliveryPhase === 'held_at_proxy') {
-    return {
-      badgeVariant: 'warning',
-      badgeLabel: 'HELD',
-      borderVar: 'var(--color-feedback-warning, #d97706)',
-      bgTint: 'color-mix(in srgb, #f59e0b 11%, var(--color-background-surface))',
-      actorLane: 'proxy',
-    };
+const graphStyles: Record<string, CSSProperties> = {
+  root: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-background-body)',
+    overflow: 'hidden',
+  },
+  headerBar: {
+    padding: 'var(--spacing-2) var(--spacing-3)',
+    backgroundColor: 'var(--color-background-surface)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+    flexShrink: 0,
+  },
+  canvas: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    padding: 'var(--spacing-3)',
+  },
+  selectedRing: {
+    borderRadius: 'var(--radius-container)',
+    outline: '1.5px solid var(--color-border-emphasized)',
+    outlineOffset: -1,
+  },
+  unreachedNode: {
+    borderRadius: 'var(--radius-container)',
+    border: 'var(--border-width) dashed var(--color-border)',
+    padding: 'var(--spacing-3)',
+    opacity: 0.72,
+  },
+  summaryBar: {
+    padding: 'var(--spacing-2) var(--spacing-3)',
+    borderRadius: 'var(--radius-element)',
+    backgroundColor: 'var(--color-background-surface)',
+    border: 'var(--border-width) solid var(--color-border)',
+  },
+};
+
+function getNodeStatusText(ev: TraceEvent): string {
+  switch (ev.deliveryPhase) {
+    case 'held_at_proxy':
+      return 'Held';
+    case 'awaiting_pass':
+      return 'Awaiting pass';
+    case 'delivered_modified':
+      return 'Modified';
+    case 'pass_authorized':
+      return 'Settled';
+    case 'delivered_original':
+    case 'observed_inbound':
+    default:
+      return `${ev.httpStatus ?? 200}`;
   }
-  if (ev.deliveryPhase === 'awaiting_pass') {
-    return {
-      badgeVariant: 'purple',
-      badgeLabel: 'PASS GATE',
-      borderVar: '#8b5cf6',
-      bgTint: 'color-mix(in srgb, #8b5cf6 10%, var(--color-background-surface))',
-      actorLane: 'proxy',
-    };
-  }
-  if (ev.deliveryPhase === 'delivered_modified') {
-    return {
-      badgeVariant: 'info',
-      badgeLabel: 'MODIFIED',
-      borderVar: 'var(--color-interactive-primary, #2563eb)',
-      bgTint:
-        'color-mix(in srgb, var(--color-interactive-primary, #2563eb) 9%, var(--color-background-surface))',
-      actorLane: 'proxy',
-    };
-  }
-  if (ev.deliveryPhase === 'pass_authorized') {
-    return {
-      badgeVariant: 'success',
-      badgeLabel: 'SETTLED',
-      borderVar: '#16a34a',
-      bgTint: 'color-mix(in srgb, #16a34a 9%, var(--color-background-surface))',
-      actorLane: 'buyer',
-    };
-  }
-  if (ev.direction === 'seller_to_buyer') {
-    return {
-      badgeVariant: 'success',
-      badgeLabel: '200 OK',
-      borderVar: 'var(--color-border-default)',
-      bgTint: 'var(--color-background-surface)',
-      actorLane: 'seller',
-    };
-  }
-  return {
-    badgeVariant: 'neutral',
-    badgeLabel: `${ev.protocol} ${ev.httpStatus ?? 200}`,
-    borderVar: 'var(--color-border-default)',
-    bgTint: 'var(--color-background-surface)',
-    actorLane: 'buyer',
-  };
 }
 
-export function CausalObservatoryGraph({
+function getActorRole(ev: TraceEvent): string {
+  if (
+    ev.deliveryPhase === 'held_at_proxy' ||
+    ev.deliveryPhase === 'awaiting_pass' ||
+    ev.deliveryPhase === 'delivered_modified'
+  ) {
+    return 'Proxy';
+  }
+  return ev.direction === 'seller_to_buyer' ? 'Seller' : 'Buyer';
+}
+
+function CausalObservatoryGraph({
   session,
   selectedEventId,
   onSelectEvent,
@@ -1186,362 +1191,236 @@ export function CausalObservatoryGraph({
     e => e.deliveryPhase === 'held_at_proxy',
   );
 
-  return (
-    <div
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        background:
-          'radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-border-default) 55%, transparent) 1px, transparent 0)',
-        backgroundSize: '18px 18px',
-        backgroundColor: 'var(--color-background-subtle, var(--color-background-surface))',
-        overflow: 'hidden',
-      }}>
-      {/* Compact Observatory Header Bar */}
-      <div
-        style={{
-          padding: '8px 14px',
-          borderBottom: '1px solid var(--color-border-subtle, var(--color-border-default))',
-          backgroundColor: 'var(--color-background-surface)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexShrink: 0,
-          flexWrap: 'wrap',
-        }}>
-        <HStack gap={2} vAlign="center">
-          <Text type="label" weight="semibold">
-            Causal Observatory
-          </Text>
-          <Token
-            size="sm"
-            color="gray"
-            label={`${session.buyerAgentId} ↔ Conduit Proxy ↔ ${session.merchantHost}`}
-          />
-        </HStack>
+  const upstreamSummary = (offerEvent?.upstreamOffers ?? [])
+    .map(o => `${o.id} $${o.price}`)
+    .join(', ');
 
-        <HStack gap={3} vAlign="center">
-          <StatusDot
-            variant={heldR02 ? 'warning' : 'success'}
-            isPulsing={Boolean(heldR02)}
-            label={
-              heldR02
-                ? `${heldR02.code} held in proxy · buyer has 0 offers`
-                : 'Wire synchronized · 0 frames held'
-            }
-          />
+  const stagedSummary = offerEvent?.stagedOffer
+    ? offerEvent.deliveryPhase === 'delivered_modified'
+      ? `Delivered +${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price}`
+      : offerEvent.mutationEnabled !== false
+        ? `Staged +${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price} (undelivered)`
+        : `${offerEvent.stagedOffer.id} mutation disabled`
+    : null;
+
+  return (
+    <div style={graphStyles.root}>
+      <div style={graphStyles.headerBar}>
+        <HStack gap={2} vAlign="center" wrap="wrap">
+          <StackItem size="fill">
+            <HStack gap={2} vAlign="center" wrap="wrap">
+              <Text type="label" color="secondary">
+                Causal Observatory
+              </Text>
+              <Text type="supporting" color="secondary">
+                {session.buyerAgentId} → Conduit → {session.merchantHost}
+              </Text>
+            </HStack>
+          </StackItem>
+          <HStack gap={1.5} vAlign="center">
+            <StatusDot
+              variant={heldR02 ? 'warning' : 'neutral'}
+              isPulsing={Boolean(heldR02)}
+              label={
+                heldR02
+                  ? `${heldR02.code} held at proxy`
+                  : 'Wire synchronized'
+              }
+            />
+            <Text type="supporting" color="secondary">
+              {heldR02 ? `${heldR02.code} held (undelivered)` : 'Synchronized'}
+            </Text>
+          </HStack>
         </HStack>
       </div>
 
-      {/* Main Causal Spine + Commercial Offer Cradle */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          padding: expanded ? '18px 20px' : '12px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}>
-        {/* Causal Flow Grid: Responsive wrap with zero horizontal scroll */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(auto-fit, minmax(${expanded ? '210px' : '172px'}, 1fr))`,
-            gap: 10,
-            alignItems: 'stretch',
-          }}>
-          {session.events.map((ev, idx) => {
-            const isSelected = ev.id === selectedEventId;
-            const meta = getNodeStateMeta(ev);
-            const laneLabel =
-              meta.actorLane === 'buyer'
-                ? 'Buyer'
-                : meta.actorLane === 'proxy'
-                  ? 'Proxy Gate'
-                  : 'Seller';
+      <div style={graphStyles.canvas}>
+        <VStack gap={3}>
+          <Grid columns={{minWidth: expanded ? 220 : 172, max: 5, repeat: 'fit'}} gap={2}>
+            {session.events.map((ev, idx) => {
+              const isSelected = ev.id === selectedEventId;
+              const isHeld = ev.deliveryPhase === 'held_at_proxy';
+              const isPassGate = ev.deliveryPhase === 'awaiting_pass';
+              const statusText = getNodeStatusText(ev);
 
-            return (
-              <button
-                key={ev.id}
-                type="button"
-                onClick={() => onSelectEvent(ev.id)}
-                data-testid={`graph-node-${ev.code}`}
-                style={{
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  borderRadius: 10,
-                  padding: expanded ? '12px 13px' : '9px 11px',
-                  border: isSelected
-                    ? `2px solid var(--color-interactive-primary, #2563eb)`
-                    : `1px solid ${meta.borderVar}`,
-                  backgroundColor: meta.bgTint,
-                  boxShadow: isSelected
-                    ? '0 0 0 3px color-mix(in srgb, var(--color-interactive-primary, #2563eb) 18%, transparent)'
-                    : 'none',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                  minWidth: 0,
-                  position: 'relative',
-                  transition: 'border-color 120ms ease, box-shadow 120ms ease',
-                }}>
+              return (
                 <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 6,
-                    minWidth: 0,
-                  }}>
-                  <HStack gap={1.5} vAlign="center">
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-family-mono, monospace)',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: '1px 5px',
-                        borderRadius: 4,
-                        backgroundColor:
-                          'color-mix(in srgb, var(--color-text-primary) 9%, transparent)',
-                        color: 'var(--color-text-primary)',
-                      }}>
-                      {idx + 1}. {ev.code}
-                    </span>
-                    <Text type="supporting" size="2xs" maxLines={1}>
-                      {laneLabel}
+                  key={ev.id}
+                  data-testid={`graph-node-${ev.code}`}
+                  style={isSelected ? graphStyles.selectedRing : undefined}>
+                  <ClickableCard
+                    variant={isSelected ? 'muted' : 'default'}
+                    padding={expanded ? 3 : 2}
+                    height="100%"
+                    label={`Inspect ${ev.code} ${ev.toolOrEndpoint}`}
+                    onClick={() => onSelectEvent(ev.id)}>
+                    <VStack gap={1.5}>
+                      <HStack gap={1.5} vAlign="center">
+                        <StackItem size="fill">
+                          <HStack gap={1.5} vAlign="center">
+                            {(isHeld || isPassGate) && (
+                              <StatusDot
+                                variant={isHeld ? 'warning' : 'accent'}
+                                isPulsing={isHeld}
+                                label={statusText}
+                              />
+                            )}
+                            <Text
+                              type="code"
+                              size="2xs"
+                              weight="semibold"
+                              hasTabularNumbers>
+                              {idx + 1}. {ev.code}
+                            </Text>
+                            <Text
+                              type="supporting"
+                              size="2xs"
+                              color="secondary"
+                              maxLines={1}>
+                              {getActorRole(ev)}
+                            </Text>
+                          </HStack>
+                        </StackItem>
+                        <Text
+                          type="code"
+                          size="2xs"
+                          color={isHeld ? 'primary' : 'secondary'}
+                          weight={isHeld ? 'semibold' : 'normal'}
+                          hasTabularNumbers>
+                          {statusText}
+                        </Text>
+                      </HStack>
+
+                      <VStack gap={0.5}>
+                        <Text
+                          type="code"
+                          size="2xs"
+                          weight="medium"
+                          maxLines={1}>
+                          {ev.toolOrEndpoint}
+                        </Text>
+                        <Text
+                          type="supporting"
+                          size="2xs"
+                          color="secondary"
+                          maxLines={expanded ? 3 : 2}>
+                          {ev.observation}
+                        </Text>
+                      </VStack>
+
+                      <Divider />
+
+                      <HStack gap={2} vAlign="center">
+                        <StackItem size="fill">
+                          <Text type="supporting" size="3xs" color="secondary">
+                            {ev.direction === 'buyer_to_seller'
+                              ? 'Buyer → Seller'
+                              : ev.direction === 'buyer_to_gate'
+                                ? 'Buyer → Gate'
+                                : 'Seller → Buyer'}
+                          </Text>
+                        </StackItem>
+                        <Text
+                          type="code"
+                          size="3xs"
+                          color="secondary"
+                          hasTabularNumbers>
+                          {ev.durationLabel}
+                        </Text>
+                      </HStack>
+                    </VStack>
+                  </ClickableCard>
+                </div>
+              );
+            })}
+
+            {heldR02 && (
+              <div
+                data-testid="graph-node-unreached-downstream"
+                style={graphStyles.unreachedNode}>
+                <VStack gap={1.5}>
+                  <HStack gap={2} vAlign="center">
+                    <StackItem size="fill">
+                      <Text type="code" size="2xs" color="secondary">
+                        Next · C03
+                      </Text>
+                    </StackItem>
+                    <Text type="supporting" size="2xs" color="secondary">
+                      Unreached
                     </Text>
                   </HStack>
-                  <Badge variant={meta.badgeVariant} label={meta.badgeLabel} />
-                </div>
-
-                <div style={{minWidth: 0}}>
-                  <Text type="code" size="2xs" weight="semibold" maxLines={1}>
-                    {ev.toolOrEndpoint}
-                  </Text>
                   <Text
                     type="supporting"
                     size="2xs"
-                    maxLines={expanded ? 3 : 2}>
-                    {ev.observation}
+                    color="secondary"
+                    maxLines={3}>
+                    {session.buyerAgentId} has 0 offers while {heldR02.code} is
+                    held. select_product runs only after release.
                   </Text>
-                </div>
+                </VStack>
+              </div>
+            )}
+          </Grid>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderTop:
-                      '1px dashed color-mix(in srgb, var(--color-border-default) 70%, transparent)',
-                    paddingTop: 5,
-                  }}>
-                  <Text type="code" size="3xs" color="secondary">
-                    {ev.direction === 'buyer_to_seller'
-                      ? 'Buyer → Seller'
-                      : ev.direction === 'buyer_to_gate'
-                        ? 'Buyer → Gate'
-                        : 'Seller → Buyer'}
-                  </Text>
+          {offerEvent && (
+            <div style={graphStyles.summaryBar}>
+              <HStack gap={3} vAlign="center" wrap="wrap">
+                <StackItem size="fill">
                   <Text
-                    type="code"
-                    size="3xs"
+                    type="supporting"
                     color="secondary"
                     hasTabularNumbers>
-                    {ev.durationLabel}
+                    {offerEvent.code} quotes · Floor ${session.marginFloorUsd} ·
+                    Observed: {upstreamSummary}
+                    {stagedSummary ? ` · ${stagedSummary}` : ''}
                   </Text>
-                </div>
-              </button>
-            );
-          })}
-
-          {/* When R02 is HELD, explicitly show downstream buyer selection as UNREACHED (fixes P0 #01!) */}
-          {heldR02 && (
-            <div
-              data-testid="graph-node-unreached-downstream"
-              style={{
-                borderRadius: 10,
-                padding: expanded ? '12px 13px' : '9px 11px',
-                border: '1px dashed var(--color-border-default)',
-                backgroundColor:
-                  'color-mix(in srgb, var(--color-background-surface) 55%, transparent)',
-                opacity: 0.72,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: 6,
-                minWidth: 0,
-              }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                }}>
-                <Text type="code" size="2xs" color="secondary">
-                  Next · C03
+                </StackItem>
+                <Text
+                  type="supporting"
+                  color="secondary"
+                  hasTabularNumbers>
+                  {offerEvent.deliveryPhase === 'held_at_proxy'
+                    ? `${offerEvent.upstreamOffers?.length ?? 2} observed → ${
+                        offerEvent.mutationEnabled !== false
+                          ? (offerEvent.upstreamOffers?.length ?? 2) + 1
+                          : (offerEvent.upstreamOffers?.length ?? 2)
+                      } proposed`
+                    : offerEvent.deliveryPhase === 'delivered_modified'
+                      ? `${offerEvent.deliveredOffers?.length ?? 3} delivered`
+                      : 'Delivered unmodified'}
                 </Text>
-                <Badge variant="neutral" label="UNREACHED" />
-              </div>
-              <Text type="supporting" size="2xs" maxLines={3}>
-                {session.buyerAgentId} has 0 offers while {heldR02.code} is
-                held. `select_product` runs only after release.
-              </Text>
-              <Text type="code" size="3xs" color="secondary">
-                Awaits {heldR02.code} delivery
-              </Text>
+              </HStack>
             </div>
           )}
-        </div>
 
-        {/* Commercial Offer & Proxy Mutation Cradle (renders when session involves commercial offers) */}
-        {offerEvent && (
-          <div
-            onClick={() => onSelectEvent(offerEvent.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelectEvent(offerEvent.id);
-              }
-            }}
-            style={{
-              borderRadius: 10,
-              padding: expanded ? '12px 14px' : '9px 12px',
-              backgroundColor: 'var(--color-background-surface)',
-              border: '1px solid var(--color-border-default)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              cursor: 'pointer',
-            }}>
-            <HStack gap={1.5} vAlign="center" wrap>
-              <Text type="label" size="2xs" weight="semibold">
-                {offerEvent.code} Cradle:
-              </Text>
-              <Token
-                size="sm"
-                color="gray"
-                label={`Floor $${session.marginFloorUsd}`}
-              />
-              {(offerEvent.upstreamOffers ?? []).map(off => (
-                <Token
-                  key={off.id}
-                  size="sm"
-                  color={off.marginDelta < 0 ? 'red' : 'blue'}
-                  label={`${off.id} $${off.price} (${off.marginDelta >= 0 ? `+$${off.marginDelta}` : `-$${Math.abs(off.marginDelta)}`})`}
-                />
-              ))}
-              {offerEvent.stagedOffer && (
-                <Token
-                  size="sm"
-                  color={
-                    offerEvent.deliveryPhase === 'delivered_modified'
-                      ? 'green'
-                      : offerEvent.mutationEnabled !== false
-                        ? 'orange'
-                        : 'gray'
-                  }
-                  label={
-                    offerEvent.deliveryPhase === 'delivered_modified'
-                      ? `+${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price} (Delivered)`
-                      : offerEvent.mutationEnabled !== false
-                        ? `+${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price} (Staged)`
-                        : `${offerEvent.stagedOffer.id} Off`
-                  }
-                />
-              )}
-            </HStack>
-
-            <Badge
-              variant={
-                offerEvent.deliveryPhase === 'held_at_proxy'
-                  ? 'warning'
-                  : offerEvent.deliveryPhase === 'delivered_modified'
-                    ? 'info'
-                    : 'success'
-              }
-              label={
-                offerEvent.deliveryPhase === 'held_at_proxy'
-                  ? `${offerEvent.upstreamOffers?.length ?? 2} observed → ${
-                      offerEvent.mutationEnabled !== false
-                        ? (offerEvent.upstreamOffers?.length ?? 2) + 1
-                        : (offerEvent.upstreamOffers?.length ?? 2)
-                    } staged (undelivered)`
-                  : offerEvent.deliveryPhase === 'delivered_modified'
-                    ? `${offerEvent.deliveredOffers?.length ?? 3} offers delivered`
-                    : 'Original delivered'
-              }
-            />
-          </div>
-        )}
-
-        {/* Expanded Graph View Extra Telemetry (when user selects dedicated Graph surface) */}
-        {expanded && (
-          <div
-            style={{
-              borderRadius: 10,
-              padding: '12px 14px',
-              backgroundColor: 'var(--color-background-surface)',
-              border: '1px solid var(--color-border-default)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 12,
-            }}>
-            <VStack gap={1}>
-              <Text type="supporting" size="2xs">
-                BUYER AGENT TOPOLOGY
-              </Text>
-              <Text type="body" size="sm" weight="semibold">
-                {session.buyerAgentId} · {session.buyerModel}
-              </Text>
-              <Text type="supporting" size="2xs">
-                Fingerprint confidence {session.agentConfidence}
-              </Text>
-            </VStack>
-            <VStack gap={1}>
-              <Text type="supporting" size="2xs">
-                PROXY INTERCEPTION POSTURE
-              </Text>
-              <Text type="body" size="sm" weight="semibold">
-                {session.trafficProfile}
-              </Text>
-              <Text type="supporting" size="2xs">
-                95% read-only catalog calls pass in &lt;3ms with 0 UI columns
-              </Text>
-            </VStack>
-            <VStack gap={1}>
-              <Text type="supporting" size="2xs">
-                UNIT ECONOMICS GUARDRAIL
-              </Text>
-              <Text type="body" size="sm" weight="semibold" hasTabularNumbers>
-                SKU {session.skuCode} · Floor ${session.marginFloorUsd}.00 /
-                MSRP ${session.msrpUsd}.00
-              </Text>
-              <Text type="supporting" size="2xs">
-                {session.selectedOfferLabel ??
-                  'No buyer offer selection recorded yet'}
-              </Text>
-            </VStack>
-          </div>
-        )}
+          {expanded && (
+            <div style={graphStyles.summaryBar}>
+              <MetadataList columns="auto">
+                <MetadataListItem label="Buyer agent">
+                  <Text type="body">
+                    {session.buyerAgentId} · {session.buyerModel} (
+                    {session.agentConfidence})
+                  </Text>
+                </MetadataListItem>
+                <MetadataListItem label="Traffic posture">
+                  <Text type="body">
+                    {session.trafficProfile}
+                  </Text>
+                </MetadataListItem>
+                <MetadataListItem label="Unit economics">
+                  <Text type="body" hasTabularNumbers>
+                    {session.skuCode} · Floor ${session.marginFloorUsd}.00 /
+                    MSRP ${session.msrpUsd}.00
+                  </Text>
+                </MetadataListItem>
+              </MetadataList>
+            </div>
+          )}
+        </VStack>
       </div>
     </div>
   );
 }
-
-
 
 interface DenseTraceTableProps {
   events: TraceEvent[];
@@ -1551,25 +1430,48 @@ interface DenseTraceTableProps {
   onResetFilter: () => void;
 }
 
-function renderPhaseBadge(phase: DeliveryPhase, httpStatus: number | null) {
+const traceStyles: Record<string, CSSProperties> = {
+  root: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-background-surface)',
+    overflow: 'hidden',
+  },
+  groupHeader: {
+    padding: 'var(--spacing-2) var(--spacing-3)',
+    backgroundColor: 'var(--color-background-muted)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+    flexShrink: 0,
+  },
+  rows: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    overflowX: 'hidden',
+  },
+};
+
+function formatPhaseLabel(phase: DeliveryPhase, httpStatus: number | null): string {
   switch (phase) {
     case 'held_at_proxy':
-      return <Badge variant="warning" label="HELD · PROXY" />;
+      return 'Held at proxy';
     case 'awaiting_pass':
-      return <Badge variant="purple" label="AWAITING PASS" />;
+      return 'Awaiting pass';
     case 'delivered_modified':
-      return <Badge variant="info" label="200 · MODIFIED" />;
+      return `${httpStatus ?? 200} · Modified`;
     case 'pass_authorized':
-      return <Badge variant="success" label="200 · SETTLED" />;
+      return `${httpStatus ?? 200} · Settled`;
     case 'delivered_original':
-      return <Badge variant="success" label={`${httpStatus ?? 200} · DELIVERED`} />;
+      return `${httpStatus ?? 200} · Delivered`;
     case 'observed_inbound':
     default:
-      return <Badge variant="neutral" label={`${httpStatus ?? 200} · OBSERVED`} />;
+      return `${httpStatus ?? 200}`;
   }
 }
 
-export function filterTraceEvents(
+function filterTraceEvents(
   events: TraceEvent[],
   filter: TraceFilterId,
 ): TraceEvent[] {
@@ -1596,10 +1498,7 @@ export function filterTraceEvents(
   }
 }
 
-const GRID_TEMPLATE =
-  '42px 92px 46px minmax(112px, 1.1fr) minmax(120px, 1.8fr) 68px 118px';
-
-export function DenseTraceTable({
+function DenseTraceTable({
   events,
   activeFilter,
   selectedEventId,
@@ -1621,231 +1520,115 @@ export function DenseTraceTable({
   }, []);
 
   const filtered = filterTraceEvents(events, activeFilter);
-  const activeGrid = isNarrow
-    ? '44px minmax(0, 1fr) 118px'
-    : GRID_TEMPLATE;
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--color-background-surface)',
-        overflow: 'hidden',
-      }}>
-      {/* Trace Subheader */}
-      <div
-        style={{
-          padding: '6px 14px',
-          borderBottom: '1px solid var(--color-border-default)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          flexShrink: 0,
-        }}>
+    <div ref={containerRef} style={traceStyles.root}>
+      <div style={traceStyles.groupHeader}>
         <HStack gap={2} vAlign="center">
-          <Text type="label" size="xs" weight="semibold">
-            Synchronized Execution Trace
-          </Text>
-          <Text type="supporting" size="2xs" hasTabularNumbers>
-            ({filtered.length}/{events.length})
-          </Text>
+          <StackItem size="fill">
+            <HStack gap={2} vAlign="center">
+              <Text type="label" color="secondary">
+                Execution Trace
+              </Text>
+              <Text type="supporting" color="secondary" hasTabularNumbers>
+                {filtered.length}
+                {filtered.length !== events.length ? ` of ${events.length}` : ''}
+              </Text>
+            </HStack>
+          </StackItem>
+          {!isNarrow && (
+            <Text type="supporting" color="secondary">
+              Select a row to inspect frame
+            </Text>
+          )}
         </HStack>
-        {!isNarrow && (
-          <Text type="supporting" size="2xs">
-            Select any frame to open canonical inspection
-          </Text>
-        )}
       </div>
 
-      {/* Dense Column Header (Zero Horizontal Scroll) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: activeGrid,
-          gap: 8,
-          padding: '6px 14px',
-          borderBottom: '1px solid var(--color-border-default)',
-          backgroundColor:
-            'var(--color-background-subtle, var(--color-background-surface))',
-          alignItems: 'center',
-          flexShrink: 0,
-        }}>
-        <Text type="supporting" size="3xs" weight="semibold">
-          STEP
-        </Text>
-        {!isNarrow && (
-          <>
-            <Text type="supporting" size="3xs" weight="semibold">
-              DIRECTION
-            </Text>
-            <Text type="supporting" size="3xs" weight="semibold">
-              PROTO
-            </Text>
-            <Text type="supporting" size="3xs" weight="semibold">
-              TOOL / ENDPOINT
-            </Text>
-          </>
-        )}
-        <Text type="supporting" size="3xs" weight="semibold">
-          {isNarrow ? 'TOOL & OBSERVATION' : 'CANONICAL OBSERVATION'}
-        </Text>
-        {!isNarrow && (
-          <Text type="supporting" size="3xs" weight="semibold" justify="end">
-            LATENCY
-          </Text>
-        )}
-        <Text type="supporting" size="3xs" weight="semibold" justify="end">
-          DELIVERY STATE
-        </Text>
-      </div>
-
-      {/* Rows */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}>
+      <div style={traceStyles.rows}>
         {filtered.length === 0 ? (
-          <div style={{padding: 24}}>
+          <VStack padding={4}>
             <EmptyState
-              title="No frames match active trace filter"
-              description="Switch back to All frames to view the full causal sequence."
+              title="No matching trace frames"
+              description="Clear the active filter to see the full execution sequence."
               primaryAction={{
                 label: 'Show all frames',
                 onClick: onResetFilter,
               }}
+              isCompact
             />
-          </div>
+          </VStack>
         ) : (
-          filtered.map(ev => {
-            const isSelected = ev.id === selectedEventId;
-            const isHeld = ev.deliveryPhase === 'held_at_proxy';
+          <List density="compact" hasDividers>
+            {filtered.map(ev => {
+              const isHeld = ev.deliveryPhase === 'held_at_proxy';
+              const isPass = ev.deliveryPhase === 'awaiting_pass';
+              const directionLabel =
+                ev.direction === 'buyer_to_seller'
+                  ? 'Buyer → Seller'
+                  : ev.direction === 'buyer_to_gate'
+                    ? 'Buyer → Gate'
+                    : 'Seller → Buyer';
+              const phaseLabel = formatPhaseLabel(
+                ev.deliveryPhase,
+                ev.httpStatus,
+              );
 
-            return (
-              <div
-                key={ev.id}
-                role="row"
-                tabIndex={0}
-                data-testid={`trace-row-${ev.code}`}
-                onClick={() => onSelectEvent(ev.id)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelectEvent(ev.id);
-                  }
-                }}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: activeGrid,
-                  gap: 8,
-                  padding: '7px 14px',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  borderBottom:
-                    '1px solid color-mix(in srgb, var(--color-border-default) 55%, transparent)',
-                  borderLeft: isSelected
-                    ? '3px solid var(--color-interactive-primary, #2563eb)'
-                    : isHeld
-                      ? '3px solid #d97706'
-                      : '3px solid transparent',
-                  backgroundColor: isSelected
-                    ? 'color-mix(in srgb, var(--color-interactive-primary, #2563eb) 9%, var(--color-background-surface))'
-                    : isHeld
-                      ? 'color-mix(in srgb, #f59e0b 7%, var(--color-background-surface))'
-                      : 'transparent',
-                }}>
-                <div style={{minWidth: 0}}>
-                  <Text
-                    type="code"
-                    size="2xs"
-                    weight="semibold"
-                    hasTabularNumbers>
-                    {ev.code}
-                  </Text>
-                </div>
-
-                {!isNarrow ? (
-                  <>
-                    <div style={{minWidth: 0}}>
-                      <Text type="supporting" size="2xs" maxLines={1}>
-                        {ev.direction === 'buyer_to_seller'
-                          ? 'Buyer → Seller'
-                          : ev.direction === 'buyer_to_gate'
-                            ? 'Buyer → Gate'
-                            : 'Seller → Buyer'}
-                      </Text>
-                    </div>
-
-                    <div style={{minWidth: 0}}>
-                      <Badge
-                        variant={ev.protocol === 'MCP' ? 'cyan' : 'neutral'}
-                        label={ev.protocol}
+              return (
+                <div key={ev.id} data-testid={`trace-row-${ev.code}`}>
+                  <ListItem
+                    isSelected={ev.id === selectedEventId}
+                    onClick={() => onSelectEvent(ev.id)}
+                    startContent={
+                      <StatusDot
+                        variant={
+                          isHeld
+                            ? 'warning'
+                            : isPass
+                              ? 'accent'
+                              : 'neutral'
+                        }
+                        isPulsing={isHeld}
+                        label={phaseLabel}
                       />
-                    </div>
-
-                    <div style={{minWidth: 0}}>
-                      <Text type="code" size="2xs" maxLines={1}>
-                        {ev.toolOrEndpoint}
-                      </Text>
-                    </div>
-
-                    <div style={{minWidth: 0}}>
-                      <Text type="body" size="xs" maxLines={1}>
-                        {ev.observation}
-                      </Text>
-                    </div>
-
-                    <div style={{minWidth: 0, textAlign: 'right'}}>
-                      <Text
-                        type="code"
-                        size="2xs"
-                        color={isHeld ? 'primary' : 'secondary'}
-                        hasTabularNumbers
-                        maxLines={1}>
-                        {ev.durationLabel}
-                      </Text>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{minWidth: 0}}>
-                    <Text type="code" size="2xs" maxLines={1}>
-                      {ev.toolOrEndpoint}
-                    </Text>
-                    <Text type="supporting" size="2xs" maxLines={1}>
-                      {ev.observation}
-                    </Text>
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    minWidth: 0,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                  }}>
-                  {renderPhaseBadge(ev.deliveryPhase, ev.httpStatus)}
+                    }
+                    label={`${ev.code} · ${ev.toolOrEndpoint}`}
+                    description={`${ev.protocol} · ${directionLabel} · ${ev.observation}`}
+                    endContent={
+                      <HStack gap={3} vAlign="center">
+                        {!isNarrow && (
+                          <Text
+                            type="code"
+                            size="2xs"
+                            color="secondary"
+                            hasTabularNumbers>
+                            {ev.durationLabel}
+                          </Text>
+                        )}
+                        <Text
+                          type="code"
+                          size="2xs"
+                          color={isHeld ? 'primary' : 'secondary'}
+                          weight={isHeld ? 'semibold' : 'normal'}
+                          hasTabularNumbers>
+                          {phaseLabel}
+                        </Text>
+                      </HStack>
+                    }
+                  />
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </List>
         )}
       </div>
     </div>
   );
 }
 
-
-
 interface CanonicalInspectorPanelProps {
   session: MerchantSession;
   event: TraceEvent | null;
+  inBottomSheet?: boolean;
   onToggleMutation: (eventId: string, nextEnabled: boolean) => void;
   onTransmitModified: (eventId: string) => void;
   onForwardOriginal: (eventId: string) => void;
@@ -1854,9 +1637,47 @@ interface CanonicalInspectorPanelProps {
   onClose: () => void;
 }
 
-export function CanonicalInspectorPanel({
+const inspectorStyles: Record<string, CSSProperties> = {
+  root: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-background-surface)',
+    overflow: 'hidden',
+  },
+  rootSheet: {
+    height: '76dvh',
+    maxHeight: '76dvh',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-background-surface)',
+    overflow: 'hidden',
+  },
+  header: {
+    padding: 'var(--spacing-3) var(--spacing-4)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+    flexShrink: 0,
+  },
+  scrollBody: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    padding: 'var(--spacing-4)',
+  },
+  footer: {
+    padding: 'var(--spacing-3) var(--spacing-4)',
+    borderTop: 'var(--border-width) solid var(--color-border)',
+    backgroundColor: 'var(--color-background-muted)',
+    flexShrink: 0,
+  },
+};
+
+function CanonicalInspectorPanel({
   session,
   event,
+  inBottomSheet = false,
   onToggleMutation,
   onTransmitModified,
   onForwardOriginal,
@@ -1868,23 +1689,13 @@ export function CanonicalInspectorPanel({
 
   if (!event) {
     return (
-      <div style={{padding: 16}}>
-        <VStack gap={3}>
-          <HStack hAlign="between" vAlign="center">
-            <Heading level={5}>Frame Inspector</Heading>
-            <Button
-              size="sm"
-              variant="ghost"
-              label="Collapse"
-              onClick={onClose}
-            />
-          </HStack>
-          <Text type="supporting" size="xs">
-            Select any node in the Causal Observatory or row in the trace to
-            inspect its wire frame and policy gates.
-          </Text>
-        </VStack>
-      </div>
+      <VStack padding={4}>
+        <EmptyState
+          title="No frame selected"
+          description="Select a node in the Causal Observatory or a row in the trace to inspect its wire frame and policy gates."
+          isCompact
+        />
+      </VStack>
     );
   }
 
@@ -1905,395 +1716,382 @@ export function CanonicalInspectorPanel({
       : upstreamCount + 1
     : upstreamCount;
 
-  // Panel Title adapts cleanly to operator task
   const panelTitle = isHeldQuote
-    ? `Quote Approval · ${event.code}`
+    ? 'Quote Approval'
     : isHistoricalModified
-      ? `Historical Quote Record · ${event.code}`
+      ? 'Historical Quote Record'
       : isAwaitingPass
-        ? `Checkout Pass Gate · ${event.code}`
-        : `Frame Inspection · ${event.code}`;
+        ? 'Checkout Pass Gate'
+        : 'Frame Details';
+
+  const outboundOffers = isHistoricalModified
+    ? (event.deliveredOffers ?? [])
+    : [
+        ...(event.upstreamOffers ?? []).filter(
+          o => !(o.marginDelta < 0 && mutationOn && isFloorLeakReplacement),
+        ),
+        ...(mutationOn && event.stagedOffer ? [event.stagedOffer] : []),
+      ];
 
   return (
     <div
       data-testid="canonical-inspector-panel"
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--color-background-surface)',
-        overflow: 'hidden',
-      }}>
-      {/* Sticky Canonical Header */}
-      <div
-        style={{
-          padding: '10px 14px',
-          borderBottom: '1px solid var(--color-border-default)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          flexShrink: 0,
-        }}>
+      style={inBottomSheet ? inspectorStyles.rootSheet : inspectorStyles.root}>
+      {/* Inspector Header — matches incident-console IncidentInspector */}
+      <div style={inspectorStyles.header}>
         <HStack gap={2} vAlign="center">
-          <Heading level={5}>{panelTitle}</Heading>
-          <Badge
-            variant={
-              isHeldQuote
-                ? 'warning'
-                : isAwaitingPass
-                  ? 'purple'
-                  : isHistoricalModified
-                    ? 'info'
-                    : 'neutral'
-            }
-            label={event.protocol}
+          <StackItem size="fill">
+            <VStack gap={0.5}>
+              <HStack gap={1.5} vAlign="center">
+                <StatusDot
+                  variant={
+                    isHeldQuote
+                      ? 'warning'
+                      : isAwaitingPass
+                        ? 'accent'
+                        : 'neutral'
+                  }
+                  isPulsing={isHeldQuote}
+                  label={panelTitle}
+                />
+                <Text type="supporting" color="secondary">
+                  {event.code} · {event.protocol}
+                </Text>
+              </HStack>
+              <Heading level={4}>{panelTitle}</Heading>
+            </VStack>
+          </StackItem>
+          <Button
+            size="sm"
+            variant="ghost"
+            label="Close"
+            onClick={onClose}
           />
         </HStack>
-        <Button
-          size="sm"
-          variant="ghost"
-          label="Hide panel"
-          tooltip="Collapse right panel to give 100% width to the Observatory"
-          onClick={onClose}
-        />
       </div>
 
-      {/* Scrollable Body */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          padding: '12px 14px',
-        }}>
-        <VStack gap={3}>
-          {/* 1. EXPLICIT DELIVERY STATE BANNER (Fixes #01 P0 & #04 P1) */}
+      {/* Scrollable Inspector Body — flat VStack + Divider + MetadataList + List (zero Cards, zero Badges) */}
+      <div style={inspectorStyles.scrollBody}>
+        <VStack gap={4}>
           {isHeldQuote && (
-            <Banner
-              status="warning"
-              container="card"
-              collapsible={false}
-              title="HELD AT PROXY · NOT DELIVERED TO BUYER"
-              description={`${event.sourceActor} returned ${upstreamCount} offers. Conduit paused outbound delivery — ${event.targetActor} has received 0 offers so far.`}
-            />
+            <VStack gap={1}>
+              <HStack gap={1.5} vAlign="center">
+                <StatusDot
+                  variant="warning"
+                  isPulsing
+                  label="Held at proxy"
+                />
+                <Text type="label">Held at proxy · Not delivered to buyer</Text>
+              </HStack>
+              <Text type="supporting" color="secondary">
+                {event.sourceActor} returned {upstreamCount} offers. Conduit
+                paused outbound delivery — {event.targetActor} has received 0
+                offers so far.
+              </Text>
+            </VStack>
           )}
 
           {isHistoricalModified && (
-            <Banner
-              status="info"
-              container="card"
-              collapsible={false}
-              title={`DELIVERED AT ${event.deliveredAt ?? event.timestamp} · HISTORICAL RECORD`}
-              description={`Transmitted ${event.deliveredOffers?.length ?? proposedCount} offers to ${event.targetActor}. Wire payload is now immutable; mutation controls are locked.`}
-            />
+            <VStack gap={1}>
+              <HStack gap={1.5} vAlign="center">
+                <StatusDot variant="success" label="Delivered" />
+                <Text type="label">
+                  Delivered at {event.deliveredAt ?? event.timestamp} ·
+                  Historical record
+                </Text>
+              </HStack>
+              <Text type="supporting" color="secondary">
+                Transmitted {event.deliveredOffers?.length ?? proposedCount}{' '}
+                offers to {event.targetActor}. Wire payload is immutable and
+                mutation controls are locked.
+              </Text>
+            </VStack>
           )}
 
-          {event.deliveryPhase === 'delivered_original' && (
-            <Banner
-              status="success"
-              container="card"
-              collapsible={false}
-              title={`DELIVERED UNMODIFIED AT ${event.deliveredAt ?? event.timestamp}`}
-              description={`Original seller response was forwarded directly to ${event.targetActor} with zero proxy mutations.`}
-            />
+          {event.deliveryPhase === 'delivered_original' && isOfferFrame && (
+            <VStack gap={1}>
+              <HStack gap={1.5} vAlign="center">
+                <StatusDot variant="success" label="Delivered unmodified" />
+                <Text type="label">
+                  Delivered unmodified at {event.deliveredAt ?? event.timestamp}
+                </Text>
+              </HStack>
+              <Text type="supporting" color="secondary">
+                Original seller response was forwarded directly to{' '}
+                {event.targetActor} with zero proxy mutations.
+              </Text>
+            </VStack>
           )}
 
           {isAwaitingPass && (
-            <Banner
-              status="info"
-              container="card"
-              collapsible={false}
-              title="CHECKOUT PASS REQUESTED · 0 FRAMES HELD IN PROXY"
-              description={`${event.sourceActor} selected an offer and is requesting a single-use capability pass ($${event.passRequest?.requestedCap ?? 0}.00 cap) before payment execution.`}
-            />
+            <VStack gap={1}>
+              <HStack gap={1.5} vAlign="center">
+                <StatusDot variant="accent" label="Checkout pass requested" />
+                <Text type="label">
+                  Checkout pass requested · 0 frames held in proxy
+                </Text>
+              </HStack>
+              <Text type="supporting" color="secondary">
+                {event.sourceActor} selected an offer and is requesting a
+                single-use capability pass ($
+                {event.passRequest?.requestedCap ?? 0}.00 cap) before payment
+                execution.
+              </Text>
+            </VStack>
           )}
 
-          {/* 2. DEFINED DIRECTION, SOURCE, PROXY RULE, TARGET RECIPIENT */}
-          <Card variant="muted" padding={3}>
-            <VStack gap={2}>
-              <Text type="label" size="2xs" weight="semibold">
-                ROUTE & ENVELOPE METADATA
-              </Text>
-              <MetadataList size="sm">
-                <MetadataListItem label="Direction">
-                  {event.direction === 'seller_to_buyer'
-                    ? 'Outbound MCP Response (Seller → Buyer)'
-                    : event.direction === 'buyer_to_gate'
-                      ? 'Pass Authority Gate (Buyer → Conduit)'
-                      : 'Inbound Request (Buyer → Seller)'}
-                </MetadataListItem>
-                <MetadataListItem label="Source">
-                  {event.sourceActor}
-                </MetadataListItem>
-                <MetadataListItem label="Recipient">
-                  {event.targetActor}
-                </MetadataListItem>
-                <MetadataListItem label="Tool / URI">
-                  {event.toolOrEndpoint}
-                </MetadataListItem>
-                {event.proxyRuleId && (
-                  <MetadataListItem label="Rule Gate">
-                    {event.proxyRuleId}
-                  </MetadataListItem>
-                )}
-              </MetadataList>
-            </VStack>
-          </Card>
+          <Divider />
 
-          {/* 3. QUOTE APPROVAL / OFFER SEMANTIC DIFF SURFACE */}
+          <MetadataList columns="single" label={{position: 'start', width: 92}}>
+            <MetadataListItem label="Direction">
+              <Text type="body">
+                {event.direction === 'seller_to_buyer'
+                  ? 'Outbound response (Seller → Buyer)'
+                  : event.direction === 'buyer_to_gate'
+                    ? 'Pass gate (Buyer → Conduit)'
+                    : 'Inbound request (Buyer → Seller)'}
+              </Text>
+            </MetadataListItem>
+            <MetadataListItem label="Source">
+              <Text type="code" size="2xs">
+                {event.sourceActor}
+              </Text>
+            </MetadataListItem>
+            <MetadataListItem label="Recipient">
+              <Text type="code" size="2xs">
+                {event.targetActor}
+              </Text>
+            </MetadataListItem>
+            <MetadataListItem label="Tool / URI">
+              <Text type="code" size="2xs">
+                {event.toolOrEndpoint}
+              </Text>
+            </MetadataListItem>
+            {event.proxyRuleId && (
+              <MetadataListItem label="Rule gate">
+                <Text type="code" size="2xs">
+                  {event.proxyRuleId}
+                </Text>
+              </MetadataListItem>
+            )}
+          </MetadataList>
+
+          {/* Offer Semantic Diff — Edge-to-edge List rows with Dividers */}
           {isOfferFrame && event.upstreamOffers && (
             <>
-              <Card padding={3}>
-                <VStack gap={2.5}>
-                  <HStack hAlign="between" vAlign="center" wrap>
-                    <Text type="label" size="xs" weight="semibold">
-                      Semantic Offer Diff
-                    </Text>
-                    <Badge
-                      variant={
-                        isHeldQuote
-                          ? mutationOn
-                            ? 'warning'
-                            : 'neutral'
-                          : 'info'
-                      }
-                      label={
-                        isHistoricalModified
-                          ? `${upstreamCount} upstream → ${event.deliveredOffers?.length ?? proposedCount} delivered`
-                          : isFloorLeakReplacement && mutationOn
-                            ? `${upstreamCount} upstream ($189 leak) → ${proposedCount} compliant`
-                            : `${upstreamCount} original offers → ${proposedCount} proposed offers`
-                      }
-                    />
-                  </HStack>
+              <Divider />
+              <VStack gap={3}>
+                <HStack gap={2} vAlign="center">
+                  <StackItem size="fill">
+                    <Heading level={5}>Offer Diff</Heading>
+                  </StackItem>
+                  <Text
+                    type="supporting"
+                    color="secondary"
+                    hasTabularNumbers>
+                    {isHistoricalModified
+                      ? `${upstreamCount} observed → ${event.deliveredOffers?.length ?? proposedCount} delivered`
+                      : `${upstreamCount} original → ${proposedCount} proposed`}
+                  </Text>
+                </HStack>
 
-                  {/* Observed Original Upstream Offers */}
-                  <VStack gap={1}>
-                    <Text type="supporting" size="2xs" weight="semibold">
-                      1. OBSERVED ORIGINAL ({upstreamCount} from{' '}
-                      {session.merchantHost})
-                    </Text>
+                <VStack gap={1}>
+                  <Text type="label" color="secondary">
+                    Observed from {session.merchantHost}
+                  </Text>
+                  <List density="compact" hasDividers>
                     {event.upstreamOffers.map(off => {
                       const violatesFloor = off.marginDelta < 0;
                       const replacedByRule =
                         violatesFloor && mutationOn && isFloorLeakReplacement;
                       return (
-                        <div
+                        <ListItem
                           key={off.id}
-                          style={{
-                            padding: '6px 9px',
-                            borderRadius: 7,
-                            border: violatesFloor
-                              ? '1px solid #ef4444'
-                              : '1px solid var(--color-border-default)',
-                            backgroundColor:
-                              'var(--color-background-subtle, var(--color-background-surface))',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'space-between',
-                            gap: 8,
-                            opacity: replacedByRule ? 0.65 : 1,
-                          }}>
-                          <div style={{minWidth: 0}}>
+                          startContent={
+                            violatesFloor ? (
+                              <StatusDot
+                                variant="error"
+                                label="Below margin floor"
+                              />
+                            ) : undefined
+                          }
+                          label={
                             <Text
                               type="body"
-                              size="xs"
-                              weight="medium"
                               hasStrikethrough={replacedByRule}>
                               {off.id} · {off.label}
                             </Text>
-                            <Text type="supporting" size="2xs" maxLines={1}>
-                              {off.perk}
+                          }
+                          description={
+                            violatesFloor
+                              ? `${off.perk} · -$${Math.abs(off.marginDelta)}.00 below $${session.marginFloorUsd} floor`
+                              : off.perk
+                          }
+                          endContent={
+                            <Text
+                              type="code"
+                              size="2xs"
+                              hasTabularNumbers>
+                              ${off.price}.00
                             </Text>
-                          </div>
-                          <HStack gap={1.5} vAlign="center">
-                            <Token
-                              size="sm"
-                              color={violatesFloor ? 'red' : 'gray'}
-                              label={`$${off.price}.00`}
-                            />
-                          </HStack>
-                        </div>
+                          }
+                        />
                       );
                     })}
-                  </VStack>
-
-                  <Divider />
-
-                  {/* Explicit JSON-RPC Protocol Modification Rule (Fixes #04 P1 — not a mystery promo toggle!) */}
-                  {event.stagedOffer && (
-                    <VStack gap={1.5}>
-                      <Text type="supporting" size="2xs" weight="semibold">
-                        2. PROTOCOL FRAME MUTATION (`result.offers[]`)
-                      </Text>
-                      <div
-                        style={{
-                          padding: '8px 10px',
-                          borderRadius: 8,
-                          border:
-                            mutationOn && isHeldQuote
-                              ? '1px solid var(--color-interactive-primary, #2563eb)'
-                              : '1px solid var(--color-border-default)',
-                          backgroundColor:
-                            mutationOn && isHeldQuote
-                              ? 'color-mix(in srgb, var(--color-interactive-primary, #2563eb) 6%, var(--color-background-surface))'
-                              : 'transparent',
-                        }}>
-                        <Switch
-                          width="100%"
-                          labelSpacing="spread"
-                          label={
-                            isFloorLeakReplacement
-                              ? `Replace O01 ($189) with ${event.stagedOffer.id} ($${event.stagedOffer.price}.00)`
-                              : `Append ${event.stagedOffer.id} ($${event.stagedOffer.price}.00) to result.offers[]`
-                          }
-                          description={`${event.stagedOffer.label} · +$${event.stagedOffer.marginDelta}.00 above $${session.marginFloorUsd} SKU floor`}
-                          value={mutationOn}
-                          isDisabled={!isHeldQuote}
-                          onChange={val => onToggleMutation(event.id, val)}
-                          status={
-                            !isHeldQuote
-                              ? {
-                                  type: 'success',
-                                  message:
-                                    'Locked: response was already transmitted to buyer.',
-                                }
-                              : undefined
-                          }
-                        />
-                      </div>
-                    </VStack>
-                  )}
-
-                  {/* Resulting Outbound Offer Set */}
-                  <VStack gap={1}>
-                    <Text type="supporting" size="2xs" weight="semibold">
-                      {isHistoricalModified
-                        ? `3. DELIVERED RESPONSE (${event.deliveredOffers?.length ?? proposedCount} offers received by ${event.targetActor})`
-                        : `3. PROPOSED OUTBOUND PAYLOAD (${proposedCount} offers -> ${event.targetActor})`}
-                    </Text>
-                    <HStack gap={1.5} wrap>
-                      {(isHistoricalModified
-                        ? (event.deliveredOffers ?? [])
-                        : [
-                            ...event.upstreamOffers.filter(
-                              o =>
-                                !(
-                                  o.marginDelta < 0 &&
-                                  mutationOn &&
-                                  isFloorLeakReplacement
-                                ),
-                            ),
-                            ...(mutationOn && event.stagedOffer
-                              ? [event.stagedOffer]
-                              : []),
-                          ]
-                      ).map(o => (
-                        <Token
-                          key={o.id}
-                          size="sm"
-                          color={
-                            o.source === 'proxy_injected'
-                              ? 'green'
-                              : o.marginDelta < 0
-                                ? 'red'
-                                : 'blue'
-                          }
-                          label={`${o.id}: $${o.price}.00${o.source === 'proxy_injected' ? ' (+injected)' : ''}`}
-                        />
-                      ))}
-                    </HStack>
-                  </VStack>
+                  </List>
                 </VStack>
-              </Card>
+
+                {event.stagedOffer && (
+                  <VStack gap={1.5}>
+                    <Text type="label" color="secondary">
+                      Protocol mutation (result.offers[])
+                    </Text>
+                    <Switch
+                      width="100%"
+                      labelSpacing="spread"
+                      label={
+                        isFloorLeakReplacement
+                          ? `Replace O01 ($189.00) with ${event.stagedOffer.id} ($${event.stagedOffer.price}.00)`
+                          : `Append ${event.stagedOffer.id} ($${event.stagedOffer.price}.00) to result.offers[]`
+                      }
+                      description={`${event.stagedOffer.label} · +$${event.stagedOffer.marginDelta}.00 above $${session.marginFloorUsd} SKU floor`}
+                      value={mutationOn}
+                      isDisabled={!isHeldQuote}
+                      onChange={val => onToggleMutation(event.id, val)}
+                      status={
+                        !isHeldQuote
+                          ? {
+                              type: 'success',
+                              message:
+                                'Locked: response was already transmitted to buyer.',
+                            }
+                          : undefined
+                      }
+                    />
+                  </VStack>
+                )}
+
+                <VStack gap={1}>
+                  <Text type="label" color="secondary">
+                    {isHistoricalModified
+                      ? `Delivered to ${event.targetActor}`
+                      : `Proposed outbound to ${event.targetActor}`}
+                  </Text>
+                  <List density="compact" hasDividers>
+                    {outboundOffers.map(o => (
+                      <ListItem
+                        key={o.id}
+                        label={`${o.id} · ${o.label}`}
+                        description={
+                          o.source === 'proxy_injected'
+                            ? 'Added by Conduit rule'
+                            : 'Upstream seller offer'
+                        }
+                        endContent={
+                          <Text type="code" size="2xs" hasTabularNumbers>
+                            ${o.price}.00
+                          </Text>
+                        }
+                      />
+                    ))}
+                  </List>
+                </VStack>
+              </VStack>
             </>
           )}
 
-          {/* 4. CHECKOUT PASS GATE SURFACE (when session/event awaits capability pass) */}
+          {/* Checkout Pass Scope */}
           {isAwaitingPass && event.passRequest && (
-            <Card padding={3}>
-              <VStack gap={2.5}>
-                <HStack hAlign="between" vAlign="center">
-                  <Text type="label" size="xs" weight="semibold">
-                    Requested Capability Pass Scope
+            <>
+              <Divider />
+              <VStack gap={2}>
+                <HStack gap={2} vAlign="center">
+                  <StackItem size="fill">
+                    <Heading level={5}>Capability Pass Scope</Heading>
+                  </StackItem>
+                  <Text type="supporting" color="secondary">
+                    Single-use · Ed25519
                   </Text>
-                  <Badge variant="purple" label="SINGLE-USE" />
                 </HStack>
-                <MetadataList size="sm">
-                  <MetadataListItem label="Buyer Agent">
-                    {event.sourceActor}
+                <MetadataList
+                  columns="single"
+                  label={{position: 'start', width: 92}}>
+                  <MetadataListItem label="Buyer agent">
+                    <Text type="code" size="2xs">
+                      {event.sourceActor}
+                    </Text>
                   </MetadataListItem>
                   <MetadataListItem label="SPIFFE ID">
-                    {event.passRequest.agentFingerprint}
+                    <Text type="code" size="2xs">
+                      {event.passRequest.agentFingerprint}
+                    </Text>
                   </MetadataListItem>
                   <MetadataListItem label="Pinned SKU">
-                    {event.passRequest.sku}
+                    <Text type="code" size="2xs">
+                      {event.passRequest.sku}
+                    </Text>
                   </MetadataListItem>
-                  <MetadataListItem label="Amount Cap">
-                    ${event.passRequest.requestedCap}.00 USD (hard ceiling)
+                  <MetadataListItem label="Amount cap">
+                    <Text type="body" hasTabularNumbers>
+                      ${event.passRequest.requestedCap}.00 USD
+                    </Text>
                   </MetadataListItem>
                   <MetadataListItem label="Pass TTL">
-                    {event.passRequest.ttl}
+                    <Text type="body" hasTabularNumbers>
+                      {event.passRequest.ttl}
+                    </Text>
                   </MetadataListItem>
                 </MetadataList>
               </VStack>
-            </Card>
+            </>
           )}
 
-          {/* 5. CANONICAL VALIDATION GATES (Lives ONLY here — Fixes #05 P2!) */}
+          {/* Policy & Schema Validation — List rows, zero Card */}
           {event.validations && event.validations.length > 0 && (
-            <Card variant="muted" padding={3}>
+            <>
+              <Divider />
               <VStack gap={2}>
-                <Text type="label" size="2xs" weight="semibold">
-                  POLICY & SCHEMA VALIDATION
-                </Text>
-                {event.validations.map(v => (
-                  <div
-                    key={v.id}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'flex-start',
-                      justifyContent: 'space-between',
-                      gap: 8,
-                    }}>
-                    <div style={{minWidth: 0}}>
-                      <StatusDot
-                        variant={
-                          v.status === 'pass'
-                            ? 'success'
-                            : v.status === 'warn'
-                              ? 'warning'
-                              : 'error'
-                        }
-                        label={v.gate}
-                      />
-                      <div style={{paddingLeft: 16}}>
-                        <Text type="supporting" size="2xs">
-                          {v.detail}
-                        </Text>
-                      </div>
-                    </div>
-                  </div>
-                ))}
+                <Heading level={5}>Policy & Schema Validation</Heading>
+                <List density="compact" hasDividers>
+                  {event.validations.map(v => (
+                    <ListItem
+                      key={v.id}
+                      align="first-line"
+                      startContent={
+                        <StatusDot
+                          variant={
+                            v.status === 'pass'
+                              ? 'success'
+                              : v.status === 'warn'
+                                ? 'warning'
+                                : 'error'
+                          }
+                          label={v.gate}
+                        />
+                      }
+                      label={v.gate}
+                      description={v.detail}
+                    />
+                  ))}
+                </List>
               </VStack>
-            </Card>
+            </>
           )}
 
-          {/* 6. EXACT WIRE PAYLOAD / DIFF REVIEW BEFORE TRANSMISSION */}
-          <VStack gap={1.5}>
-            <HStack hAlign="between" vAlign="center">
-              <Text type="label" size="2xs" weight="semibold">
-                {event.wireDiffJson && (mutationOn || isHistoricalModified)
-                  ? `EXACT JSON-RPC DIFF (TARGET: ${event.targetActor})`
-                  : `RAW ${event.protocol} WIRE PAYLOAD`}
+          {/* Raw / Diff Wire Payload */}
+          <Divider />
+          <VStack gap={2}>
+            <HStack gap={2} vAlign="center">
+              <StackItem size="fill">
+                <Heading level={5}>
+                  {event.wireDiffJson && (mutationOn || isHistoricalModified)
+                    ? 'JSON-RPC Payload Diff'
+                    : `${event.protocol} Wire Payload`}
+                </Heading>
+              </StackItem>
+              <Text type="supporting" color="secondary">
+                → {event.targetActor}
               </Text>
-              <Token
-                size="sm"
-                color="gray"
-                label={`→ ${event.targetActor}`}
-              />
             </HStack>
 
             {event.wireDiffJson && (mutationOn || isHistoricalModified) ? (
@@ -2322,22 +2120,15 @@ export function CanonicalInspectorPanel({
         </VStack>
       </div>
 
-      {/* Sticky Canonical Action Footer — Unambiguous Delivery State + Disabled Explanations (Fixes #04 P1) */}
+      {/* Sticky Action Footer */}
       {(isOfferFrame || isAwaitingPass) && (
-        <div
-          style={{
-            padding: '10px 14px',
-            borderTop: '1px solid var(--color-border-default)',
-            backgroundColor:
-              'var(--color-background-subtle, var(--color-background-surface))',
-            flexShrink: 0,
-          }}>
+        <div style={inspectorStyles.footer}>
           {isHeldQuote ? (
             <VStack gap={2}>
               <Switch
                 width="100%"
                 labelSpacing="spread"
-                label={`Confirm target ${event.targetActor} & exact JSON-RPC payload`}
+                label={`Confirm target ${event.targetActor} & outbound payload`}
                 value={payloadReviewed}
                 onChange={setPayloadReviewed}
               />
@@ -2345,26 +2136,28 @@ export function CanonicalInspectorPanel({
               <HStack gap={2}>
                 <Button
                   width="100%"
+                  size="sm"
                   variant="primary"
                   label={
                     mutationOn
-                      ? `Transmit Modified (${proposedCount} offers)`
-                      : 'Enable Mutation Rule to Transmit Diff'
+                      ? `Transmit modified (${proposedCount})`
+                      : 'Enable mutation to transmit diff'
                   }
                   isDisabled={!mutationOn || !payloadReviewed}
                   tooltip={
                     !payloadReviewed
-                      ? 'Confirm exact wire payload & target recipient above before transmitting'
+                      ? 'Confirm outbound payload and target recipient above before transmitting'
                       : !mutationOn
-                        ? 'Protocol mutation rule is off — use Forward Original (2 offers) or re-enable mutation'
+                        ? 'Protocol mutation rule is off — use Forward original or re-enable mutation'
                         : `Send ${proposedCount} validated offers to ${event.targetActor}`
                   }
                   onClick={() => onTransmitModified(event.id)}
                 />
                 <Button
                   width="100%"
+                  size="sm"
                   variant="secondary"
-                  label={`Forward Original (${upstreamCount} offers)`}
+                  label={`Forward original (${upstreamCount})`}
                   isDisabled={
                     Boolean(event.forwardOriginalBlockedReason) ||
                     !payloadReviewed
@@ -2379,55 +2172,48 @@ export function CanonicalInspectorPanel({
                 />
               </HStack>
 
-              {/* Explicit visible explanation whenever a control is disabled (Fixes #04 P1!) */}
               {event.forwardOriginalBlockedReason && (
-                <Text type="supporting" size="2xs">
-                  <strong>Why Forward Original is disabled:</strong>{' '}
-                  {event.forwardOriginalBlockedReason}
+                <Text type="supporting" color="secondary">
+                  Forward original disabled: {event.forwardOriginalBlockedReason}
                 </Text>
               )}
               {!payloadReviewed && (
-                <Text type="supporting" size="2xs">
-                  <strong>Transmission locked:</strong> Confirm exact outbound
-                  message & recipient `{event.targetActor}` above to unlock send
-                  actions.
+                <Text type="supporting" color="secondary">
+                  Confirm outbound message and recipient {event.targetActor} to
+                  unlock transmission.
                 </Text>
               )}
             </VStack>
           ) : isAwaitingPass ? (
-            <VStack gap={2}>
-              <HStack gap={2}>
-                <Button
-                  width="100%"
-                  variant="primary"
-                  label={`Issue Scoped Pass ($${event.passRequest?.requestedCap ?? 0})`}
-                  onClick={() => onAuthorizePass(event.id)}
-                />
-                <Button
-                  width="100%"
-                  variant="destructive"
-                  label="Reject Checkout"
-                  onClick={() => onRejectPass(event.id)}
-                />
-              </HStack>
-            </VStack>
+            <HStack gap={2}>
+              <Button
+                width="100%"
+                size="sm"
+                variant="primary"
+                label={`Issue pass ($${event.passRequest?.requestedCap ?? 0})`}
+                onClick={() => onAuthorizePass(event.id)}
+              />
+              <Button
+                width="100%"
+                size="sm"
+                variant="destructive"
+                label="Reject checkout"
+                onClick={() => onRejectPass(event.id)}
+              />
+            </HStack>
           ) : (
             <VStack gap={1.5}>
-              <HStack gap={2}>
-                <Button
-                  width="100%"
-                  variant="secondary"
-                  isDisabled
-                  label="Response Already Delivered"
-                  tooltip={`Completed at ${event.deliveredAt ?? event.timestamp} — historical frames cannot be re-sent`}
-                />
-              </HStack>
-              <Text type="supporting" size="2xs">
-                <strong>Controls locked:</strong> {event.code} was already
-                delivered to `{event.targetActor}` at{' '}
-                {event.deliveredAt ?? event.timestamp}. Use{' '}
-                <strong>Reset Scenario</strong> in the top bar to replay live
-                interception.
+              <Button
+                width="100%"
+                size="sm"
+                variant="secondary"
+                isDisabled
+                label="Response already delivered"
+              />
+              <Text type="supporting" color="secondary">
+                {event.code} was delivered to {event.targetActor} at{' '}
+                {event.deliveredAt ?? event.timestamp}. Use Reset scenario to
+                replay live interception.
               </Text>
             </VStack>
           )}
@@ -2437,20 +2223,67 @@ export function CanonicalInspectorPanel({
   );
 }
 
-
-
 interface WireSurfaceProps {
   session: MerchantSession;
   selectedEventId: string | null;
   onSelectEvent: (eventId: string) => void;
 }
 
-export function WireSurface({
+const wireStyles: Record<string, CSSProperties> = {
+  root: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-background-surface)',
+    overflow: 'hidden',
+  },
+  toolbar: {
+    padding: 'var(--spacing-2) var(--spacing-4)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+    flexShrink: 0,
+  },
+  splitBody: {
+    flex: 1,
+    minHeight: 0,
+    display: 'flex',
+    overflow: 'hidden',
+  },
+  splitBodyVertical: {
+    flex: 1,
+    minHeight: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
+  },
+  packetList: {
+    flex: 1,
+    minWidth: 0,
+    overflowY: 'auto',
+  },
+  detailPane: {
+    flexShrink: 0,
+    overflowY: 'auto',
+    padding: 'var(--spacing-4)',
+  },
+  passesScroll: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+  },
+  passRow: {
+    padding: 'var(--spacing-3) var(--spacing-4)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+  },
+};
+
+function WireSurface({
   session,
   selectedEventId,
   onSelectEvent,
 }: WireSurfaceProps) {
   const [protoFilter, setProtoFilter] = useState<'all' | 'MCP' | 'HTTP'>('all');
+  const isNarrow = useMediaQuery('(max-width: 900px)');
   const detailSplit = useResizable({
     defaultSize: 420,
     minSize: 280,
@@ -2463,38 +2296,66 @@ export function WireSurface({
   const activeFrame: TraceEvent | null =
     frames.find(f => f.id === selectedEventId) ?? frames[0] ?? null;
 
+  const detailContent = activeFrame ? (
+    <VStack gap={3}>
+      <HStack gap={2} vAlign="center">
+        <StackItem size="fill">
+          <Heading level={5}>
+            Packet #{activeFrame.seq} · {activeFrame.code}
+          </Heading>
+        </StackItem>
+        <Text type="code" size="2xs" color="secondary" hasTabularNumbers>
+          {activeFrame.durationLabel}
+        </Text>
+      </HStack>
+
+      <MetadataList columns="single" label={{position: 'start', width: 140}}>
+        {Object.entries(activeFrame.headers).map(([k, v]) => (
+          <MetadataListItem key={k} label={k}>
+            <Text type="code" size="2xs">
+              {v}
+            </Text>
+          </MetadataListItem>
+        ))}
+      </MetadataList>
+
+      <Divider />
+
+      <CodeBlock
+        code={activeFrame.rawOriginalJson}
+        language="json"
+        size="sm"
+        width="100%"
+        isWrapped
+        title={`${activeFrame.code} · Upstream / Inbound Frame`}
+      />
+
+      {activeFrame.wireDiffJson && (
+        <CodeBlock
+          code={activeFrame.wireDiffJson}
+          language="json"
+          isDiff
+          size="sm"
+          width="100%"
+          isWrapped
+          title={`${activeFrame.code} · Conduit Outbound Mutation Diff`}
+        />
+      )}
+    </VStack>
+  ) : null;
+
   return (
-    <div
-      data-testid="wire-surface"
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--color-background-surface)',
-        overflow: 'hidden',
-      }}>
-      {/* Wire Filter Toolbar */}
-      <div
-        style={{
-          padding: '8px 14px',
-          borderBottom: '1px solid var(--color-border-default)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexWrap: 'wrap',
-          flexShrink: 0,
-        }}>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 10,
-            maxWidth: '100%',
-          }}>
-          <Heading level={5}>Wire Evidence Capture</Heading>
+    <div data-testid="wire-surface" style={wireStyles.root}>
+      <div style={wireStyles.toolbar}>
+        <HStack gap={3} vAlign="center" wrap="wrap">
+          <StackItem size="fill">
+            <HStack gap={2} vAlign="center" wrap="wrap">
+              <Heading level={5}>Wire Evidence Capture</Heading>
+              <Text type="supporting" color="secondary" hasTabularNumbers>
+                {session.merchantHost} · {frames.length} packets
+              </Text>
+            </HStack>
+          </StackItem>
           <SegmentedControl
             size="sm"
             label="Filter protocol"
@@ -2504,152 +2365,85 @@ export function WireSurface({
             <SegmentedControlItem value="MCP" label="MCP" />
             <SegmentedControlItem value="HTTP" label="HTTP" />
           </SegmentedControl>
-        </div>
-        <Text type="supporting" size="2xs" hasTabularNumbers>
-          Host: {session.merchantHost} · {frames.length} captured packets
-        </Text>
+        </HStack>
       </div>
 
-      {/* Horizontal Split: Packet List + Raw Wire Envelope */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          overflow: 'hidden',
-        }}>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            overflowY: 'auto',
-            borderRight: '1px solid var(--color-border-default)',
-          }}>
-          {frames.map(f => {
-            const selected = activeFrame?.id === f.id;
-            return (
-              <div
+      {isNarrow ? (
+        <div style={wireStyles.splitBodyVertical}>
+          <List density="compact" hasDividers>
+            {frames.map(f => (
+              <ListItem
                 key={f.id}
-                role="button"
-                tabIndex={0}
+                isSelected={activeFrame?.id === f.id}
                 onClick={() => onSelectEvent(f.id)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelectEvent(f.id);
+                startContent={
+                  f.deliveryPhase === 'held_at_proxy' ? (
+                    <StatusDot variant="warning" label="Held" />
+                  ) : undefined
+                }
+                label={`${f.code} · ${f.toolOrEndpoint}`}
+                description={`${f.protocol} · ${f.sourceActor} → ${f.targetActor} · ${f.timestamp}`}
+                endContent={
+                  <Text
+                    type="code"
+                    size="2xs"
+                    color="secondary"
+                    hasTabularNumbers>
+                    {f.deliveryPhase === 'held_at_proxy'
+                      ? 'Held'
+                      : String(f.httpStatus ?? 200)}
+                  </Text>
+                }
+              />
+            ))}
+          </List>
+          <Divider />
+          <div style={wireStyles.detailPane}>{detailContent}</div>
+        </div>
+      ) : (
+        <div style={wireStyles.splitBody}>
+          <div style={wireStyles.packetList}>
+            <List density="compact" hasDividers>
+              {frames.map(f => (
+                <ListItem
+                  key={f.id}
+                  isSelected={activeFrame?.id === f.id}
+                  onClick={() => onSelectEvent(f.id)}
+                  startContent={
+                    f.deliveryPhase === 'held_at_proxy' ? (
+                      <StatusDot variant="warning" label="Held" />
+                    ) : undefined
                   }
-                }}
-                style={{
-                  padding: '9px 14px',
-                  cursor: 'pointer',
-                  borderBottom: '1px solid var(--color-border-default)',
-                  backgroundColor: selected
-                    ? 'color-mix(in srgb, var(--color-interactive-primary, #2563eb) 9%, var(--color-background-surface))'
-                    : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 10,
-                }}>
-                <div style={{minWidth: 0}}>
-                  <HStack gap={1.5} vAlign="center">
+                  label={`#${f.seq} · ${f.code} · ${f.toolOrEndpoint}`}
+                  description={`${f.protocol} · ${f.sourceActor} → ${f.targetActor} · ${f.timestamp}`}
+                  endContent={
                     <Text
                       type="code"
                       size="2xs"
-                      weight="semibold"
+                      color="secondary"
                       hasTabularNumbers>
-                      #{f.seq} · {f.code}
+                      {f.deliveryPhase === 'held_at_proxy'
+                        ? 'Held'
+                        : String(f.httpStatus ?? 200)}
                     </Text>
-                    <Badge
-                      variant={f.protocol === 'MCP' ? 'cyan' : 'neutral'}
-                      label={f.protocol}
-                    />
-                    <Text type="code" size="2xs" maxLines={1}>
-                      {f.toolOrEndpoint}
-                    </Text>
-                  </HStack>
-                  <Text type="supporting" size="2xs" maxLines={1}>
-                    {f.sourceActor} → {f.targetActor} · {f.timestamp}
-                  </Text>
-                </div>
-                <Badge
-                  variant={
-                    f.deliveryPhase === 'held_at_proxy'
-                      ? 'warning'
-                      : f.deliveryPhase === 'awaiting_pass'
-                        ? 'purple'
-                        : 'success'
-                  }
-                  label={
-                    f.deliveryPhase === 'held_at_proxy'
-                      ? 'HELD'
-                      : String(f.httpStatus ?? 200)
                   }
                 />
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </List>
+          </div>
 
-        <ResizeHandle
-          direction="horizontal"
-          isReversed
-          hasDivider
-          resizable={detailSplit.props}
-          label="Resize raw packet pane"
-        />
+          <ResizeHandle
+            direction="horizontal"
+            hasDivider
+            resizable={detailSplit.props}
+            label="Resize raw packet pane"
+          />
 
-        <div
-          style={{
-            width: detailSplit.size,
-            flexShrink: 0,
-            overflowY: 'auto',
-            padding: '12px 14px',
-          }}>
-          {activeFrame && (
-            <VStack gap={3}>
-              <HStack hAlign="between" vAlign="center">
-                <Text type="label" size="xs" weight="semibold">
-                  Packet #{activeFrame.seq} ({activeFrame.code}) Headers
-                </Text>
-                <Token
-                  size="sm"
-                  color="gray"
-                  label={activeFrame.durationLabel}
-                />
-              </HStack>
-              <Card variant="muted" padding={3}>
-                <MetadataList size="sm">
-                  {Object.entries(activeFrame.headers).map(([k, v]) => (
-                    <MetadataListItem key={k} label={k}>
-                      {v}
-                    </MetadataListItem>
-                  ))}
-                </MetadataList>
-              </Card>
-              <CodeBlock
-                code={activeFrame.rawOriginalJson}
-                language="json"
-                size="sm"
-                width="100%"
-                isWrapped
-                title={`${activeFrame.code} · Upstream / Inbound Frame`}
-              />
-              {activeFrame.wireDiffJson && (
-                <CodeBlock
-                  code={activeFrame.wireDiffJson}
-                  language="json"
-                  isDiff
-                  size="sm"
-                  width="100%"
-                  isWrapped
-                  title={`${activeFrame.code} · Conduit Outbound Mutation Diff`}
-                />
-              )}
-            </VStack>
-          )}
+          <div style={{...wireStyles.detailPane, width: detailSplit.size}}>
+            {detailContent}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -2660,7 +2454,7 @@ interface PassesSurfaceProps {
   onApprovePendingPass: (passId: string) => void;
 }
 
-export function PassesSurface({
+function PassesSurface({
   passes,
   onRevokePass,
   onApprovePendingPass,
@@ -2672,36 +2466,18 @@ export function PassesSurface({
   );
 
   return (
-    <div
-      data-testid="passes-surface"
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--color-background-surface)',
-        overflow: 'hidden',
-      }}>
-      <div
-        style={{
-          padding: '10px 16px',
-          borderBottom: '1px solid var(--color-border-default)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexWrap: 'wrap',
-          flexShrink: 0,
-        }}>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 10,
-            maxWidth: '100%',
-          }}>
-          <Heading level={5}>Scoped Capability Passes Ledger</Heading>
+    <div data-testid="passes-surface" style={wireStyles.root}>
+      <div style={wireStyles.toolbar}>
+        <HStack gap={3} vAlign="center" wrap="wrap">
+          <StackItem size="fill">
+            <VStack gap={0.5}>
+              <Heading level={5}>Scoped Capability Passes</Heading>
+              <Text type="supporting" color="secondary">
+                Ed25519 single-use checkout capabilities bound to SKU, spend
+                ceiling, and TTL
+              </Text>
+            </VStack>
+          </StackItem>
           <SegmentedControl
             size="sm"
             label="Filter pass status"
@@ -2713,97 +2489,107 @@ export function PassesSurface({
             <SegmentedControlItem value="Exhausted" label="Exhausted" />
             <SegmentedControlItem value="Revoked" label="Revoked" />
           </SegmentedControl>
-        </div>
-        <Text type="supporting" size="2xs">
-          Ed25519 single-use checkout capabilities bound to SKU, amount cap, and
-          TTL
-        </Text>
+        </HStack>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          padding: '14px 16px',
-        }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 12,
-          }}>
-          {visible.map(pass => (
-            <Card key={pass.id} padding={3}>
-              <VStack gap={2.5}>
-                <HStack hAlign="between" vAlign="center">
-                  <Text type="code" size="xs" weight="semibold">
-                    {pass.id}
-                  </Text>
-                  <Badge
-                    variant={
-                      pass.status === 'Active'
-                        ? 'success'
-                        : pass.status === 'Awaiting Approval'
-                          ? 'purple'
-                          : pass.status === 'Revoked'
-                            ? 'error'
-                            : 'neutral'
-                    }
-                    label={pass.status}
-                  />
-                </HStack>
-                <MetadataList size="sm">
-                  <MetadataListItem label="Merchant">
-                    {pass.merchantHost}
-                  </MetadataListItem>
-                  <MetadataListItem label="Buyer Agent">
-                    {pass.buyerAgent}
-                  </MetadataListItem>
-                  <MetadataListItem label="Pinned SKU">
-                    {pass.sku}
-                  </MetadataListItem>
-                  <MetadataListItem label="Spend Ceiling">
-                    ${pass.capUsd}.00 USD ({pass.remainingCalls} call remaining)
-                  </MetadataListItem>
-                  <MetadataListItem label="TTL / Issued">
-                    {pass.ttl} · {pass.issuedAt}
-                  </MetadataListItem>
-                  <MetadataListItem label="Signature">
-                    {pass.signature}
-                  </MetadataListItem>
-                </MetadataList>
+      {/* Edge-to-edge ledger rows with dividers — zero Card grid, zero Badges */}
+      <div style={wireStyles.passesScroll}>
+        {visible.length === 0 ? (
+          <VStack padding={4}>
+            <EmptyState
+              title="No capability passes match filter"
+              description="Switch to All to view every issued and pending checkout pass."
+              primaryAction={{
+                label: 'Show all passes',
+                onClick: () => setStatusFilter('all'),
+              }}
+              isCompact
+            />
+          </VStack>
+        ) : (
+          visible.map(pass => (
+            <div key={pass.id} style={wireStyles.passRow}>
+              <VStack gap={2}>
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                  <StackItem size="fill">
+                    <HStack gap={2} vAlign="center">
+                      <StatusDot
+                        variant={
+                          pass.status === 'Active'
+                            ? 'success'
+                            : pass.status === 'Awaiting Approval'
+                              ? 'warning'
+                              : pass.status === 'Revoked'
+                                ? 'error'
+                                : 'neutral'
+                        }
+                        label={pass.status}
+                      />
+                      <Text type="code" size="2xs" weight="semibold">
+                        {pass.id}
+                      </Text>
+                      <Text type="supporting" color="secondary">
+                        · {pass.status}
+                      </Text>
+                    </HStack>
+                  </StackItem>
 
-                <HStack gap={2}>
                   {pass.status === 'Awaiting Approval' && (
                     <Button
                       size="sm"
                       variant="primary"
-                      width="100%"
-                      label={`Sign & Issue ($${pass.capUsd}.00)`}
+                      label={`Sign & issue ($${pass.capUsd}.00)`}
                       onClick={() => onApprovePendingPass(pass.id)}
                     />
                   )}
                   {pass.status === 'Active' && (
                     <Button
                       size="sm"
-                      variant="destructive"
-                      width="100%"
-                      label="Revoke Pass"
+                      variant="secondary"
+                      label="Revoke"
                       onClick={() => onRevokePass(pass.id)}
                     />
                   )}
                 </HStack>
+
+                <MetadataList columns="auto">
+                  <MetadataListItem label="Merchant">
+                    <Text type="body">{pass.merchantHost}</Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Buyer agent">
+                    <Text type="code" size="2xs">
+                      {pass.buyerAgent}
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Pinned SKU">
+                    <Text type="code" size="2xs">
+                      {pass.sku}
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Spend ceiling">
+                    <Text type="body" hasTabularNumbers>
+                      ${pass.capUsd}.00 USD ({pass.remainingCalls} call left)
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="TTL / Issued">
+                    <Text type="body" hasTabularNumbers>
+                      {pass.ttl} · {pass.issuedAt}
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Signature">
+                    <Text type="code" size="2xs">
+                      {pass.signature}
+                    </Text>
+                  </MetadataListItem>
+                </MetadataList>
               </VStack>
-            </Card>
-          ))}
-        </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );
 }
-
-
 
 const SCENARIO_LABELS: Record<ScenarioPresetId, string> = {
   live_hold_r02: '1. Live Quote Held (R02 Undelivered)',
@@ -2812,10 +2598,102 @@ const SCENARIO_LABELS: Record<ScenarioPresetId, string> = {
   discovery_95pct: '4. 95% Traffic · Discovery Only (Full Width)',
 };
 
-export default function ConduitMcpWorkbench() {
-  
+const styles: Record<string, CSSProperties> = {
+  viewportRoot: {
+    height: '100dvh',
+    width: '100vw',
+    overflow: 'hidden',
+    backgroundColor: 'var(--color-background-surface)',
+    color: 'var(--color-text-primary)',
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  brandMark: {
+    width: 20,
+    height: 20,
+    objectFit: 'contain',
+    flexShrink: 0,
+  },
+  contextRow: {
+    paddingTop: 'var(--spacing-1-5)',
+    borderTop: 'var(--border-width) solid var(--color-border)',
+  },
+  sidebarSection: {
+    padding: 'var(--spacing-3)',
+  },
+  workspaceSplit: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    overflow: 'hidden',
+  },
+  centerColumn: {
+    flex: 1,
+    minWidth: 0,
+    height: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    overflow: 'hidden',
+  },
+  traceFill: {
+    flex: 1,
+    minHeight: 0,
+    overflow: 'hidden',
+  },
+  inspectorPane: {
+    flexShrink: 0,
+    height: '100%',
+    overflow: 'hidden',
+  },
+};
 
-  const activeSession = useMemo(
+export default function ConduitWorkbenchPage() {
+      const [scenario, setScenario] = useState<ScenarioPresetId>('live_hold_r02');
+
+  const [sessions, setSessions] = useState<MerchantSession[]>(() =>
+    buildInitialSessions('live_hold_r02'),
+  );
+  const [passes, setPasses] = useState<CapabilityPassRecord[]>(() =>
+    buildInitialPasses(),
+  );
+  const [activeSessionId, setActiveSessionId] = useState<string>('audioshop');
+  const [activeSurface, setActiveSurface] = useState<SurfaceId>('overview');
+  const [traceFilter, setTraceFilter] = useState<TraceFilterId>('all');
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(
+    'evt-aud-r02',
+  );
+
+  // Follow incident-console/page.tsx responsive contract: <= 1024px uses BottomSheet on tap
+  const isMobile = useMediaQuery('(max-width: 1024px)');
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(true);
+  const [wasMobile, setWasMobile] = useState<boolean>(isMobile);
+  if (wasMobile !== isMobile) {
+    setWasMobile(isMobile);
+    if (isMobile) {
+      setIsInspectorOpen(false);
+    }
+  }
+
+  const sidebarResize = useResizable({
+    defaultSize: 228,
+    minSize: 192,
+    maxSize: 300,
+  });
+
+  const graphHeightResize = useResizable({
+    direction: 'vertical',
+    defaultSize: 274,
+    minSize: 175,
+    maxSize: 470,
+  });
+
+  const inspectorResize = useResizable({
+    defaultSize: 400,
+    minSize: 340,
+    maxSize: 540,
+  });
+
+    const activeSession = useMemo(
     () => sessions.find(s => s.id === activeSessionId) ?? sessions[0],
     [sessions, activeSessionId],
   );
@@ -2833,8 +2711,6 @@ export default function ConduitMcpWorkbench() {
     [activeSession, selectedEventId],
   );
 
-  // Switch session: auto-open decision drawer ONLY if session has an active hold or pending pass!
-  // On 95% discovery traffic (DisplayCo) or settled sessions, collapse drawer to 0px!
   const handleSelectSession = (sessionId: string) => {
     setActiveSessionId(sessionId);
     setTraceFilter('all');
@@ -2887,7 +2763,6 @@ export default function ConduitMcpWorkbench() {
     setIsInspectorOpen(true);
   };
 
-  // Interactive Mutation Toggle on Held R02
   const handleToggleMutation = (eventId: string, nextEnabled: boolean) => {
     setSessions(prev =>
       prev.map(sess =>
@@ -2903,7 +2778,6 @@ export default function ConduitMcpWorkbench() {
     );
   };
 
-  // Interactive Transmit Modified Response -> Transitions R02 to Historical + Materializes C03 & C04!
   const handleTransmitModified = (eventId: string) => {
     const nowStamp = '14:02:11.408';
     let mintedCartCap = 209;
@@ -2934,7 +2808,7 @@ export default function ConduitMcpWorkbench() {
                 deliveryPhase: 'delivered_modified' as const,
                 deliveredOffers: deliveredList,
                 deliveredAt: nowStamp,
-                observation: `DELIVERED (MODIFIED): ${deliveredList.length} offers sent to ${ev.targetActor} (+${chosenOffer?.id ?? 'O03'} $${mintedCartCap}.00)`,
+                observation: `Delivered (modified): ${deliveredList.length} offers sent to ${ev.targetActor} (+${chosenOffer?.id ?? 'O03'} $${mintedCartCap}.00)`,
                 headers: {
                   ...ev.headers,
                   'x-conduit-hold-state': 'RELEASED_MODIFIED',
@@ -2948,7 +2822,7 @@ export default function ConduitMcpWorkbench() {
 
         return {
           ...sess,
-          selectedOfferLabel: `${chosenOffer?.id ?? 'O03'} · $${mintedCartCap}.00 (${chosenOffer?.label ?? 'Promo'})`,
+          selectedOfferLabel: `${chosenOffer?.id ?? 'O03'} · $${mintedCartCap}.00`,
           events: [
             ...updatedEvents,
             {
@@ -2964,7 +2838,7 @@ export default function ConduitMcpWorkbench() {
               deliveryPhase: 'observed_inbound' as const,
               sourceActor: sess.buyerAgentId,
               targetActor: `${sess.merchantHost}/mcp`,
-              observation: `Buyer selected delivered offer ${chosenOffer?.id ?? 'O03'} ($${mintedCartCap}.00) -> cart CART-8841`,
+              observation: `Buyer selected delivered offer ${chosenOffer?.id ?? 'O03'} ($${mintedCartCap}.00) → cart CART-8841`,
               rawOriginalJson: JSON.stringify(
                 {
                   jsonrpc: '2.0',
@@ -2997,7 +2871,7 @@ export default function ConduitMcpWorkbench() {
               protocol: 'MCP' as const,
               toolOrEndpoint: 'conduit/request_checkout_pass',
               timestamp: '14:02:12.490',
-              durationLabel: 'AWAITING PASS',
+              durationLabel: 'Awaiting pass',
               httpStatus: 202,
               deliveryPhase: 'awaiting_pass' as const,
               sourceActor: sess.buyerAgentId,
@@ -3067,7 +2941,6 @@ export default function ConduitMcpWorkbench() {
     ]);
   };
 
-  // Interactive Forward Original Unmodified (2 offers)
   const handleForwardOriginal = (eventId: string) => {
     const nowStamp = '14:02:11.512';
     setSessions(prev =>
@@ -3090,7 +2963,7 @@ export default function ConduitMcpWorkbench() {
                 deliveryPhase: 'delivered_original' as const,
                 deliveredOffers: origOffers,
                 deliveredAt: nowStamp,
-                observation: `DELIVERED (ORIGINAL): ${origOffers.length} unmodified offers forwarded to ${ev.targetActor}`,
+                observation: `Delivered (original): ${origOffers.length} unmodified offers forwarded to ${ev.targetActor}`,
                 headers: {
                   ...ev.headers,
                   'x-conduit-hold-state': 'FORWARDED_ORIGINAL',
@@ -3100,7 +2973,7 @@ export default function ConduitMcpWorkbench() {
 
         return {
           ...sess,
-          selectedOfferLabel: `${picked?.id ?? 'O01'} · $${cap}.00 (Original)`,
+          selectedOfferLabel: `${picked?.id ?? 'O01'} · $${cap}.00`,
           events: [
             ...updatedEvents,
             {
@@ -3116,7 +2989,7 @@ export default function ConduitMcpWorkbench() {
               deliveryPhase: 'observed_inbound' as const,
               sourceActor: sess.buyerAgentId,
               targetActor: `${sess.merchantHost}/mcp`,
-              observation: `Buyer selected original offer ${picked?.id ?? 'O01'} ($${cap}.00) -> cart CART-8842`,
+              observation: `Buyer selected original offer ${picked?.id ?? 'O01'} ($${cap}.00) → cart CART-8842`,
               rawOriginalJson: JSON.stringify(
                 {
                   sku: sess.skuCode,
@@ -3136,7 +3009,7 @@ export default function ConduitMcpWorkbench() {
               protocol: 'MCP' as const,
               toolOrEndpoint: 'conduit/request_checkout_pass',
               timestamp: '14:02:12.680',
-              durationLabel: 'AWAITING PASS',
+              durationLabel: 'Awaiting pass',
               httpStatus: 202,
               deliveryPhase: 'awaiting_pass' as const,
               sourceActor: sess.buyerAgentId,
@@ -3162,7 +3035,6 @@ export default function ConduitMcpWorkbench() {
     );
   };
 
-  // Interactive Authorize Scoped Checkout Pass -> Completes Settlement!
   const handleAuthorizePass = (eventId: string) => {
     const newPassId = `pass_${activeSession.id}_signed`;
     let settledUsd = activeSession.msrpUsd;
@@ -3258,7 +3130,7 @@ export default function ConduitMcpWorkbench() {
                   : {
                       ...e,
                       httpStatus: 403,
-                      durationLabel: 'REJECTED',
+                      durationLabel: 'Rejected',
                       deliveryPhase: 'delivered_original' as const,
                       observation:
                         'Operator rejected checkout pass request (403 Forbidden returned to agent)',
@@ -3306,224 +3178,193 @@ export default function ConduitMcpWorkbench() {
     isInspectorOpen &&
     (activeSurface === 'overview' || activeSurface === 'graph');
 
-  return (
+    return (
     <>
       <div
         data-testid="conduit-astryx-workbench"
-        style={{
-          height: '100dvh',
-          width: '100vw',
-          overflow: 'hidden',
-          backgroundColor: 'var(--color-background-surface)',
-          color: 'var(--color-text-primary)',
-          display: 'flex',
-          flexDirection: 'column',
-        }}>
+        style={styles.viewportRoot}>
         <style>{'nextjs-portal { display: none !important; }'}</style>
         <Layout
           height="fill"
           header={
             <LayoutHeader hasDivider>
               <VStack gap={2}>
-                {/* Top Row: MCP Control Plane Identity + Scenario Presets + Astryx Theme Controls */}
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 10,
-                    flexWrap: 'wrap',
-                  }}>
-                  <HStack gap={2} vAlign="center" wrap>
-                    <HStack gap={1.5} vAlign="center">
-                      <StatusDot variant="accent" isPulsing />
-                      <Heading level={5}>Conduit</Heading>
-                      {!isMobile && (
-                        <Badge variant="neutral" label="MCP Control Plane" />
-                      )}
-                    </HStack>
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                  <StackItem size="fill">
+                    <HStack gap={2} vAlign="center" wrap="wrap">
+                      <HStack gap={1.5} vAlign="center">
+                        <img
+                          src="/conduit-mark.png"
+                          alt=""
+                          width={20}
+                          height={20}
+                          style={styles.brandMark}
+                        />
+                        <Heading level={4}>Conduit</Heading>
+                        {!isMobile && (
+                          <Text type="supporting" color="secondary">
+                            MCP Control Plane
+                          </Text>
+                        )}
+                      </HStack>
 
-                    {/* Mobile Session Switcher */}
-                    {isMobile && (
+                      {isMobile && (
+                        <DropdownMenu
+                          presentation="adaptive"
+                          button={{
+                            size: 'sm',
+                            variant: 'secondary',
+                            label: activeSession.merchantName,
+                          }}
+                          items={sessions.map(s => {
+                            const sm = deriveWorkspaceMetrics(
+                              s,
+                              sessions,
+                              passes,
+                            );
+                            return {
+                              label: `${s.merchantName} (${sm.stage})`,
+                              onClick: () => handleSelectSession(s.id),
+                            };
+                          })}
+                        />
+                      )}
+
                       <DropdownMenu
                         presentation="adaptive"
                         button={{
                           size: 'sm',
                           variant: 'secondary',
-                          label: activeSession.merchantName,
+                          label: isMobile
+                            ? 'Scenarios'
+                            : SCENARIO_LABELS[scenario],
                         }}
-                        items={sessions.map(s => {
-                          const sm = deriveWorkspaceMetrics(
-                            s,
-                            sessions,
-                            passes,
-                          );
-                          return {
-                            label: `${s.merchantName} (${sm.stage})`,
-                            onClick: () => handleSelectSession(s.id),
-                          };
-                        })}
+                        items={(
+                          Object.keys(SCENARIO_LABELS) as ScenarioPresetId[]
+                        ).map(presetKey => ({
+                          label: SCENARIO_LABELS[presetKey],
+                          onClick: () => applyScenarioPreset(presetKey),
+                        }))}
                       />
-                    )}
 
-                    <DropdownMenu
-                      presentation="adaptive"
-                      button={{
-                        size: 'sm',
-                        variant: 'secondary',
-                        label: isMobile
-                          ? 'Scenarios'
-                          : SCENARIO_LABELS[scenario],
-                      }}
-                      items={(
-                        Object.keys(SCENARIO_LABELS) as ScenarioPresetId[]
-                      ).map(presetKey => ({
-                        label: SCENARIO_LABELS[presetKey],
-                        onClick: () => applyScenarioPreset(presetKey),
-                      }))}
-                    />
-
-                    {!isMobile && (
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        label="Reset Scenario"
-                        onClick={() => applyScenarioPreset(scenario)}
-                      />
-                    )}
-                  </HStack>
-
-                  
-                </div>
-
-                {/* Second Row: Concise Commercial Context Strip + Canonical 5-Stage Progress (0 Column Width!) */}
-                <div
-                  data-testid="commercial-context-strip"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 10,
-                    paddingTop: 6,
-                    borderTop:
-                      '1px solid color-mix(in srgb, var(--color-border-default) 60%, transparent)',
-                    flexWrap: 'wrap',
-                  }}>
-                  <HStack gap={2} vAlign="center" wrap>
-                    <Text type="code" size="2xs" weight="semibold">
-                      {activeSession.merchantHost}
-                    </Text>
-                    <Text type="supporting" size="2xs">
-                      ← {activeSession.buyerAgentId}
-                    </Text>
-                    <Token
-                      size="sm"
-                      color="gray"
-                      label={`SKU: ${activeSession.skuName} ($${activeSession.msrpUsd} MSRP · $${activeSession.marginFloorUsd} Floor)`}
-                    />
-                    {activeSession.selectedOfferLabel && (
-                      <Token
-                        size="sm"
-                        color="green"
-                        label={`Selected: ${activeSession.selectedOfferLabel}`}
-                      />
-                    )}
-                  </HStack>
-
-                  {/* Canonical 5-Stage Progress Indicator (Synchronized with Sidebar & Footer — Fixes #02 P1) */}
-                  <HStack gap={1.5} vAlign="center" wrap>
-                    {!isMobile && (
-                      <div
-                        data-testid="canonical-stage-pills"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          padding: '2px 6px',
-                          borderRadius: 999,
-                          border: '1px solid var(--color-border-default)',
-                          backgroundColor:
-                            'var(--color-background-subtle, var(--color-background-surface))',
-                        }}>
-                        {STAGE_ORDER.map((st, idx) => {
-                          const isCurrent = idx === metrics.stageIndex;
-                          const isPast = idx < metrics.stageIndex;
-                          return (
-                            <span
-                              key={st}
-                              style={{
-                                fontSize: 11,
-                                fontWeight: isCurrent ? 700 : 500,
-                                padding: '2px 8px',
-                                borderRadius: 999,
-                                backgroundColor: isCurrent
-                                  ? metrics.proxyHeldCount > 0
-                                    ? 'color-mix(in srgb, #f59e0b 24%, transparent)'
-                                    : metrics.awaitingPassCount > 0
-                                      ? 'color-mix(in srgb, #8b5cf6 24%, transparent)'
-                                      : 'color-mix(in srgb, var(--color-interactive-primary, #2563eb) 20%, transparent)'
-                                  : 'transparent',
-                                color: isCurrent
-                                  ? 'var(--color-text-primary)'
-                                  : isPast
-                                    ? 'var(--color-text-primary)'
-                                    : 'var(--color-text-secondary)',
-                                opacity: isCurrent || isPast ? 1 : 0.55,
-                              }}>
-                              {isPast ? `✓ ${st}` : st}
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-
-                    {/* Contextual Right Drawer Trigger (Demonstrates 0-column default on 95% discovery traffic!) */}
-                    {(activeSurface === 'overview' ||
-                      activeSurface === 'graph') &&
-                      (metrics.heldEventId ? (
-                        <Button
-                          size="sm"
-                          variant={isInspectorOpen ? 'secondary' : 'primary'}
-                          label={
-                            isInspectorOpen
-                              ? 'Quote Approval Open'
-                              : 'Review Held Quote (1)'
-                          }
-                          onClick={() => {
-                            setSelectedEventId(metrics.heldEventId);
-                            setIsInspectorOpen(v => !v);
-                          }}
-                        />
-                      ) : metrics.awaitingPassEventId ? (
-                        <Button
-                          size="sm"
-                          variant={isInspectorOpen ? 'secondary' : 'primary'}
-                          label={
-                            isInspectorOpen
-                              ? 'Pass Gate Open'
-                              : 'Review Pass Request (1)'
-                          }
-                          onClick={() => {
-                            setSelectedEventId(metrics.awaitingPassEventId);
-                            setIsInspectorOpen(v => !v);
-                          }}
-                        />
-                      ) : (
+                      {!isMobile && (
                         <Button
                           size="sm"
                           variant="ghost"
-                          label={
-                            isInspectorOpen
-                              ? 'Hide Inspector (Full Width)'
-                              : 'Inspect Selected Frame'
-                          }
-                          onClick={() => setIsInspectorOpen(v => !v)}
+                          label="Reset scenario"
+                          onClick={() => applyScenarioPreset(scenario)}
                         />
-                      ))}
+                      )}
+                    </HStack>
+                  </StackItem>
+
+                  
+                </HStack>
+
+                {/* Quiet typographic context strip — zero Badges, zero Tokens */}
+                <div
+                  data-testid="commercial-context-strip"
+                  style={styles.contextRow}>
+                  <HStack gap={3} vAlign="center" wrap="wrap">
+                    <StackItem size="fill">
+                      <HStack gap={2} vAlign="center" wrap="wrap">
+                        <Text type="code" size="2xs" weight="semibold">
+                          {activeSession.merchantHost}
+                        </Text>
+                        <Text
+                          type="supporting"
+                          color="secondary"
+                          hasTabularNumbers>
+                          ← {activeSession.buyerAgentId} ·{' '}
+                          {activeSession.skuName} (${activeSession.msrpUsd}{' '}
+                          MSRP / ${activeSession.marginFloorUsd} floor)
+                          {activeSession.selectedOfferLabel
+                            ? ` · Selected ${activeSession.selectedOfferLabel}`
+                            : ''}
+                        </Text>
+                      </HStack>
+                    </StackItem>
+
+                    <HStack gap={2} vAlign="center" wrap="wrap">
+                      {!isMobile && (
+                        <HStack
+                          gap={1.5}
+                          vAlign="center"
+                          data-testid="canonical-stage-pills">
+                          {STAGE_ORDER.map((st, idx) => {
+                            const isCurrent = idx === metrics.stageIndex;
+                            const isPast = idx < metrics.stageIndex;
+                            return (
+                              <React.Fragment key={st}>
+                                {idx > 0 && (
+                                  <Text type="supporting" color="secondary">
+                                    →
+                                  </Text>
+                                )}
+                                <Text
+                                  type="supporting"
+                                  color={
+                                    isCurrent
+                                      ? 'primary'
+                                      : isPast
+                                        ? 'secondary'
+                                        : 'disabled'
+                                  }
+                                  weight={isCurrent ? 'semibold' : 'normal'}>
+                                  {st}
+                                </Text>
+                              </React.Fragment>
+                            );
+                          })}
+                        </HStack>
+                      )}
+
+                      {(activeSurface === 'overview' ||
+                        activeSurface === 'graph') &&
+                        (metrics.heldEventId ? (
+                          <Button
+                            size="sm"
+                            variant={isInspectorOpen ? 'secondary' : 'primary'}
+                            label={
+                              isInspectorOpen
+                                ? 'Hide quote approval'
+                                : 'Review held quote (1)'
+                            }
+                            onClick={() => {
+                              setSelectedEventId(metrics.heldEventId);
+                              setIsInspectorOpen(v => !v);
+                            }}
+                          />
+                        ) : metrics.awaitingPassEventId ? (
+                          <Button
+                            size="sm"
+                            variant={isInspectorOpen ? 'secondary' : 'primary'}
+                            label={
+                              isInspectorOpen
+                                ? 'Hide pass gate'
+                                : 'Review pass request (1)'
+                            }
+                            onClick={() => {
+                              setSelectedEventId(metrics.awaitingPassEventId);
+                              setIsInspectorOpen(v => !v);
+                            }}
+                          />
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            label={
+                              isInspectorOpen
+                                ? 'Hide inspector'
+                                : 'Inspect frame'
+                            }
+                            onClick={() => setIsInspectorOpen(v => !v)}
+                          />
+                        ))}
+                    </HStack>
                   </HStack>
                 </div>
 
-                {/* Mobile Surface Switcher */}
                 {isMobile && (
                   <SegmentedControl
                     size="sm"
@@ -3543,165 +3384,175 @@ export default function ConduitMcpWorkbench() {
           start={
             !isMobile ? (
               <>
-                <LayoutPanel width={sidebarResize.size} hasDivider={false}>
-                  <VStack gap={3}>
-                    {/* 1. LIVE SESSIONS (Canonical Stage & Counts) */}
-                    <VStack gap={1}>
-                      <Text type="supporting" size="3xs" weight="semibold">
-                        LIVE MERCHANT SESSIONS
-                      </Text>
-                      <List density="compact">
-                        {sessions.map(sess => {
-                          const sm = deriveWorkspaceMetrics(
-                            sess,
-                            sessions,
-                            passes,
-                          );
-                          return (
-                            <ListItem
-                              key={sess.id}
-                              isSelected={sess.id === activeSession.id}
-                              onClick={() => handleSelectSession(sess.id)}
-                              label={sess.merchantName}
-                              description={`${sm.stage} · ${
-                                sm.proxyHeldCount > 0
-                                  ? `${sm.proxyHeldCount} held`
-                                  : sm.awaitingPassCount > 0
-                                    ? 'awaiting pass'
-                                    : `${sm.eventCount} frames`
-                              }`}
-                              endContent={
-                                sm.proxyHeldCount > 0 ? (
-                                  <Badge variant="warning" label="HELD" />
-                                ) : sm.awaitingPassCount > 0 ? (
-                                  <Badge variant="purple" label="PASS" />
-                                ) : sess.id === 'displayco' ? (
-                                  <Badge variant="neutral" label="95%" />
-                                ) : (
-                                  <Badge variant="success" label="OK" />
-                                )
-                              }
-                            />
-                          );
-                        })}
-                      </List>
-                    </VStack>
+                <LayoutPanel
+                  width={sidebarResize.size}
+                  padding={0}
+                  hasDivider={false}
+                  label="Navigation">
+                  <VStack gap={0}>
+                    <div style={styles.sidebarSection}>
+                      <VStack gap={1}>
+                        <Text type="label" color="secondary">
+                          Merchant Sessions
+                        </Text>
+                        <List density="compact">
+                          {sessions.map(sess => {
+                            const sm = deriveWorkspaceMetrics(
+                              sess,
+                              sessions,
+                              passes,
+                            );
+                            return (
+                              <ListItem
+                                key={sess.id}
+                                isSelected={sess.id === activeSession.id}
+                                onClick={() => handleSelectSession(sess.id)}
+                                startContent={
+                                  <StatusDot
+                                    variant={
+                                      sm.proxyHeldCount > 0
+                                        ? 'warning'
+                                        : sm.awaitingPassCount > 0
+                                          ? 'accent'
+                                          : 'neutral'
+                                    }
+                                    isPulsing={sm.proxyHeldCount > 0}
+                                    label={sm.stage}
+                                  />
+                                }
+                                label={sess.merchantName}
+                                description={`${sm.stage} · ${
+                                  sm.proxyHeldCount > 0
+                                    ? `${sm.proxyHeldCount} held`
+                                    : sm.awaitingPassCount > 0
+                                      ? 'awaiting pass'
+                                      : `${sm.eventCount} frames`
+                                }`}
+                              />
+                            );
+                          })}
+                        </List>
+                      </VStack>
+                    </div>
 
                     <Divider />
 
-                    {/* 2. SURFACES */}
-                    <VStack gap={1}>
-                      <Text type="supporting" size="3xs" weight="semibold">
-                        SURFACES
-                      </Text>
-                      <List density="compact">
-                        <ListItem
-                          isSelected={activeSurface === 'overview'}
-                          onClick={() => setActiveSurface('overview')}
-                          label="Overview"
-                          description="Observatory + dense trace"
-                        />
-                        <ListItem
-                          isSelected={activeSurface === 'graph'}
-                          onClick={() => setActiveSurface('graph')}
-                          label="Graph"
-                          description="Full causal topology"
-                        />
-                        <ListItem
-                          isSelected={activeSurface === 'wire'}
-                          onClick={() => setActiveSurface('wire')}
-                          label="Wire"
-                          description="MCP & HTTP raw packets"
-                        />
-                        <ListItem
-                          isSelected={activeSurface === 'passes'}
-                          onClick={() => setActiveSurface('passes')}
-                          label="Passes"
-                          description="Scoped checkout capabilities"
-                          endContent={
-                            metrics.globalAwaitingPassCount > 0 ? (
-                              <Badge
-                                variant="purple"
-                                label={String(metrics.globalAwaitingPassCount)}
-                              />
-                            ) : undefined
-                          }
-                        />
-                      </List>
-                    </VStack>
+                    <div style={styles.sidebarSection}>
+                      <VStack gap={1}>
+                        <Text type="label" color="secondary">
+                          Surfaces
+                        </Text>
+                        <List density="compact">
+                          <ListItem
+                            isSelected={activeSurface === 'overview'}
+                            onClick={() => setActiveSurface('overview')}
+                            label="Overview"
+                            description="Observatory + trace"
+                          />
+                          <ListItem
+                            isSelected={activeSurface === 'graph'}
+                            onClick={() => setActiveSurface('graph')}
+                            label="Graph"
+                            description="Full causal topology"
+                          />
+                          <ListItem
+                            isSelected={activeSurface === 'wire'}
+                            onClick={() => setActiveSurface('wire')}
+                            label="Wire"
+                            description="MCP & HTTP packets"
+                          />
+                          <ListItem
+                            isSelected={activeSurface === 'passes'}
+                            onClick={() => setActiveSurface('passes')}
+                            label="Passes"
+                            description="Checkout capabilities"
+                            endContent={
+                              metrics.globalAwaitingPassCount > 0 ? (
+                                <Text
+                                  type="supporting"
+                                  color="secondary"
+                                  hasTabularNumbers>
+                                  {metrics.globalAwaitingPassCount}
+                                </Text>
+                              ) : undefined
+                            }
+                          />
+                        </List>
+                      </VStack>
+                    </div>
 
                     <Divider />
 
-                    {/* 3. TRACE FILTERS */}
-                    <VStack gap={1}>
-                      <Text type="supporting" size="3xs" weight="semibold">
-                        TRACE FILTERS
-                      </Text>
-                      <List density="compact">
-                        <ListItem
-                          isSelected={traceFilter === 'all'}
-                          onClick={() => {
-                            setActiveSurface('overview');
-                            setTraceFilter('all');
-                          }}
-                          label="All Frames"
-                          endContent={
-                            <Text
-                              type="code"
-                              size="3xs"
-                              color="secondary"
-                              hasTabularNumbers>
-                              {metrics.eventCount}
-                            </Text>
-                          }
-                        />
-                        <ListItem
-                          isSelected={traceFilter === 'mcp'}
-                          onClick={() => {
-                            setActiveSurface('overview');
-                            setTraceFilter('mcp');
-                          }}
-                          label="MCP JSON-RPC"
-                        />
-                        <ListItem
-                          isSelected={traceFilter === 'http'}
-                          onClick={() => {
-                            setActiveSurface('overview');
-                            setTraceFilter('http');
-                          }}
-                          label="HTTP Transport"
-                        />
-                        <ListItem
-                          isSelected={traceFilter === 'attention'}
-                          onClick={() => {
-                            setActiveSurface('overview');
-                            setTraceFilter('attention');
-                          }}
-                          label="Held / Awaiting Gate"
-                          endContent={
-                            metrics.proxyHeldCount +
-                              metrics.awaitingPassCount >
-                            0 ? (
-                              <Badge
-                                variant="warning"
-                                label={String(
-                                  metrics.proxyHeldCount +
-                                    metrics.awaitingPassCount,
-                                )}
-                              />
-                            ) : undefined
-                          }
-                        />
-                        <ListItem
-                          isSelected={traceFilter === 'modified'}
-                          onClick={() => {
-                            setActiveSurface('overview');
-                            setTraceFilter('modified');
-                          }}
-                          label="Proxy Mutations"
-                        />
-                      </List>
-                    </VStack>
+                    <div style={styles.sidebarSection}>
+                      <VStack gap={1}>
+                        <Text type="label" color="secondary">
+                          Trace Filters
+                        </Text>
+                        <List density="compact">
+                          <ListItem
+                            isSelected={traceFilter === 'all'}
+                            onClick={() => {
+                              setActiveSurface('overview');
+                              setTraceFilter('all');
+                            }}
+                            label="All frames"
+                            endContent={
+                              <Text
+                                type="supporting"
+                                color="secondary"
+                                hasTabularNumbers>
+                                {metrics.eventCount}
+                              </Text>
+                            }
+                          />
+                          <ListItem
+                            isSelected={traceFilter === 'mcp'}
+                            onClick={() => {
+                              setActiveSurface('overview');
+                              setTraceFilter('mcp');
+                            }}
+                            label="MCP JSON-RPC"
+                          />
+                          <ListItem
+                            isSelected={traceFilter === 'http'}
+                            onClick={() => {
+                              setActiveSurface('overview');
+                              setTraceFilter('http');
+                            }}
+                            label="HTTP transport"
+                          />
+                          <ListItem
+                            isSelected={traceFilter === 'attention'}
+                            onClick={() => {
+                              setActiveSurface('overview');
+                              setTraceFilter('attention');
+                            }}
+                            label="Held / awaiting gate"
+                            endContent={
+                              metrics.proxyHeldCount +
+                                metrics.awaitingPassCount >
+                              0 ? (
+                                <Text
+                                  type="supporting"
+                                  color="secondary"
+                                  hasTabularNumbers>
+                                  {metrics.proxyHeldCount +
+                                    metrics.awaitingPassCount}
+                                </Text>
+                              ) : undefined
+                            }
+                          />
+                          <ListItem
+                            isSelected={traceFilter === 'modified'}
+                            onClick={() => {
+                              setActiveSurface('overview');
+                              setTraceFilter('modified');
+                            }}
+                            label="Proxy mutations"
+                          />
+                        </List>
+                      </VStack>
+                    </div>
                   </VStack>
                 </LayoutPanel>
                 <ResizeHandle
@@ -3714,30 +3565,14 @@ export default function ConduitMcpWorkbench() {
             ) : undefined
           }
           content={
-            <LayoutContent padding={0}>
-              <div
-                style={{
-                  height: '100%',
-                  width: '100%',
-                  display: 'flex',
-                  overflow: 'hidden',
-                }}>
-                {/* Central Workspace */}
-                <div
-                  style={{
-                    flex: 1,
-                    minWidth: 0,
-                    height: '100%',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    overflow: 'hidden',
-                  }}>
+            <LayoutContent role="main" padding={0}>
+              <div style={styles.workspaceSplit}>
+                <div style={styles.centerColumn}>
                   {activeSurface === 'overview' && (
                     <>
-                      {/* Top Pane: Compact Causal Observatory Graph */}
                       <div
                         style={{
-                          height: isMobile ? 315 : graphHeightResize.size,
+                          height: isMobile ? 300 : graphHeightResize.size,
                           flexShrink: 0,
                           minHeight: 0,
                           overflow: 'hidden',
@@ -3758,13 +3593,7 @@ export default function ConduitMcpWorkbench() {
                         />
                       )}
 
-                      {/* Bottom Pane: Synchronized Dense Execution Trace (Zero Duplicate Cards Below!) */}
-                      <div
-                        style={{
-                          flex: 1,
-                          minHeight: 0,
-                          overflow: 'hidden',
-                        }}>
+                      <div style={styles.traceFill}>
                         <DenseTraceTable
                           events={activeSession.events}
                           activeFilter={traceFilter}
@@ -3802,7 +3631,6 @@ export default function ConduitMcpWorkbench() {
                   )}
                 </div>
 
-                {/* Contextual Right Canonical Inspection / Decision Panel (0px when closed / on 95% discovery traffic!) */}
                 {showDesktopRightPanel && (
                   <>
                     <ResizeHandle
@@ -3810,14 +3638,12 @@ export default function ConduitMcpWorkbench() {
                       isReversed
                       hasDivider
                       resizable={inspectorResize.props}
-                      label="Resize Canonical Inspection Panel"
+                      label="Resize inspection panel"
                     />
                     <div
                       style={{
+                        ...styles.inspectorPane,
                         width: inspectorResize.size,
-                        flexShrink: 0,
-                        height: '100%',
-                        overflow: 'hidden',
                       }}>
                       <CanonicalInspectorPanel
                         session={activeSession}
@@ -3837,63 +3663,56 @@ export default function ConduitMcpWorkbench() {
           }
           footer={
             <LayoutFooter hasDivider>
-              {/* Single Canonical Status Bar — Explicitly separates Proxy Held from Awaiting Pass! (Fixes #02 P1) */}
-              <div
-                data-testid="canonical-status-bar"
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 12,
-                  flexWrap: 'wrap',
-                  width: '100%',
-                }}>
-                <HStack gap={3} vAlign="center" wrap>
-                  <StatusDot
-                    variant={
-                      metrics.proxyHeldCount > 0
-                        ? 'warning'
-                        : metrics.awaitingPassCount > 0
-                          ? 'accent'
-                          : 'success'
-                    }
-                    isPulsing={metrics.proxyHeldCount > 0}
-                    label={
-                      metrics.proxyHeldCount > 0
-                        ? `Proxy Interception Active`
-                        : 'Conduit Proxy Streaming'
-                    }
-                  />
-                  <Text type="code" size="2xs" hasTabularNumbers>
-                    {metrics.eventCount} events · {metrics.proxyHeldCount} held
-                    by proxy · {metrics.awaitingPassCount} awaiting pass
-                  </Text>
-                </HStack>
+              <HStack
+                gap={3}
+                vAlign="center"
+                wrap="wrap"
+                data-testid="canonical-status-bar">
+                <StackItem size="fill">
+                  <HStack gap={2} vAlign="center" wrap="wrap">
+                    <StatusDot
+                      variant={
+                        metrics.proxyHeldCount > 0
+                          ? 'warning'
+                          : metrics.awaitingPassCount > 0
+                            ? 'accent'
+                            : 'success'
+                      }
+                      isPulsing={metrics.proxyHeldCount > 0}
+                      label="Proxy status"
+                    />
+                    <Text
+                      type="code"
+                      size="2xs"
+                      color="secondary"
+                      hasTabularNumbers>
+                      {metrics.eventCount} events · {metrics.proxyHeldCount}{' '}
+                      held by proxy · {metrics.awaitingPassCount} awaiting pass
+                    </Text>
+                  </HStack>
+                </StackItem>
 
-                <HStack gap={3} vAlign="center" wrap>
-                  <Text type="supporting" size="2xs">
-                    {metrics.stageHeadline}
-                  </Text>
-                  <Token
-                    size="sm"
-                    color="gray"
-                    label={`Active Passes: ${metrics.activePassCountGlobal}`}
-                  />
-                </HStack>
-              </div>
+                <Text
+                  type="supporting"
+                  color="secondary"
+                  hasTabularNumbers>
+                  {metrics.stageHeadline} · {metrics.activePassCountGlobal}{' '}
+                  active pass
+                </Text>
+              </HStack>
             </LayoutFooter>
           }
         />
 
-        {/* Mobile (<1024px) BottomSheet Decision / Inspection Drawer */}
         {isMobile && (
           <BottomSheet
             isOpen={isInspectorOpen}
             onOpenChange={setIsInspectorOpen}
-            label="Canonical Frame Inspection"
+            label="Frame inspection"
             height="lg"
             padding="none">
             <CanonicalInspectorPanel
+              inBottomSheet
               session={activeSession}
               event={selectedEvent}
               onToggleMutation={handleToggleMutation}

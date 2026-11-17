@@ -5,11 +5,14 @@
 /**
  * Conduit — Live Quote Hold & Margin Gate (Mobile Deal Desk)
  *
- * Single-thumb mobile triage queue for approving or replacing high-value
- * outbound AI agent quotes mid-flight.
+ * Restrained Astryx layout: MetadataList + Divider + Switch + BottomSheet payload diff.
  */
 
-import {useState, type CSSProperties} from 'react';
+import {useState} from 'react';
+import {BottomSheet} from '@astryxdesign/core/BottomSheet';
+import {Button} from '@astryxdesign/core/Button';
+import {CodeBlock} from '@astryxdesign/core/CodeBlock';
+import {Divider} from '@astryxdesign/core/Divider';
 import {
   HStack,
   Layout,
@@ -18,11 +21,6 @@ import {
   StackItem,
   VStack,
 } from '@astryxdesign/core/Layout';
-import {Heading, Text} from '@astryxdesign/core/Text';
-import {Banner} from '@astryxdesign/core/Banner';
-import {Button} from '@astryxdesign/core/Button';
-import {Card} from '@astryxdesign/core/Card';
-import {Divider} from '@astryxdesign/core/Divider';
 import {MetadataList, MetadataListItem} from '@astryxdesign/core/MetadataList';
 import {
   SegmentedControl,
@@ -30,11 +28,8 @@ import {
 } from '@astryxdesign/core/SegmentedControl';
 import {StatusDot} from '@astryxdesign/core/StatusDot';
 import {Switch} from '@astryxdesign/core/Switch';
-import {Token} from '@astryxdesign/core/Token';
-import {BottomSheet} from '@astryxdesign/core/BottomSheet';
-import {CodeBlock} from '@astryxdesign/core/CodeBlock';
+import {Heading, Text} from '@astryxdesign/core/Text';
 import {useToast} from '@astryxdesign/core/Toast';
-import {Check, Eye, ShieldAlert, XCircle} from 'lucide-react';
 
 interface HeldDeal {
   id: string;
@@ -117,13 +112,6 @@ const HELD_DEALS: HeldDeal[] = [
   },
 ];
 
-const styles: Record<string, CSSProperties> = {
-  scrollArea: {
-    height: '100%',
-    overflowY: 'auto',
-  },
-};
-
 export default function ConduitLiveQuoteGatePage() {
   const showToast = useToast();
   const [selectedId, setSelectedId] = useState<string>(HELD_DEALS[0].id);
@@ -144,23 +132,21 @@ export default function ConduitLiveQuoteGatePage() {
       height="fill"
       header={
         <LayoutHeader hasDivider>
-          <VStack gap={2.5} width="100%">
-            <HStack justify="between" align="center" width="100%">
-              <HStack gap={2} align="center">
-                <StatusDot
-                  variant={pendingCount > 0 ? 'warning' : 'success'}
-                  label="Queue status"
-                  isPulsing={pendingCount > 0}
-                />
-                <Heading level={3}>Quote Gate</Heading>
-              </HStack>
-              <Token
-                label={
-                  pendingCount > 0 ? `${pendingCount} Held` : 'Queue Clear'
-                }
-                size="sm"
-                color={pendingCount > 0 ? 'orange' : 'green'}
-              />
+          <VStack gap={2}>
+            <HStack gap={2} vAlign="center">
+              <StackItem size="fill">
+                <HStack gap={2} vAlign="center">
+                  <StatusDot
+                    variant={pendingCount > 0 ? 'warning' : 'success'}
+                    label="Queue status"
+                    isPulsing={pendingCount > 0}
+                  />
+                  <Heading level={3}>Quote Gate</Heading>
+                </HStack>
+              </StackItem>
+              <Text type="supporting" color="secondary" hasTabularNumbers>
+                {pendingCount > 0 ? `${pendingCount} held` : 'Queue clear'}
+              </Text>
             </HStack>
 
             <SegmentedControl
@@ -181,176 +167,125 @@ export default function ConduitLiveQuoteGatePage() {
         </LayoutHeader>
       }
       content={
-        <LayoutContent role="main" padding={3} style={styles.scrollArea}>
-          <VStack gap={3}>
-            <Banner
-              status={
-                decision === 'approved'
-                  ? 'success'
+        <LayoutContent role="main" padding={4}>
+          <VStack gap={4}>
+            <VStack gap={1}>
+              <Text type="supporting" color="secondary">
+                {decision === 'approved'
+                  ? 'Counter-offer transmitted'
                   : decision === 'blocked'
-                    ? 'error'
-                    : 'warning'
-              }
-              container="card"
-              collapsible={false}
-              title={
-                decision === 'approved'
-                  ? `Approved $${deal.counterQuote} counter-offer`
-                  : decision === 'blocked'
-                    ? 'Outbound quote dropped at edge'
-                    : `Stopped $${deal.leakedQuote} below-floor quote`
-              }
-              description={
-                decision
-                  ? `Pass ${deal.passId} state updated in local control plane.`
-                  : `Original response was $${deal.floor - deal.leakedQuote} under your $${deal.floor} margin floor.`
-              }
+                    ? 'Outbound quote dropped at proxy'
+                    : 'Held at proxy · Undelivered'}
+              </Text>
+              <Heading level={4}>{deal.merchant}</Heading>
+              <Text type="supporting" color="secondary">
+                {deal.item}
+              </Text>
+            </VStack>
+
+            <Divider />
+
+            <MetadataList
+              columns="single"
+              label={{position: 'start', width: 112}}>
+              <MetadataListItem label="Buyer agent">
+                <Text type="body">{deal.agent}</Text>
+              </MetadataListItem>
+              <MetadataListItem label="Blocked quote">
+                <Text type="code" size="2xs" hasTabularNumbers>
+                  ${deal.leakedQuote}.00 USD (-${deal.floor - deal.leakedQuote}
+                  .00 below floor)
+                </Text>
+              </MetadataListItem>
+              <MetadataListItem label="Margin floor">
+                <Text type="code" size="2xs" hasTabularNumbers>
+                  ${deal.floor}.00 USD
+                </Text>
+              </MetadataListItem>
+              <MetadataListItem label="Counter quote">
+                <Text type="code" size="2xs" weight="semibold" hasTabularNumbers>
+                  ${deal.counterQuote}.00 USD (+${marginSaved}.00 / +$
+                  {netAboveFloor}.00 over floor)
+                </Text>
+              </MetadataListItem>
+              <MetadataListItem label="Scoped pass">
+                <Text type="code" size="2xs">
+                  {deal.passId} · 15m TTL
+                </Text>
+              </MetadataListItem>
+            </MetadataList>
+
+            <Divider />
+
+            <Switch
+              width="100%"
+              labelSpacing="spread"
+              label="Include value-add counter bundle"
+              description={deal.perk}
+              value={attachPerk}
+              isDisabled={Boolean(decision)}
+              onChange={setAttachPerk}
             />
 
-            <Card padding={3}>
-              <VStack gap={3}>
-                <HStack justify="between" align="center">
-                  <VStack gap={0.5}>
-                    <Heading level={4}>{deal.merchant}</Heading>
-                    <Text type="supporting" color="secondary">
-                      {deal.item}
-                    </Text>
-                  </VStack>
-                  <ShieldAlert size={18} />
-                </HStack>
-
-                <HStack gap={2} width="100%">
-                  <StackItem size="fill">
-                    <Card variant="red" padding={2.5}>
-                      <VStack gap={0.5}>
-                        <Text type="supporting" color="secondary">
-                          Blocked Leak
-                        </Text>
-                        <Heading level={3}>${deal.leakedQuote}</Heading>
-                      </VStack>
-                    </Card>
-                  </StackItem>
-                  <StackItem size="fill">
-                    <Card variant="muted" padding={2.5}>
-                      <VStack gap={0.5}>
-                        <Text type="supporting" color="secondary">
-                          Margin Floor
-                        </Text>
-                        <Heading level={3}>${deal.floor}</Heading>
-                      </VStack>
-                    </Card>
-                  </StackItem>
-                  <StackItem size="fill">
-                    <Card variant="green" padding={2.5}>
-                      <VStack gap={0.5}>
-                        <Text type="supporting" color="secondary">
-                          Counter
-                        </Text>
-                        <Heading level={3}>${deal.counterQuote}</Heading>
-                      </VStack>
-                    </Card>
-                  </StackItem>
-                </HStack>
-
-                <Divider />
-
-                <MetadataList
-                  columns="single"
-                  label={{position: 'start', width: 112}}>
-                  <MetadataListItem label="Buyer Agent">
-                    <Token label={deal.agent} size="sm" color="purple" />
-                  </MetadataListItem>
-                  <MetadataListItem label="Margin Rescue">
-                    <Text type="body" weight="semibold" hasTabularNumbers>
-                      +${marginSaved} (+${netAboveFloor} over floor)
-                    </Text>
-                  </MetadataListItem>
-                  <MetadataListItem label="Scoped Pass">
-                    <Token
-                      label={`${deal.passId} · 15m TTL`}
-                      size="sm"
-                      color="teal"
-                    />
-                  </MetadataListItem>
-                </MetadataList>
-
-                <Divider />
-
-                <Switch
-                  label="Include Value-Add Counter Bundle"
-                  description={deal.perk}
-                  value={attachPerk}
-                  onChange={setAttachPerk}
-                  labelSpacing="spread"
-                />
-
-                <VStack gap={2} width="100%">
-                  <Button
-                    label={`Approve & Counter at $${deal.counterQuote}`}
-                    variant="primary"
-                    width="100%"
-                    icon={<Check size={16} />}
-                    onClick={() => {
-                      setDecisions(prev => ({...prev, [deal.id]: 'approved'}));
-                      showToast({
-                        body: `Sent $${deal.counterQuote} counter-offer for ${deal.merchant}`,
-                        type: 'success',
-                        uniqueID: `ok-${deal.id}`,
-                      });
-                    }}
-                  />
-                  <HStack gap={2} width="100%">
-                    <StackItem size="fill">
-                      <Button
-                        label="Wire Diff"
-                        variant="secondary"
-                        width="100%"
-                        icon={<Eye size={16} />}
-                        onClick={() => setPayloadOpen(true)}
-                      />
-                    </StackItem>
-                    <StackItem size="fill">
-                      <Button
-                        label="Drop Quote"
-                        variant="destructive"
-                        width="100%"
-                        icon={<XCircle size={16} />}
-                        onClick={() => {
-                          setDecisions(prev => ({
-                            ...prev,
-                            [deal.id]: 'blocked',
-                          }));
-                          showToast({
-                            body: `Dropped below-floor quote for ${deal.merchant}`,
-                            uniqueID: `drop-${deal.id}`,
-                          });
-                        }}
-                      />
-                    </StackItem>
-                  </HStack>
-                </VStack>
-              </VStack>
-            </Card>
-          </VStack>
-
-          <BottomSheet
-            isOpen={payloadOpen}
-            onOpenChange={setPayloadOpen}
-            label="Intercepted Quote Payload"
-            padding={4}>
-            <VStack gap={3}>
-              <Heading level={3}>Outbound Payload Rewrite</Heading>
-              <CodeBlock
-                title={`${deal.merchant} · ${deal.passId}`}
-                language="json"
-                isDiff
-                size="sm"
+            <HStack gap={2}>
+              <Button
                 width="100%"
-                isWrapped
-                code={deal.rawDiff}
+                size="sm"
+                variant="primary"
+                isDisabled={Boolean(decision)}
+                label={`Transmit $${deal.counterQuote}`}
+                onClick={() => {
+                  setDecisions(prev => ({...prev, [deal.id]: 'approved'}));
+                  showToast({
+                    body: `Sent $${deal.counterQuote} counter-quote for ${deal.merchant}`,
+                    uniqueID: `approve-${deal.id}`,
+                  });
+                }}
               />
-            </VStack>
-          </BottomSheet>
+              <Button
+                width="100%"
+                size="sm"
+                variant="secondary"
+                label="View wire diff"
+                onClick={() => setPayloadOpen(true)}
+              />
+            </HStack>
+
+            {!decision && (
+              <Button
+                width="100%"
+                size="sm"
+                variant="ghost"
+                label="Drop outbound quote"
+                onClick={() => {
+                  setDecisions(prev => ({...prev, [deal.id]: 'blocked'}));
+                  showToast({
+                    body: `Dropped below-floor quote for ${deal.merchant}`,
+                    uniqueID: `block-${deal.id}`,
+                  });
+                }}
+              />
+            )}
+
+            <BottomSheet
+              isOpen={payloadOpen}
+              onOpenChange={setPayloadOpen}
+              label="Outbound JSON-RPC diff"
+              padding={4}>
+              <VStack gap={3}>
+                <Heading level={4}>{deal.merchant} · Wire Diff</Heading>
+                <CodeBlock
+                  code={deal.rawDiff}
+                  language="json"
+                  isDiff
+                  size="sm"
+                  width="100%"
+                  isWrapped
+                  title={`${deal.passId} · Outbound mutation`}
+                />
+              </VStack>
+            </BottomSheet>
+          </VStack>
         </LayoutContent>
       }
     />

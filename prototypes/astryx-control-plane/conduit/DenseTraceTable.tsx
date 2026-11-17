@@ -2,11 +2,12 @@
 
 'use client';
 
-import React from 'react';
-import {HStack} from '@astryxdesign/core/Layout';
-import {Text} from '@astryxdesign/core/Text';
-import {Badge} from '@astryxdesign/core/Badge';
+import React, {type CSSProperties} from 'react';
 import {EmptyState} from '@astryxdesign/core/EmptyState';
+import {HStack, StackItem, VStack} from '@astryxdesign/core/Layout';
+import {List, ListItem} from '@astryxdesign/core/List';
+import {StatusDot} from '@astryxdesign/core/StatusDot';
+import {Text} from '@astryxdesign/core/Text';
 import type {
   DeliveryPhase,
   TraceEvent,
@@ -21,21 +22,44 @@ interface DenseTraceTableProps {
   onResetFilter: () => void;
 }
 
-function renderPhaseBadge(phase: DeliveryPhase, httpStatus: number | null) {
+const styles: Record<string, CSSProperties> = {
+  root: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-background-surface)',
+    overflow: 'hidden',
+  },
+  groupHeader: {
+    padding: 'var(--spacing-2) var(--spacing-3)',
+    backgroundColor: 'var(--color-background-muted)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+    flexShrink: 0,
+  },
+  rows: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    overflowX: 'hidden',
+  },
+};
+
+function formatPhaseLabel(phase: DeliveryPhase, httpStatus: number | null): string {
   switch (phase) {
     case 'held_at_proxy':
-      return <Badge variant="warning" label="HELD · PROXY" />;
+      return 'Held at proxy';
     case 'awaiting_pass':
-      return <Badge variant="purple" label="AWAITING PASS" />;
+      return 'Awaiting pass';
     case 'delivered_modified':
-      return <Badge variant="info" label="200 · MODIFIED" />;
+      return `${httpStatus ?? 200} · Modified`;
     case 'pass_authorized':
-      return <Badge variant="success" label="200 · SETTLED" />;
+      return `${httpStatus ?? 200} · Settled`;
     case 'delivered_original':
-      return <Badge variant="success" label={`${httpStatus ?? 200} · DELIVERED`} />;
+      return `${httpStatus ?? 200} · Delivered`;
     case 'observed_inbound':
     default:
-      return <Badge variant="neutral" label={`${httpStatus ?? 200} · OBSERVED`} />;
+      return `${httpStatus ?? 200}`;
   }
 }
 
@@ -66,9 +90,6 @@ export function filterTraceEvents(
   }
 }
 
-const GRID_TEMPLATE =
-  '42px 92px 46px minmax(112px, 1.1fr) minmax(120px, 1.8fr) 68px 118px';
-
 export function DenseTraceTable({
   events,
   activeFilter,
@@ -91,220 +112,105 @@ export function DenseTraceTable({
   }, []);
 
   const filtered = filterTraceEvents(events, activeFilter);
-  const activeGrid = isNarrow
-    ? '44px minmax(0, 1fr) 118px'
-    : GRID_TEMPLATE;
 
   return (
-    <div
-      ref={containerRef}
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--color-background-surface)',
-        overflow: 'hidden',
-      }}>
-      {/* Trace Subheader */}
-      <div
-        style={{
-          padding: '6px 14px',
-          borderBottom: '1px solid var(--color-border-default)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 8,
-          flexShrink: 0,
-        }}>
+    <div ref={containerRef} style={styles.root}>
+      <div style={styles.groupHeader}>
         <HStack gap={2} vAlign="center">
-          <Text type="label" size="xs" weight="semibold">
-            Synchronized Execution Trace
-          </Text>
-          <Text type="supporting" size="2xs" hasTabularNumbers>
-            ({filtered.length}/{events.length})
-          </Text>
+          <StackItem size="fill">
+            <HStack gap={2} vAlign="center">
+              <Text type="label" color="secondary">
+                Execution Trace
+              </Text>
+              <Text type="supporting" color="secondary" hasTabularNumbers>
+                {filtered.length}
+                {filtered.length !== events.length ? ` of ${events.length}` : ''}
+              </Text>
+            </HStack>
+          </StackItem>
+          {!isNarrow && (
+            <Text type="supporting" color="secondary">
+              Select a row to inspect frame
+            </Text>
+          )}
         </HStack>
-        {!isNarrow && (
-          <Text type="supporting" size="2xs">
-            Select any frame to open canonical inspection
-          </Text>
-        )}
       </div>
 
-      {/* Dense Column Header (Zero Horizontal Scroll) */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: activeGrid,
-          gap: 8,
-          padding: '6px 14px',
-          borderBottom: '1px solid var(--color-border-default)',
-          backgroundColor:
-            'var(--color-background-subtle, var(--color-background-surface))',
-          alignItems: 'center',
-          flexShrink: 0,
-        }}>
-        <Text type="supporting" size="3xs" weight="semibold">
-          STEP
-        </Text>
-        {!isNarrow && (
-          <>
-            <Text type="supporting" size="3xs" weight="semibold">
-              DIRECTION
-            </Text>
-            <Text type="supporting" size="3xs" weight="semibold">
-              PROTO
-            </Text>
-            <Text type="supporting" size="3xs" weight="semibold">
-              TOOL / ENDPOINT
-            </Text>
-          </>
-        )}
-        <Text type="supporting" size="3xs" weight="semibold">
-          {isNarrow ? 'TOOL & OBSERVATION' : 'CANONICAL OBSERVATION'}
-        </Text>
-        {!isNarrow && (
-          <Text type="supporting" size="3xs" weight="semibold" justify="end">
-            LATENCY
-          </Text>
-        )}
-        <Text type="supporting" size="3xs" weight="semibold" justify="end">
-          DELIVERY STATE
-        </Text>
-      </div>
-
-      {/* Rows */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-        }}>
+      <div style={styles.rows}>
         {filtered.length === 0 ? (
-          <div style={{padding: 24}}>
+          <VStack padding={4}>
             <EmptyState
-              title="No frames match active trace filter"
-              description="Switch back to All frames to view the full causal sequence."
+              title="No matching trace frames"
+              description="Clear the active filter to see the full execution sequence."
               primaryAction={{
                 label: 'Show all frames',
                 onClick: onResetFilter,
               }}
+              isCompact
             />
-          </div>
+          </VStack>
         ) : (
-          filtered.map(ev => {
-            const isSelected = ev.id === selectedEventId;
-            const isHeld = ev.deliveryPhase === 'held_at_proxy';
+          <List density="compact" hasDividers>
+            {filtered.map(ev => {
+              const isHeld = ev.deliveryPhase === 'held_at_proxy';
+              const isPass = ev.deliveryPhase === 'awaiting_pass';
+              const directionLabel =
+                ev.direction === 'buyer_to_seller'
+                  ? 'Buyer → Seller'
+                  : ev.direction === 'buyer_to_gate'
+                    ? 'Buyer → Gate'
+                    : 'Seller → Buyer';
+              const phaseLabel = formatPhaseLabel(
+                ev.deliveryPhase,
+                ev.httpStatus,
+              );
 
-            return (
-              <div
-                key={ev.id}
-                role="row"
-                tabIndex={0}
-                data-testid={`trace-row-${ev.code}`}
-                onClick={() => onSelectEvent(ev.id)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelectEvent(ev.id);
-                  }
-                }}
-                style={{
-                  display: 'grid',
-                  gridTemplateColumns: activeGrid,
-                  gap: 8,
-                  padding: '7px 14px',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  borderBottom:
-                    '1px solid color-mix(in srgb, var(--color-border-default) 55%, transparent)',
-                  borderLeft: isSelected
-                    ? '3px solid var(--color-interactive-primary, #2563eb)'
-                    : isHeld
-                      ? '3px solid #d97706'
-                      : '3px solid transparent',
-                  backgroundColor: isSelected
-                    ? 'color-mix(in srgb, var(--color-interactive-primary, #2563eb) 9%, var(--color-background-surface))'
-                    : isHeld
-                      ? 'color-mix(in srgb, #f59e0b 7%, var(--color-background-surface))'
-                      : 'transparent',
-                }}>
-                <div style={{minWidth: 0}}>
-                  <Text
-                    type="code"
-                    size="2xs"
-                    weight="semibold"
-                    hasTabularNumbers>
-                    {ev.code}
-                  </Text>
-                </div>
-
-                {!isNarrow ? (
-                  <>
-                    <div style={{minWidth: 0}}>
-                      <Text type="supporting" size="2xs" maxLines={1}>
-                        {ev.direction === 'buyer_to_seller'
-                          ? 'Buyer → Seller'
-                          : ev.direction === 'buyer_to_gate'
-                            ? 'Buyer → Gate'
-                            : 'Seller → Buyer'}
-                      </Text>
-                    </div>
-
-                    <div style={{minWidth: 0}}>
-                      <Badge
-                        variant={ev.protocol === 'MCP' ? 'cyan' : 'neutral'}
-                        label={ev.protocol}
+              return (
+                <div key={ev.id} data-testid={`trace-row-${ev.code}`}>
+                  <ListItem
+                    isSelected={ev.id === selectedEventId}
+                    onClick={() => onSelectEvent(ev.id)}
+                    startContent={
+                      <StatusDot
+                        variant={
+                          isHeld
+                            ? 'warning'
+                            : isPass
+                              ? 'accent'
+                              : 'neutral'
+                        }
+                        isPulsing={isHeld}
+                        label={phaseLabel}
                       />
-                    </div>
-
-                    <div style={{minWidth: 0}}>
-                      <Text type="code" size="2xs" maxLines={1}>
-                        {ev.toolOrEndpoint}
-                      </Text>
-                    </div>
-
-                    <div style={{minWidth: 0}}>
-                      <Text type="body" size="xs" maxLines={1}>
-                        {ev.observation}
-                      </Text>
-                    </div>
-
-                    <div style={{minWidth: 0, textAlign: 'right'}}>
-                      <Text
-                        type="code"
-                        size="2xs"
-                        color={isHeld ? 'primary' : 'secondary'}
-                        hasTabularNumbers
-                        maxLines={1}>
-                        {ev.durationLabel}
-                      </Text>
-                    </div>
-                  </>
-                ) : (
-                  <div style={{minWidth: 0}}>
-                    <Text type="code" size="2xs" maxLines={1}>
-                      {ev.toolOrEndpoint}
-                    </Text>
-                    <Text type="supporting" size="2xs" maxLines={1}>
-                      {ev.observation}
-                    </Text>
-                  </div>
-                )}
-
-                <div
-                  style={{
-                    minWidth: 0,
-                    display: 'flex',
-                    justifyContent: 'flex-end',
-                  }}>
-                  {renderPhaseBadge(ev.deliveryPhase, ev.httpStatus)}
+                    }
+                    label={`${ev.code} · ${ev.toolOrEndpoint}`}
+                    description={`${ev.protocol} · ${directionLabel} · ${ev.observation}`}
+                    endContent={
+                      <HStack gap={3} vAlign="center">
+                        {!isNarrow && (
+                          <Text
+                            type="code"
+                            size="2xs"
+                            color="secondary"
+                            hasTabularNumbers>
+                            {ev.durationLabel}
+                          </Text>
+                        )}
+                        <Text
+                          type="code"
+                          size="2xs"
+                          color={isHeld ? 'primary' : 'secondary'}
+                          weight={isHeld ? 'semibold' : 'normal'}
+                          hasTabularNumbers>
+                          {phaseLabel}
+                        </Text>
+                      </HStack>
+                    }
+                  />
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+          </List>
         )}
       </div>
     </div>

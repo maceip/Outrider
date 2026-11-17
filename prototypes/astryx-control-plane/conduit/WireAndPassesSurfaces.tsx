@@ -2,20 +2,22 @@
 
 'use client';
 
-import React, {useState} from 'react';
-import {HStack, VStack} from '@astryxdesign/core/Layout';
-import {Heading, Text} from '@astryxdesign/core/Text';
-import {Badge} from '@astryxdesign/core/Badge';
+import React, {useState, type CSSProperties} from 'react';
 import {Button} from '@astryxdesign/core/Button';
-import {Card} from '@astryxdesign/core/Card';
 import {CodeBlock} from '@astryxdesign/core/CodeBlock';
+import {Divider} from '@astryxdesign/core/Divider';
+import {EmptyState} from '@astryxdesign/core/EmptyState';
+import {HStack, StackItem, VStack} from '@astryxdesign/core/Layout';
+import {List, ListItem} from '@astryxdesign/core/List';
 import {MetadataList, MetadataListItem} from '@astryxdesign/core/MetadataList';
+import {ResizeHandle, useResizable} from '@astryxdesign/core/Resizable';
 import {
   SegmentedControl,
   SegmentedControlItem,
 } from '@astryxdesign/core/SegmentedControl';
-import {Token} from '@astryxdesign/core/Token';
-import {ResizeHandle, useResizable} from '@astryxdesign/core/Resizable';
+import {StatusDot} from '@astryxdesign/core/StatusDot';
+import {Heading, Text} from '@astryxdesign/core/Text';
+import {useMediaQuery} from '@astryxdesign/core/hooks';
 import type {
   CapabilityPassRecord,
   MerchantSession,
@@ -28,12 +30,61 @@ interface WireSurfaceProps {
   onSelectEvent: (eventId: string) => void;
 }
 
+const styles: Record<string, CSSProperties> = {
+  root: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-background-surface)',
+    overflow: 'hidden',
+  },
+  toolbar: {
+    padding: 'var(--spacing-2) var(--spacing-4)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+    flexShrink: 0,
+  },
+  splitBody: {
+    flex: 1,
+    minHeight: 0,
+    display: 'flex',
+    overflow: 'hidden',
+  },
+  splitBodyVertical: {
+    flex: 1,
+    minHeight: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    overflowY: 'auto',
+  },
+  packetList: {
+    flex: 1,
+    minWidth: 0,
+    overflowY: 'auto',
+  },
+  detailPane: {
+    flexShrink: 0,
+    overflowY: 'auto',
+    padding: 'var(--spacing-4)',
+  },
+  passesScroll: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+  },
+  passRow: {
+    padding: 'var(--spacing-3) var(--spacing-4)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+  },
+};
+
 export function WireSurface({
   session,
   selectedEventId,
   onSelectEvent,
 }: WireSurfaceProps) {
   const [protoFilter, setProtoFilter] = useState<'all' | 'MCP' | 'HTTP'>('all');
+  const isNarrow = useMediaQuery('(max-width: 900px)');
   const detailSplit = useResizable({
     defaultSize: 420,
     minSize: 280,
@@ -46,38 +97,66 @@ export function WireSurface({
   const activeFrame: TraceEvent | null =
     frames.find(f => f.id === selectedEventId) ?? frames[0] ?? null;
 
+  const detailContent = activeFrame ? (
+    <VStack gap={3}>
+      <HStack gap={2} vAlign="center">
+        <StackItem size="fill">
+          <Heading level={5}>
+            Packet #{activeFrame.seq} · {activeFrame.code}
+          </Heading>
+        </StackItem>
+        <Text type="code" size="2xs" color="secondary" hasTabularNumbers>
+          {activeFrame.durationLabel}
+        </Text>
+      </HStack>
+
+      <MetadataList columns="single" label={{position: 'start', width: 140}}>
+        {Object.entries(activeFrame.headers).map(([k, v]) => (
+          <MetadataListItem key={k} label={k}>
+            <Text type="code" size="2xs">
+              {v}
+            </Text>
+          </MetadataListItem>
+        ))}
+      </MetadataList>
+
+      <Divider />
+
+      <CodeBlock
+        code={activeFrame.rawOriginalJson}
+        language="json"
+        size="sm"
+        width="100%"
+        isWrapped
+        title={`${activeFrame.code} · Upstream / Inbound Frame`}
+      />
+
+      {activeFrame.wireDiffJson && (
+        <CodeBlock
+          code={activeFrame.wireDiffJson}
+          language="json"
+          isDiff
+          size="sm"
+          width="100%"
+          isWrapped
+          title={`${activeFrame.code} · Conduit Outbound Mutation Diff`}
+        />
+      )}
+    </VStack>
+  ) : null;
+
   return (
-    <div
-      data-testid="wire-surface"
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--color-background-surface)',
-        overflow: 'hidden',
-      }}>
-      {/* Wire Filter Toolbar */}
-      <div
-        style={{
-          padding: '8px 14px',
-          borderBottom: '1px solid var(--color-border-default)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexWrap: 'wrap',
-          flexShrink: 0,
-        }}>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 10,
-            maxWidth: '100%',
-          }}>
-          <Heading level={5}>Wire Evidence Capture</Heading>
+    <div data-testid="wire-surface" style={styles.root}>
+      <div style={styles.toolbar}>
+        <HStack gap={3} vAlign="center" wrap="wrap">
+          <StackItem size="fill">
+            <HStack gap={2} vAlign="center" wrap="wrap">
+              <Heading level={5}>Wire Evidence Capture</Heading>
+              <Text type="supporting" color="secondary" hasTabularNumbers>
+                {session.merchantHost} · {frames.length} packets
+              </Text>
+            </HStack>
+          </StackItem>
           <SegmentedControl
             size="sm"
             label="Filter protocol"
@@ -87,152 +166,85 @@ export function WireSurface({
             <SegmentedControlItem value="MCP" label="MCP" />
             <SegmentedControlItem value="HTTP" label="HTTP" />
           </SegmentedControl>
-        </div>
-        <Text type="supporting" size="2xs" hasTabularNumbers>
-          Host: {session.merchantHost} · {frames.length} captured packets
-        </Text>
+        </HStack>
       </div>
 
-      {/* Horizontal Split: Packet List + Raw Wire Envelope */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          overflow: 'hidden',
-        }}>
-        <div
-          style={{
-            flex: 1,
-            minWidth: 0,
-            overflowY: 'auto',
-            borderRight: '1px solid var(--color-border-default)',
-          }}>
-          {frames.map(f => {
-            const selected = activeFrame?.id === f.id;
-            return (
-              <div
+      {isNarrow ? (
+        <div style={styles.splitBodyVertical}>
+          <List density="compact" hasDividers>
+            {frames.map(f => (
+              <ListItem
                 key={f.id}
-                role="button"
-                tabIndex={0}
+                isSelected={activeFrame?.id === f.id}
                 onClick={() => onSelectEvent(f.id)}
-                onKeyDown={e => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onSelectEvent(f.id);
+                startContent={
+                  f.deliveryPhase === 'held_at_proxy' ? (
+                    <StatusDot variant="warning" label="Held" />
+                  ) : undefined
+                }
+                label={`${f.code} · ${f.toolOrEndpoint}`}
+                description={`${f.protocol} · ${f.sourceActor} → ${f.targetActor} · ${f.timestamp}`}
+                endContent={
+                  <Text
+                    type="code"
+                    size="2xs"
+                    color="secondary"
+                    hasTabularNumbers>
+                    {f.deliveryPhase === 'held_at_proxy'
+                      ? 'Held'
+                      : String(f.httpStatus ?? 200)}
+                  </Text>
+                }
+              />
+            ))}
+          </List>
+          <Divider />
+          <div style={styles.detailPane}>{detailContent}</div>
+        </div>
+      ) : (
+        <div style={styles.splitBody}>
+          <div style={styles.packetList}>
+            <List density="compact" hasDividers>
+              {frames.map(f => (
+                <ListItem
+                  key={f.id}
+                  isSelected={activeFrame?.id === f.id}
+                  onClick={() => onSelectEvent(f.id)}
+                  startContent={
+                    f.deliveryPhase === 'held_at_proxy' ? (
+                      <StatusDot variant="warning" label="Held" />
+                    ) : undefined
                   }
-                }}
-                style={{
-                  padding: '9px 14px',
-                  cursor: 'pointer',
-                  borderBottom: '1px solid var(--color-border-default)',
-                  backgroundColor: selected
-                    ? 'color-mix(in srgb, var(--color-interactive-primary, #2563eb) 9%, var(--color-background-surface))'
-                    : 'transparent',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 10,
-                }}>
-                <div style={{minWidth: 0}}>
-                  <HStack gap={1.5} vAlign="center">
+                  label={`#${f.seq} · ${f.code} · ${f.toolOrEndpoint}`}
+                  description={`${f.protocol} · ${f.sourceActor} → ${f.targetActor} · ${f.timestamp}`}
+                  endContent={
                     <Text
                       type="code"
                       size="2xs"
-                      weight="semibold"
+                      color="secondary"
                       hasTabularNumbers>
-                      #{f.seq} · {f.code}
+                      {f.deliveryPhase === 'held_at_proxy'
+                        ? 'Held'
+                        : String(f.httpStatus ?? 200)}
                     </Text>
-                    <Badge
-                      variant={f.protocol === 'MCP' ? 'cyan' : 'neutral'}
-                      label={f.protocol}
-                    />
-                    <Text type="code" size="2xs" maxLines={1}>
-                      {f.toolOrEndpoint}
-                    </Text>
-                  </HStack>
-                  <Text type="supporting" size="2xs" maxLines={1}>
-                    {f.sourceActor} → {f.targetActor} · {f.timestamp}
-                  </Text>
-                </div>
-                <Badge
-                  variant={
-                    f.deliveryPhase === 'held_at_proxy'
-                      ? 'warning'
-                      : f.deliveryPhase === 'awaiting_pass'
-                        ? 'purple'
-                        : 'success'
-                  }
-                  label={
-                    f.deliveryPhase === 'held_at_proxy'
-                      ? 'HELD'
-                      : String(f.httpStatus ?? 200)
                   }
                 />
-              </div>
-            );
-          })}
-        </div>
+              ))}
+            </List>
+          </div>
 
-        <ResizeHandle
-          direction="horizontal"
-          isReversed
-          hasDivider
-          resizable={detailSplit.props}
-          label="Resize raw packet pane"
-        />
+          <ResizeHandle
+            direction="horizontal"
+            hasDivider
+            resizable={detailSplit.props}
+            label="Resize raw packet pane"
+          />
 
-        <div
-          style={{
-            width: detailSplit.size,
-            flexShrink: 0,
-            overflowY: 'auto',
-            padding: '12px 14px',
-          }}>
-          {activeFrame && (
-            <VStack gap={3}>
-              <HStack hAlign="between" vAlign="center">
-                <Text type="label" size="xs" weight="semibold">
-                  Packet #{activeFrame.seq} ({activeFrame.code}) Headers
-                </Text>
-                <Token
-                  size="sm"
-                  color="gray"
-                  label={activeFrame.durationLabel}
-                />
-              </HStack>
-              <Card variant="muted" padding={3}>
-                <MetadataList size="sm">
-                  {Object.entries(activeFrame.headers).map(([k, v]) => (
-                    <MetadataListItem key={k} label={k}>
-                      {v}
-                    </MetadataListItem>
-                  ))}
-                </MetadataList>
-              </Card>
-              <CodeBlock
-                code={activeFrame.rawOriginalJson}
-                language="json"
-                size="sm"
-                width="100%"
-                isWrapped
-                title={`${activeFrame.code} · Upstream / Inbound Frame`}
-              />
-              {activeFrame.wireDiffJson && (
-                <CodeBlock
-                  code={activeFrame.wireDiffJson}
-                  language="json"
-                  isDiff
-                  size="sm"
-                  width="100%"
-                  isWrapped
-                  title={`${activeFrame.code} · Conduit Outbound Mutation Diff`}
-                />
-              )}
-            </VStack>
-          )}
+          <div style={{...styles.detailPane, width: detailSplit.size}}>
+            {detailContent}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -255,36 +267,18 @@ export function PassesSurface({
   );
 
   return (
-    <div
-      data-testid="passes-surface"
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        backgroundColor: 'var(--color-background-surface)',
-        overflow: 'hidden',
-      }}>
-      <div
-        style={{
-          padding: '10px 16px',
-          borderBottom: '1px solid var(--color-border-default)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexWrap: 'wrap',
-          flexShrink: 0,
-        }}>
-        <div
-          style={{
-            display: 'flex',
-            flexWrap: 'wrap',
-            alignItems: 'center',
-            gap: 10,
-            maxWidth: '100%',
-          }}>
-          <Heading level={5}>Scoped Capability Passes Ledger</Heading>
+    <div data-testid="passes-surface" style={styles.root}>
+      <div style={styles.toolbar}>
+        <HStack gap={3} vAlign="center" wrap="wrap">
+          <StackItem size="fill">
+            <VStack gap={0.5}>
+              <Heading level={5}>Scoped Capability Passes</Heading>
+              <Text type="supporting" color="secondary">
+                Ed25519 single-use checkout capabilities bound to SKU, spend
+                ceiling, and TTL
+              </Text>
+            </VStack>
+          </StackItem>
           <SegmentedControl
             size="sm"
             label="Filter pass status"
@@ -296,91 +290,103 @@ export function PassesSurface({
             <SegmentedControlItem value="Exhausted" label="Exhausted" />
             <SegmentedControlItem value="Revoked" label="Revoked" />
           </SegmentedControl>
-        </div>
-        <Text type="supporting" size="2xs">
-          Ed25519 single-use checkout capabilities bound to SKU, amount cap, and
-          TTL
-        </Text>
+        </HStack>
       </div>
 
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          padding: '14px 16px',
-        }}>
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
-            gap: 12,
-          }}>
-          {visible.map(pass => (
-            <Card key={pass.id} padding={3}>
-              <VStack gap={2.5}>
-                <HStack hAlign="between" vAlign="center">
-                  <Text type="code" size="xs" weight="semibold">
-                    {pass.id}
-                  </Text>
-                  <Badge
-                    variant={
-                      pass.status === 'Active'
-                        ? 'success'
-                        : pass.status === 'Awaiting Approval'
-                          ? 'purple'
-                          : pass.status === 'Revoked'
-                            ? 'error'
-                            : 'neutral'
-                    }
-                    label={pass.status}
-                  />
-                </HStack>
-                <MetadataList size="sm">
-                  <MetadataListItem label="Merchant">
-                    {pass.merchantHost}
-                  </MetadataListItem>
-                  <MetadataListItem label="Buyer Agent">
-                    {pass.buyerAgent}
-                  </MetadataListItem>
-                  <MetadataListItem label="Pinned SKU">
-                    {pass.sku}
-                  </MetadataListItem>
-                  <MetadataListItem label="Spend Ceiling">
-                    ${pass.capUsd}.00 USD ({pass.remainingCalls} call remaining)
-                  </MetadataListItem>
-                  <MetadataListItem label="TTL / Issued">
-                    {pass.ttl} · {pass.issuedAt}
-                  </MetadataListItem>
-                  <MetadataListItem label="Signature">
-                    {pass.signature}
-                  </MetadataListItem>
-                </MetadataList>
+      {/* Edge-to-edge ledger rows with dividers — zero Card grid, zero Badges */}
+      <div style={styles.passesScroll}>
+        {visible.length === 0 ? (
+          <VStack padding={4}>
+            <EmptyState
+              title="No capability passes match filter"
+              description="Switch to All to view every issued and pending checkout pass."
+              primaryAction={{
+                label: 'Show all passes',
+                onClick: () => setStatusFilter('all'),
+              }}
+              isCompact
+            />
+          </VStack>
+        ) : (
+          visible.map(pass => (
+            <div key={pass.id} style={styles.passRow}>
+              <VStack gap={2}>
+                <HStack gap={2} vAlign="center" wrap="wrap">
+                  <StackItem size="fill">
+                    <HStack gap={2} vAlign="center">
+                      <StatusDot
+                        variant={
+                          pass.status === 'Active'
+                            ? 'success'
+                            : pass.status === 'Awaiting Approval'
+                              ? 'warning'
+                              : pass.status === 'Revoked'
+                                ? 'error'
+                                : 'neutral'
+                        }
+                        label={pass.status}
+                      />
+                      <Text type="code" size="2xs" weight="semibold">
+                        {pass.id}
+                      </Text>
+                      <Text type="supporting" color="secondary">
+                        · {pass.status}
+                      </Text>
+                    </HStack>
+                  </StackItem>
 
-                <HStack gap={2}>
                   {pass.status === 'Awaiting Approval' && (
                     <Button
                       size="sm"
                       variant="primary"
-                      width="100%"
-                      label={`Sign & Issue ($${pass.capUsd}.00)`}
+                      label={`Sign & issue ($${pass.capUsd}.00)`}
                       onClick={() => onApprovePendingPass(pass.id)}
                     />
                   )}
                   {pass.status === 'Active' && (
                     <Button
                       size="sm"
-                      variant="destructive"
-                      width="100%"
-                      label="Revoke Pass"
+                      variant="secondary"
+                      label="Revoke"
                       onClick={() => onRevokePass(pass.id)}
                     />
                   )}
                 </HStack>
+
+                <MetadataList columns="auto">
+                  <MetadataListItem label="Merchant">
+                    <Text type="body">{pass.merchantHost}</Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Buyer agent">
+                    <Text type="code" size="2xs">
+                      {pass.buyerAgent}
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Pinned SKU">
+                    <Text type="code" size="2xs">
+                      {pass.sku}
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Spend ceiling">
+                    <Text type="body" hasTabularNumbers>
+                      ${pass.capUsd}.00 USD ({pass.remainingCalls} call left)
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="TTL / Issued">
+                    <Text type="body" hasTabularNumbers>
+                      {pass.ttl} · {pass.issuedAt}
+                    </Text>
+                  </MetadataListItem>
+                  <MetadataListItem label="Signature">
+                    <Text type="code" size="2xs">
+                      {pass.signature}
+                    </Text>
+                  </MetadataListItem>
+                </MetadataList>
               </VStack>
-            </Card>
-          ))}
-        </div>
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

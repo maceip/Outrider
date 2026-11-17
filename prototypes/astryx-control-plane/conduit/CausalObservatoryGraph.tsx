@@ -2,12 +2,14 @@
 
 'use client';
 
-import React from 'react';
-import {HStack, VStack} from '@astryxdesign/core/Layout';
-import {Text} from '@astryxdesign/core/Text';
-import {Badge} from '@astryxdesign/core/Badge';
+import React, {type CSSProperties} from 'react';
+import {ClickableCard} from '@astryxdesign/core/ClickableCard';
+import {Grid} from '@astryxdesign/core/Grid';
+import {Divider} from '@astryxdesign/core/Divider';
+import {HStack, StackItem, VStack} from '@astryxdesign/core/Layout';
+import {MetadataList, MetadataListItem} from '@astryxdesign/core/MetadataList';
 import {StatusDot} from '@astryxdesign/core/StatusDot';
-import {Token} from '@astryxdesign/core/Token';
+import {Text} from '@astryxdesign/core/Text';
 import type {MerchantSession, TraceEvent} from './conduitState';
 
 interface CausalObservatoryGraphProps {
@@ -17,66 +19,73 @@ interface CausalObservatoryGraphProps {
   expanded?: boolean;
 }
 
-function getNodeStateMeta(ev: TraceEvent): {
-  badgeVariant: 'warning' | 'success' | 'info' | 'neutral' | 'purple';
-  badgeLabel: string;
-  borderVar: string;
-  bgTint: string;
-  actorLane: 'buyer' | 'proxy' | 'seller';
-} {
-  if (ev.deliveryPhase === 'held_at_proxy') {
-    return {
-      badgeVariant: 'warning',
-      badgeLabel: 'HELD',
-      borderVar: 'var(--color-feedback-warning, #d97706)',
-      bgTint: 'color-mix(in srgb, #f59e0b 11%, var(--color-background-surface))',
-      actorLane: 'proxy',
-    };
+const styles: Record<string, CSSProperties> = {
+  root: {
+    height: '100%',
+    width: '100%',
+    display: 'flex',
+    flexDirection: 'column',
+    backgroundColor: 'var(--color-background-body)',
+    overflow: 'hidden',
+  },
+  headerBar: {
+    padding: 'var(--spacing-2) var(--spacing-3)',
+    backgroundColor: 'var(--color-background-surface)',
+    borderBottom: 'var(--border-width) solid var(--color-border)',
+    flexShrink: 0,
+  },
+  canvas: {
+    flex: 1,
+    minHeight: 0,
+    overflowY: 'auto',
+    overflowX: 'hidden',
+    padding: 'var(--spacing-3)',
+  },
+  selectedRing: {
+    borderRadius: 'var(--radius-container)',
+    outline: '1.5px solid var(--color-border-emphasized)',
+    outlineOffset: -1,
+  },
+  unreachedNode: {
+    borderRadius: 'var(--radius-container)',
+    border: 'var(--border-width) dashed var(--color-border)',
+    padding: 'var(--spacing-3)',
+    opacity: 0.72,
+  },
+  summaryBar: {
+    padding: 'var(--spacing-2) var(--spacing-3)',
+    borderRadius: 'var(--radius-element)',
+    backgroundColor: 'var(--color-background-surface)',
+    border: 'var(--border-width) solid var(--color-border)',
+  },
+};
+
+function getNodeStatusText(ev: TraceEvent): string {
+  switch (ev.deliveryPhase) {
+    case 'held_at_proxy':
+      return 'Held';
+    case 'awaiting_pass':
+      return 'Awaiting pass';
+    case 'delivered_modified':
+      return 'Modified';
+    case 'pass_authorized':
+      return 'Settled';
+    case 'delivered_original':
+    case 'observed_inbound':
+    default:
+      return `${ev.httpStatus ?? 200}`;
   }
-  if (ev.deliveryPhase === 'awaiting_pass') {
-    return {
-      badgeVariant: 'purple',
-      badgeLabel: 'PASS GATE',
-      borderVar: '#8b5cf6',
-      bgTint: 'color-mix(in srgb, #8b5cf6 10%, var(--color-background-surface))',
-      actorLane: 'proxy',
-    };
+}
+
+function getActorRole(ev: TraceEvent): string {
+  if (
+    ev.deliveryPhase === 'held_at_proxy' ||
+    ev.deliveryPhase === 'awaiting_pass' ||
+    ev.deliveryPhase === 'delivered_modified'
+  ) {
+    return 'Proxy';
   }
-  if (ev.deliveryPhase === 'delivered_modified') {
-    return {
-      badgeVariant: 'info',
-      badgeLabel: 'MODIFIED',
-      borderVar: 'var(--color-interactive-primary, #2563eb)',
-      bgTint:
-        'color-mix(in srgb, var(--color-interactive-primary, #2563eb) 9%, var(--color-background-surface))',
-      actorLane: 'proxy',
-    };
-  }
-  if (ev.deliveryPhase === 'pass_authorized') {
-    return {
-      badgeVariant: 'success',
-      badgeLabel: 'SETTLED',
-      borderVar: '#16a34a',
-      bgTint: 'color-mix(in srgb, #16a34a 9%, var(--color-background-surface))',
-      actorLane: 'buyer',
-    };
-  }
-  if (ev.direction === 'seller_to_buyer') {
-    return {
-      badgeVariant: 'success',
-      badgeLabel: '200 OK',
-      borderVar: 'var(--color-border-default)',
-      bgTint: 'var(--color-background-surface)',
-      actorLane: 'seller',
-    };
-  }
-  return {
-    badgeVariant: 'neutral',
-    badgeLabel: `${ev.protocol} ${ev.httpStatus ?? 200}`,
-    borderVar: 'var(--color-border-default)',
-    bgTint: 'var(--color-background-surface)',
-    actorLane: 'buyer',
-  };
+  return ev.direction === 'seller_to_buyer' ? 'Seller' : 'Buyer';
 }
 
 export function CausalObservatoryGraph({
@@ -94,356 +103,234 @@ export function CausalObservatoryGraph({
     e => e.deliveryPhase === 'held_at_proxy',
   );
 
-  return (
-    <div
-      style={{
-        height: '100%',
-        width: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        background:
-          'radial-gradient(circle at 1px 1px, color-mix(in srgb, var(--color-border-default) 55%, transparent) 1px, transparent 0)',
-        backgroundSize: '18px 18px',
-        backgroundColor: 'var(--color-background-subtle, var(--color-background-surface))',
-        overflow: 'hidden',
-      }}>
-      {/* Compact Observatory Header Bar */}
-      <div
-        style={{
-          padding: '8px 14px',
-          borderBottom: '1px solid var(--color-border-subtle, var(--color-border-default))',
-          backgroundColor: 'var(--color-background-surface)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 12,
-          flexShrink: 0,
-          flexWrap: 'wrap',
-        }}>
-        <HStack gap={2} vAlign="center">
-          <Text type="label" weight="semibold">
-            Causal Observatory
-          </Text>
-          <Token
-            size="sm"
-            color="gray"
-            label={`${session.buyerAgentId} ↔ Conduit Proxy ↔ ${session.merchantHost}`}
-          />
-        </HStack>
+  const upstreamSummary = (offerEvent?.upstreamOffers ?? [])
+    .map(o => `${o.id} $${o.price}`)
+    .join(', ');
 
-        <HStack gap={3} vAlign="center">
-          <StatusDot
-            variant={heldR02 ? 'warning' : 'success'}
-            isPulsing={Boolean(heldR02)}
-            label={
-              heldR02
-                ? `${heldR02.code} held in proxy · buyer has 0 offers`
-                : 'Wire synchronized · 0 frames held'
-            }
-          />
+  const stagedSummary = offerEvent?.stagedOffer
+    ? offerEvent.deliveryPhase === 'delivered_modified'
+      ? `Delivered +${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price}`
+      : offerEvent.mutationEnabled !== false
+        ? `Staged +${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price} (undelivered)`
+        : `${offerEvent.stagedOffer.id} mutation disabled`
+    : null;
+
+  return (
+    <div style={styles.root}>
+      <div style={styles.headerBar}>
+        <HStack gap={2} vAlign="center" wrap="wrap">
+          <StackItem size="fill">
+            <HStack gap={2} vAlign="center" wrap="wrap">
+              <Text type="label" color="secondary">
+                Causal Observatory
+              </Text>
+              <Text type="supporting" color="secondary">
+                {session.buyerAgentId} → Conduit → {session.merchantHost}
+              </Text>
+            </HStack>
+          </StackItem>
+          <HStack gap={1.5} vAlign="center">
+            <StatusDot
+              variant={heldR02 ? 'warning' : 'neutral'}
+              isPulsing={Boolean(heldR02)}
+              label={
+                heldR02
+                  ? `${heldR02.code} held at proxy`
+                  : 'Wire synchronized'
+              }
+            />
+            <Text type="supporting" color="secondary">
+              {heldR02 ? `${heldR02.code} held (undelivered)` : 'Synchronized'}
+            </Text>
+          </HStack>
         </HStack>
       </div>
 
-      {/* Main Causal Spine + Commercial Offer Cradle */}
-      <div
-        style={{
-          flex: 1,
-          minHeight: 0,
-          overflowY: 'auto',
-          overflowX: 'hidden',
-          padding: expanded ? '18px 20px' : '12px 16px',
-          display: 'flex',
-          flexDirection: 'column',
-          justifyContent: 'space-between',
-          gap: 12,
-        }}>
-        {/* Causal Flow Grid: Responsive wrap with zero horizontal scroll */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: `repeat(auto-fit, minmax(${expanded ? '210px' : '172px'}, 1fr))`,
-            gap: 10,
-            alignItems: 'stretch',
-          }}>
-          {session.events.map((ev, idx) => {
-            const isSelected = ev.id === selectedEventId;
-            const meta = getNodeStateMeta(ev);
-            const laneLabel =
-              meta.actorLane === 'buyer'
-                ? 'Buyer'
-                : meta.actorLane === 'proxy'
-                  ? 'Proxy Gate'
-                  : 'Seller';
+      <div style={styles.canvas}>
+        <VStack gap={3}>
+          <Grid
+            columns={{minWidth: expanded ? 220 : 172, max: 5, repeat: 'fit'}}
+            gap={2}>
+            {session.events.map((ev, idx) => {
+              const isSelected = ev.id === selectedEventId;
+              const isHeld = ev.deliveryPhase === 'held_at_proxy';
+              const isPassGate = ev.deliveryPhase === 'awaiting_pass';
+              const statusText = getNodeStatusText(ev);
 
-            return (
-              <button
-                key={ev.id}
-                type="button"
-                onClick={() => onSelectEvent(ev.id)}
-                data-testid={`graph-node-${ev.code}`}
-                style={{
-                  textAlign: 'left',
-                  cursor: 'pointer',
-                  borderRadius: 10,
-                  padding: expanded ? '12px 13px' : '9px 11px',
-                  border: isSelected
-                    ? `2px solid var(--color-interactive-primary, #2563eb)`
-                    : `1px solid ${meta.borderVar}`,
-                  backgroundColor: meta.bgTint,
-                  boxShadow: isSelected
-                    ? '0 0 0 3px color-mix(in srgb, var(--color-interactive-primary, #2563eb) 18%, transparent)'
-                    : 'none',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                  minWidth: 0,
-                  position: 'relative',
-                  transition: 'border-color 120ms ease, box-shadow 120ms ease',
-                }}>
+              return (
                 <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    gap: 6,
-                    minWidth: 0,
-                  }}>
-                  <HStack gap={1.5} vAlign="center">
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-family-mono, monospace)',
-                        fontSize: 11,
-                        fontWeight: 700,
-                        padding: '1px 5px',
-                        borderRadius: 4,
-                        backgroundColor:
-                          'color-mix(in srgb, var(--color-text-primary) 9%, transparent)',
-                        color: 'var(--color-text-primary)',
-                      }}>
-                      {idx + 1}. {ev.code}
-                    </span>
-                    <Text type="supporting" size="2xs" maxLines={1}>
-                      {laneLabel}
+                  key={ev.id}
+                  data-testid={`graph-node-${ev.code}`}
+                  style={isSelected ? styles.selectedRing : undefined}>
+                  <ClickableCard
+                    variant={isSelected ? 'muted' : 'default'}
+                    padding={expanded ? 3 : 2}
+                    height="100%"
+                    label={`Inspect ${ev.code} ${ev.toolOrEndpoint}`}
+                    onClick={() => onSelectEvent(ev.id)}>
+                    <VStack gap={1.5}>
+                      <HStack gap={1.5} vAlign="center">
+                        <StackItem size="fill">
+                          <HStack gap={1.5} vAlign="center">
+                            {(isHeld || isPassGate) && (
+                              <StatusDot
+                                variant={isHeld ? 'warning' : 'accent'}
+                                isPulsing={isHeld}
+                                label={statusText}
+                              />
+                            )}
+                            <Text
+                              type="code"
+                              size="2xs"
+                              weight="semibold"
+                              hasTabularNumbers>
+                              {idx + 1}. {ev.code}
+                            </Text>
+                            <Text
+                              type="supporting"
+                              size="2xs"
+                              color="secondary"
+                              maxLines={1}>
+                              {getActorRole(ev)}
+                            </Text>
+                          </HStack>
+                        </StackItem>
+                        <Text
+                          type="code"
+                          size="2xs"
+                          color={isHeld ? 'primary' : 'secondary'}
+                          weight={isHeld ? 'semibold' : 'normal'}
+                          hasTabularNumbers>
+                          {statusText}
+                        </Text>
+                      </HStack>
+
+                      <VStack gap={0.5}>
+                        <Text
+                          type="code"
+                          size="2xs"
+                          weight="medium"
+                          maxLines={1}>
+                          {ev.toolOrEndpoint}
+                        </Text>
+                        <Text
+                          type="supporting"
+                          size="2xs"
+                          color="secondary"
+                          maxLines={expanded ? 3 : 2}>
+                          {ev.observation}
+                        </Text>
+                      </VStack>
+
+                      <Divider />
+
+                      <HStack gap={2} vAlign="center">
+                        <StackItem size="fill">
+                          <Text type="supporting" size="3xs" color="secondary">
+                            {ev.direction === 'buyer_to_seller'
+                              ? 'Buyer → Seller'
+                              : ev.direction === 'buyer_to_gate'
+                                ? 'Buyer → Gate'
+                                : 'Seller → Buyer'}
+                          </Text>
+                        </StackItem>
+                        <Text
+                          type="code"
+                          size="3xs"
+                          color="secondary"
+                          hasTabularNumbers>
+                          {ev.durationLabel}
+                        </Text>
+                      </HStack>
+                    </VStack>
+                  </ClickableCard>
+                </div>
+              );
+            })}
+
+            {heldR02 && (
+              <div
+                data-testid="graph-node-unreached-downstream"
+                style={styles.unreachedNode}>
+                <VStack gap={1.5}>
+                  <HStack gap={2} vAlign="center">
+                    <StackItem size="fill">
+                      <Text type="code" size="2xs" color="secondary">
+                        Next · C03
+                      </Text>
+                    </StackItem>
+                    <Text type="supporting" size="2xs" color="secondary">
+                      Unreached
                     </Text>
                   </HStack>
-                  <Badge variant={meta.badgeVariant} label={meta.badgeLabel} />
-                </div>
-
-                <div style={{minWidth: 0}}>
-                  <Text type="code" size="2xs" weight="semibold" maxLines={1}>
-                    {ev.toolOrEndpoint}
-                  </Text>
                   <Text
                     type="supporting"
                     size="2xs"
-                    maxLines={expanded ? 3 : 2}>
-                    {ev.observation}
+                    color="secondary"
+                    maxLines={3}>
+                    {session.buyerAgentId} has 0 offers while {heldR02.code} is
+                    held. select_product runs only after release.
                   </Text>
-                </div>
+                </VStack>
+              </div>
+            )}
+          </Grid>
 
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    borderTop:
-                      '1px dashed color-mix(in srgb, var(--color-border-default) 70%, transparent)',
-                    paddingTop: 5,
-                  }}>
-                  <Text type="code" size="3xs" color="secondary">
-                    {ev.direction === 'buyer_to_seller'
-                      ? 'Buyer → Seller'
-                      : ev.direction === 'buyer_to_gate'
-                        ? 'Buyer → Gate'
-                        : 'Seller → Buyer'}
-                  </Text>
+          {offerEvent && (
+            <div style={styles.summaryBar}>
+              <HStack gap={3} vAlign="center" wrap="wrap">
+                <StackItem size="fill">
                   <Text
-                    type="code"
-                    size="3xs"
+                    type="supporting"
                     color="secondary"
                     hasTabularNumbers>
-                    {ev.durationLabel}
+                    {offerEvent.code} quotes · Floor ${session.marginFloorUsd} ·
+                    Observed: {upstreamSummary}
+                    {stagedSummary ? ` · ${stagedSummary}` : ''}
                   </Text>
-                </div>
-              </button>
-            );
-          })}
-
-          {/* When R02 is HELD, explicitly show downstream buyer selection as UNREACHED (fixes P0 #01!) */}
-          {heldR02 && (
-            <div
-              data-testid="graph-node-unreached-downstream"
-              style={{
-                borderRadius: 10,
-                padding: expanded ? '12px 13px' : '9px 11px',
-                border: '1px dashed var(--color-border-default)',
-                backgroundColor:
-                  'color-mix(in srgb, var(--color-background-surface) 55%, transparent)',
-                opacity: 0.72,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: 6,
-                minWidth: 0,
-              }}>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  gap: 6,
-                }}>
-                <Text type="code" size="2xs" color="secondary">
-                  Next · C03
+                </StackItem>
+                <Text
+                  type="supporting"
+                  color="secondary"
+                  hasTabularNumbers>
+                  {offerEvent.deliveryPhase === 'held_at_proxy'
+                    ? `${offerEvent.upstreamOffers?.length ?? 2} observed → ${
+                        offerEvent.mutationEnabled !== false
+                          ? (offerEvent.upstreamOffers?.length ?? 2) + 1
+                          : (offerEvent.upstreamOffers?.length ?? 2)
+                      } proposed`
+                    : offerEvent.deliveryPhase === 'delivered_modified'
+                      ? `${offerEvent.deliveredOffers?.length ?? 3} delivered`
+                      : 'Delivered unmodified'}
                 </Text>
-                <Badge variant="neutral" label="UNREACHED" />
-              </div>
-              <Text type="supporting" size="2xs" maxLines={3}>
-                {session.buyerAgentId} has 0 offers while {heldR02.code} is
-                held. `select_product` runs only after release.
-              </Text>
-              <Text type="code" size="3xs" color="secondary">
-                Awaits {heldR02.code} delivery
-              </Text>
+              </HStack>
             </div>
           )}
-        </div>
 
-        {/* Commercial Offer & Proxy Mutation Cradle (renders when session involves commercial offers) */}
-        {offerEvent && (
-          <div
-            onClick={() => onSelectEvent(offerEvent.id)}
-            role="button"
-            tabIndex={0}
-            onKeyDown={e => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelectEvent(offerEvent.id);
-              }
-            }}
-            style={{
-              borderRadius: 10,
-              padding: expanded ? '12px 14px' : '9px 12px',
-              backgroundColor: 'var(--color-background-surface)',
-              border: '1px solid var(--color-border-default)',
-              display: 'flex',
-              flexWrap: 'wrap',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              gap: 8,
-              cursor: 'pointer',
-            }}>
-            <HStack gap={1.5} vAlign="center" wrap>
-              <Text type="label" size="2xs" weight="semibold">
-                {offerEvent.code} Cradle:
-              </Text>
-              <Token
-                size="sm"
-                color="gray"
-                label={`Floor $${session.marginFloorUsd}`}
-              />
-              {(offerEvent.upstreamOffers ?? []).map(off => (
-                <Token
-                  key={off.id}
-                  size="sm"
-                  color={off.marginDelta < 0 ? 'red' : 'blue'}
-                  label={`${off.id} $${off.price} (${off.marginDelta >= 0 ? `+$${off.marginDelta}` : `-$${Math.abs(off.marginDelta)}`})`}
-                />
-              ))}
-              {offerEvent.stagedOffer && (
-                <Token
-                  size="sm"
-                  color={
-                    offerEvent.deliveryPhase === 'delivered_modified'
-                      ? 'green'
-                      : offerEvent.mutationEnabled !== false
-                        ? 'orange'
-                        : 'gray'
-                  }
-                  label={
-                    offerEvent.deliveryPhase === 'delivered_modified'
-                      ? `+${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price} (Delivered)`
-                      : offerEvent.mutationEnabled !== false
-                        ? `+${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price} (Staged)`
-                        : `${offerEvent.stagedOffer.id} Off`
-                  }
-                />
-              )}
-            </HStack>
-
-            <Badge
-              variant={
-                offerEvent.deliveryPhase === 'held_at_proxy'
-                  ? 'warning'
-                  : offerEvent.deliveryPhase === 'delivered_modified'
-                    ? 'info'
-                    : 'success'
-              }
-              label={
-                offerEvent.deliveryPhase === 'held_at_proxy'
-                  ? `${offerEvent.upstreamOffers?.length ?? 2} observed → ${
-                      offerEvent.mutationEnabled !== false
-                        ? (offerEvent.upstreamOffers?.length ?? 2) + 1
-                        : (offerEvent.upstreamOffers?.length ?? 2)
-                    } staged (undelivered)`
-                  : offerEvent.deliveryPhase === 'delivered_modified'
-                    ? `${offerEvent.deliveredOffers?.length ?? 3} offers delivered`
-                    : 'Original delivered'
-              }
-            />
-          </div>
-        )}
-
-        {/* Expanded Graph View Extra Telemetry (when user selects dedicated Graph surface) */}
-        {expanded && (
-          <div
-            style={{
-              borderRadius: 10,
-              padding: '12px 14px',
-              backgroundColor: 'var(--color-background-surface)',
-              border: '1px solid var(--color-border-default)',
-              display: 'grid',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-              gap: 12,
-            }}>
-            <VStack gap={1}>
-              <Text type="supporting" size="2xs">
-                BUYER AGENT TOPOLOGY
-              </Text>
-              <Text type="body" size="sm" weight="semibold">
-                {session.buyerAgentId} · {session.buyerModel}
-              </Text>
-              <Text type="supporting" size="2xs">
-                Fingerprint confidence {session.agentConfidence}
-              </Text>
-            </VStack>
-            <VStack gap={1}>
-              <Text type="supporting" size="2xs">
-                PROXY INTERCEPTION POSTURE
-              </Text>
-              <Text type="body" size="sm" weight="semibold">
-                {session.trafficProfile}
-              </Text>
-              <Text type="supporting" size="2xs">
-                95% read-only catalog calls pass in &lt;3ms with 0 UI columns
-              </Text>
-            </VStack>
-            <VStack gap={1}>
-              <Text type="supporting" size="2xs">
-                UNIT ECONOMICS GUARDRAIL
-              </Text>
-              <Text type="body" size="sm" weight="semibold" hasTabularNumbers>
-                SKU {session.skuCode} · Floor ${session.marginFloorUsd}.00 /
-                MSRP ${session.msrpUsd}.00
-              </Text>
-              <Text type="supporting" size="2xs">
-                {session.selectedOfferLabel ??
-                  'No buyer offer selection recorded yet'}
-              </Text>
-            </VStack>
-          </div>
-        )}
+          {expanded && (
+            <div style={styles.summaryBar}>
+              <MetadataList columns="auto">
+                <MetadataListItem label="Buyer agent">
+                  <Text type="body">
+                    {session.buyerAgentId} · {session.buyerModel} (
+                    {session.agentConfidence})
+                  </Text>
+                </MetadataListItem>
+                <MetadataListItem label="Traffic posture">
+                  <Text type="body">
+                    {session.trafficProfile}
+                  </Text>
+                </MetadataListItem>
+                <MetadataListItem label="Unit economics">
+                  <Text type="body" hasTabularNumbers>
+                    {session.skuCode} · Floor ${session.marginFloorUsd}.00 /
+                    MSRP ${session.msrpUsd}.00
+                  </Text>
+                </MetadataListItem>
+              </MetadataList>
+            </div>
+          )}
+        </VStack>
       </div>
     </div>
   );
