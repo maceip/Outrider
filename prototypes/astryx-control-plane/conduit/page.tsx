@@ -4,9 +4,9 @@ import type {Metadata} from 'next';
 import {ConduitShowcaseApp} from './ConduitShowcaseApp';
 
 export const metadata: Metadata = {
-  title: 'Conduit — Agentic Commerce Control Plane',
+  title: 'Conduit — Agents Are Already Shopping. Usher Them In Without Losing Money.',
   description:
-    'See every AI shopping agent visiting your store, stop below-floor discounts mid-flight, and gate checkout behind single-use Ed25519 passes.',
+    'Blocking bots turns away real buyers. Leaving endpoints open bleeds margin. Conduit welcomes AI shoppers on your terms.',
 };
 
 export default function ConduitPage() {
