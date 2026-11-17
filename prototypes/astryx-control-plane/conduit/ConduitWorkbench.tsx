@@ -105,27 +105,54 @@ const styles: Record<string, CSSProperties> = {
   },
 };
 
-export function ConduitWorkbench() {
+export interface ConduitWorkbenchProps {
+  initialScenario?: ScenarioPresetId;
+  initialColorMode?: 'dark' | 'light';
+  onBackToOverview?: () => void;
+}
+
+export function ConduitWorkbench({
+  initialScenario = 'live_hold_r02',
+  initialColorMode = 'dark',
+  onBackToOverview,
+}: ConduitWorkbenchProps = {}) {
   const [themeKey, setThemeKey] = useState<string>(DEFAULT_CONDUIT_THEME);
-  const [colorMode, setColorMode] = useState<'dark' | 'light'>('dark');
-  const [scenario, setScenario] = useState<ScenarioPresetId>('live_hold_r02');
+  const [colorMode, setColorMode] = useState<'dark' | 'light'>(
+    initialColorMode,
+  );
+  const [scenario, setScenario] = useState<ScenarioPresetId>(initialScenario);
 
   const [sessions, setSessions] = useState<MerchantSession[]>(() =>
-    buildInitialSessions('live_hold_r02'),
+    buildInitialSessions(initialScenario),
   );
   const [passes, setPasses] = useState<CapabilityPassRecord[]>(() =>
     buildInitialPasses(),
   );
-  const [activeSessionId, setActiveSessionId] = useState<string>('audioshop');
+  const [activeSessionId, setActiveSessionId] = useState<string>(() =>
+    initialScenario === 'discovery_95pct' ? 'displayco' : 'audioshop',
+  );
   const [activeSurface, setActiveSurface] = useState<SurfaceId>('overview');
   const [traceFilter, setTraceFilter] = useState<TraceFilterId>('all');
-  const [selectedEventId, setSelectedEventId] = useState<string | null>(
-    'evt-aud-r02',
-  );
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(() => {
+    const initSessions = buildInitialSessions(initialScenario);
+    if (initialScenario === 'discovery_95pct') {
+      return 'evt-dsp-02';
+    }
+    const aud = initSessions[0];
+    const focusEvt =
+      aud.events.find(
+        e =>
+          e.deliveryPhase === 'held_at_proxy' ||
+          e.deliveryPhase === 'awaiting_pass',
+      ) ?? aud.events[aud.events.length - 1];
+    return focusEvt?.id ?? null;
+  });
 
   // Follow incident-console/page.tsx responsive contract: <= 1024px uses BottomSheet on tap
   const isMobile = useMediaQuery('(max-width: 1024px)');
-  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(true);
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(
+    () => initialScenario !== 'discovery_95pct',
+  );
   const [wasMobile, setWasMobile] = useState<boolean>(isMobile);
   if (wasMobile !== isMobile) {
     setWasMobile(isMobile);
@@ -660,6 +687,15 @@ export function ConduitWorkbench() {
                 <HStack gap={2} vAlign="center" wrap="wrap">
                   <StackItem size="fill">
                     <HStack gap={2} vAlign="center" wrap="wrap">
+                      {onBackToOverview && (
+                        <Button
+                          id="workbench-back-overview"
+                          size="sm"
+                          variant="ghost"
+                          label="← Overview"
+                          onClick={onBackToOverview}
+                        />
+                      )}
                       <HStack gap={1.5} vAlign="center">
                         <img
                           src={CONDUIT_MARK_DATA_URI}

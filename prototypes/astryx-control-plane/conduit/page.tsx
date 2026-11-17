@@ -1,14 +1,14 @@
 // Copyright (c) Meta Platforms, Inc. and affiliates.
 
 import type {Metadata} from 'next';
-import {ConduitWorkbench} from './ConduitWorkbench';
+import {ConduitShowcaseApp} from './ConduitShowcaseApp';
 
 export const metadata: Metadata = {
-  title: 'Conduit MCP Control Plane',
+  title: 'Conduit — Agentic Commerce Control Plane',
   description:
-    'Astryx interactive mock of the Conduit MCP Merchant Control Plane with 2-zone Observatory and contextual Quote Approval.',
+    'See every AI shopping agent visiting your store, stop below-floor discounts mid-flight, and gate checkout behind single-use Ed25519 passes.',
 };
 
 export default function ConduitPage() {
-  return <ConduitWorkbench />;
+  return <ConduitShowcaseApp />;
 }
