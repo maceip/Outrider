@@ -1,57 +1,28 @@
-# HeroUI Pro - Dashboard Template
+# Conduit — Agentic Commerce Control Plane UI
 
-A multi-page dashboard starter built with **Next.js 16** and **HeroUI Pro** components. Includes a full admin shell (sidebar + top navbar), a populated home page (KPIs, charts, data table), and scaffolded routes for Orders, Tracker, Analytics, Settings, and Help.
+Static Next.js 16 + HeroUI v3 / HeroUI Pro frontend for the **Agentic Commerce Control Plane**, embedded directly into the native `outrider` binary (`dashboard/out`) and exported for the interactive GitHub Pages showcase (`www-dist`).
 
-## Quick start
+## Quick Start
 
 ```bash
-pnpm install
-pnpm dev
+npm ci
+npm run dev
 ```
 
-The app will be available at `http://localhost:3003`.
+## Production Exports
 
-## Pages
-
-| Route        | What's in it                                                                               |
-| ------------ | ------------------------------------------------------------------------------------------ |
-| `/`          | Dashboard home: KPI row, Sales Performance bar chart, Traffic Source line chart, Employees |
-| `/orders`    | Orders table scaffold (DataGrid + status chips)                                            |
-| `/tracker`   | Task tracker scaffold (KPIs + Kanban)                                                      |
-| `/analytics` | Analytics scaffold (KPIs + multiple charts)                                                |
-| `/settings`  | Settings scaffold (Tabs + form)                                                            |
-| `/help`      | Help & Information scaffold (link cards + FAQ)                                             |
-
-Each scaffolded page has a `TODO` comment pointing to the file where you'd wire in your real data.
-
-## Project structure
-
-```
-app/
-  layout.tsx                 # root html/body
-  (app)/
-    layout.tsx               # shared shell
-    page.tsx                 # home
-    orders/page.tsx
-    tracker/page.tsx
-    analytics/page.tsx
-    settings/page.tsx
-    help/page.tsx
-  globals.css
-src/
-  nav-items.ts               # sidebar nav config
-  components/                # shell, sidebar, navbar, icon-button helper
-  views/                     # one file per route (named `*-page.tsx`)
-  widgets/                   # sub-components used by the home view
-  data/                      # mock data (swap for your store)
+```bash
+npm run typecheck
+npm run lint
+rm -rf out
+npm run build       # -> dashboard/out (embedded into native binary at /__proxyfor__/)
+npm run build:www   # -> ../www-dist (interactive GitHub Pages control plane showcase)
 ```
 
-## Components used
+## Routes
 
-Components are imported directly from `@heroui-pro/react` and `@heroui/react`. No barrel imports, no custom wrappers.
-
-## Prerequisites
-
-- Node 20+
-- pnpm 9+ (or swap `pnpm` for `npm`/`yarn` in the scripts)
-- `@heroui-pro/react` needs to be resolvable from your package registry. If you see an install error for this package, make sure you have access to the HeroUI Pro npm registry.
+| Route | Purpose |
+| :--- | :--- |
+| `/` | Unified Agentic Commerce Control Plane (`Overview`, `Graph`, `Approve`, `Wire`, `Passes`) |
+| `/settings` | Local gateway endpoints and active capability probe policy |
+| `/help` | Root CA certificate downloads (`.pem` / `.cer`), HAR export, and proxy setup guide |

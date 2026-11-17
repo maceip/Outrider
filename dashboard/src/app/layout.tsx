@@ -36,7 +36,8 @@ const WEBMCP_ORIGIN_TRIAL_TOKEN =
 const THEME_INIT_SCRIPT = `(function(){try{var t=localStorage.getItem("conduit.theme");var d=document.documentElement;if(t==="brutalism-light"){d.dataset.theme="brutalism-light";d.classList.remove("dark","brutalism-dark");d.classList.add("light","brutalism-light");}else{d.dataset.theme="brutalism-dark";d.classList.remove("light","brutalism-light");d.classList.add("dark","brutalism-dark");}}catch(e){}})();`;
 
 export const metadata: Metadata = {
-  description: "Agentic Commerce Testflight",
+  description:
+    "Local control plane for AI agent commerce: live traffic visibility, pricing guardrails, and scoped checkout passes.",
   icons: {
     apple: [
       {

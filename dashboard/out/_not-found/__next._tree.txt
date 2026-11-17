@@ -1,5 +1,5 @@
-:HL["/__proxyfor__/_next/static/chunks/25gdqzrzvnsd6.css","style"]
-:HL["/__proxyfor__/_next/static/chunks/4070uy4sgqnly.css","style"]
+:HL["/__proxyfor__/_next/static/chunks/1blea5thl3j70.css","style"]
+:HL["/__proxyfor__/_next/static/chunks/32lg9uwfzpp8r.css","style"]
 2:[["children",{"s":"__PAGE__","h":160}]]
 1:[["children",{"s":"/_not-found","h":96,"c":"$Q2"}]]
-0:{"b":"vHKiUOg-EOapE9IcN9O6L","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
+0:{"b":"O-9QCEqcCg3F-wMVILRiL","t":{"t":{"s":"","h":80,"c":"$Q1"}}}
