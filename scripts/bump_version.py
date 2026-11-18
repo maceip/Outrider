@@ -48,18 +48,20 @@ def update_cargo_lock(cargo_lock: pathlib.Path, old_ver: str, new_ver: str) -> N
 
 
 def update_dashboard_json(root: pathlib.Path, new_ver: str) -> None:
-    pkg_json_path = root / "dashboard/package.json"
-    pkg_data = json.loads(pkg_json_path.read_text(encoding="utf-8"))
-    pkg_data["version"] = new_ver
-    pkg_json_path.write_text(json.dumps(pkg_data, indent=2) + "\n", encoding="utf-8")
+    for rel_dir in ("dashboard", "prototypes/astryx-control-plane"):
+        pkg_json_path = root / rel_dir / "package.json"
+        if pkg_json_path.is_file():
+            pkg_data = json.loads(pkg_json_path.read_text(encoding="utf-8"))
+            pkg_data["version"] = new_ver
+            pkg_json_path.write_text(json.dumps(pkg_data, indent=2) + "\n", encoding="utf-8")
 
-    pkg_lock_path = root / "dashboard/package-lock.json"
-    if pkg_lock_path.is_file():
-        lock_data = json.loads(pkg_lock_path.read_text(encoding="utf-8"))
-        lock_data["version"] = new_ver
-        if isinstance(lock_data.get("packages"), dict) and "" in lock_data["packages"]:
-            lock_data["packages"][""]["version"] = new_ver
-        pkg_lock_path.write_text(json.dumps(lock_data, indent=2) + "\n", encoding="utf-8")
+        pkg_lock_path = root / rel_dir / "package-lock.json"
+        if pkg_lock_path.is_file():
+            lock_data = json.loads(pkg_lock_path.read_text(encoding="utf-8"))
+            lock_data["version"] = new_ver
+            if isinstance(lock_data.get("packages"), dict) and "" in lock_data["packages"]:
+                lock_data["packages"][""]["version"] = new_ver
+            pkg_lock_path.write_text(json.dumps(lock_data, indent=2) + "\n", encoding="utf-8")
 
 
 def main() -> None:

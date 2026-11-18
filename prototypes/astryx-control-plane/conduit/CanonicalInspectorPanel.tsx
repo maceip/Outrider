@@ -75,14 +75,14 @@ export function CanonicalInspectorPanel({
   onRejectPass,
   onClose,
 }: CanonicalInspectorPanelProps) {
-  const [payloadReviewed, setPayloadReviewed] = useState(true);
+  const [showWireJson, setShowWireJson] = useState(false);
 
   if (!event) {
     return (
       <VStack padding={4}>
         <EmptyState
           title="No frame selected"
-          description="Select a node in the Causal Observatory or a row in the trace to inspect its wire frame and policy gates."
+          description="Select a node in the Causal Observatory or a row in the trace to inspect its payload and policy gates."
           isCompact
         />
       </VStack>
@@ -96,6 +96,8 @@ export function CanonicalInspectorPanel({
     isHeldQuote ||
     isHistoricalModified;
   const isAwaitingPass = event.deliveryPhase === 'awaiting_pass';
+  const isSettledOrder =
+    event.deliveryPhase === 'pass_authorized' && event.code === 'C05';
 
   const upstreamCount = event.upstreamOffers?.length ?? 0;
   const mutationOn = event.mutationEnabled !== false;
@@ -109,25 +111,21 @@ export function CanonicalInspectorPanel({
   const panelTitle = isHeldQuote
     ? 'Quote Approval'
     : isHistoricalModified
-      ? 'Historical Quote Record'
+      ? 'Delivered Quote Record'
       : isAwaitingPass
         ? 'Checkout Pass Gate'
-        : 'Frame Details';
+        : isSettledOrder
+          ? 'Settled Order'
+          : event.title;
 
-  const outboundOffers = isHistoricalModified
-    ? (event.deliveredOffers ?? [])
-    : [
-        ...(event.upstreamOffers ?? []).filter(
-          o => !(o.marginDelta < 0 && mutationOn && isFloorLeakReplacement),
-        ),
-        ...(mutationOn && event.stagedOffer ? [event.stagedOffer] : []),
-      ];
+  const shouldShowCodeExpanded =
+    showWireJson || (!isOfferFrame && !isAwaitingPass && !isSettledOrder);
 
   return (
     <div
       data-testid="canonical-inspector-panel"
       style={inBottomSheet ? styles.rootSheet : styles.root}>
-      {/* Inspector Header — matches incident-console IncidentInspector */}
+      {/* Inspector Header */}
       <div style={styles.header}>
         <HStack gap={2} vAlign="center">
           <StackItem size="fill">
@@ -139,7 +137,9 @@ export function CanonicalInspectorPanel({
                       ? 'warning'
                       : isAwaitingPass
                         ? 'accent'
-                        : 'neutral'
+                        : isSettledOrder || isHistoricalModified
+                          ? 'success'
+                          : 'neutral'
                   }
                   isPulsing={isHeldQuote}
                   label={panelTitle}
@@ -160,232 +160,164 @@ export function CanonicalInspectorPanel({
         </HStack>
       </div>
 
-      {/* Scrollable Inspector Body — flat VStack + Divider + MetadataList + List (zero Cards, zero Badges) */}
+      {/* Scrollable Inspector Body */}
       <div style={styles.scrollBody}>
         <VStack gap={4}>
           {isHeldQuote && (
             <VStack gap={1}>
-              <HStack gap={1.5} vAlign="center">
-                <StatusDot
-                  variant="warning"
-                  isPulsing
-                  label="Held at proxy"
-                />
-                <Text type="label">Held at proxy · Not delivered to buyer</Text>
-              </HStack>
+              <Text type="label">
+                Paused before delivery to {event.targetActor}
+              </Text>
               <Text type="supporting" color="secondary">
-                {event.sourceActor} returned {upstreamCount} offers. Conduit
-                paused outbound delivery — {event.targetActor} has received 0
-                offers so far.
+                {session.merchantName} returned {upstreamCount} offers.{' '}
+                {event.targetActor} has received 0 offers until you approve
+                below.
               </Text>
             </VStack>
           )}
 
           {isHistoricalModified && (
             <VStack gap={1}>
-              <HStack gap={1.5} vAlign="center">
-                <StatusDot variant="success" label="Delivered" />
-                <Text type="label">
-                  Delivered at {event.deliveredAt ?? event.timestamp} ·
-                  Historical record
-                </Text>
-              </HStack>
+              <Text type="label">
+                Delivered at {event.deliveredAt ?? event.timestamp}
+              </Text>
               <Text type="supporting" color="secondary">
-                Transmitted {event.deliveredOffers?.length ?? proposedCount}{' '}
-                offers to {event.targetActor}. Wire payload is immutable and
-                mutation controls are locked.
+                Sent {event.deliveredOffers?.length ?? proposedCount} offers to{' '}
+                {event.targetActor}. Delivered wire frames are immutable.
               </Text>
             </VStack>
           )}
 
           {event.deliveryPhase === 'delivered_original' && isOfferFrame && (
             <VStack gap={1}>
-              <HStack gap={1.5} vAlign="center">
-                <StatusDot variant="success" label="Delivered unmodified" />
-                <Text type="label">
-                  Delivered unmodified at {event.deliveredAt ?? event.timestamp}
-                </Text>
-              </HStack>
+              <Text type="label">
+                Forwarded unmodified at {event.deliveredAt ?? event.timestamp}
+              </Text>
               <Text type="supporting" color="secondary">
-                Original seller response was forwarded directly to{' '}
-                {event.targetActor} with zero proxy mutations.
+                Original seller offers cleared your ${session.marginFloorUsd}{' '}
+                floor and passed straight to {event.targetActor}.
               </Text>
             </VStack>
           )}
 
           {isAwaitingPass && (
             <VStack gap={1}>
-              <HStack gap={1.5} vAlign="center">
-                <StatusDot variant="accent" label="Checkout pass requested" />
-                <Text type="label">
-                  Checkout pass requested · 0 frames held in proxy
-                </Text>
-              </HStack>
+              <Text type="label">
+                Single-use pass requested (${event.passRequest?.requestedCap ?? 0}.00 cap)
+              </Text>
               <Text type="supporting" color="secondary">
-                {event.sourceActor} selected an offer and is requesting a
-                single-use capability pass ($
-                {event.passRequest?.requestedCap ?? 0}.00 cap) before payment
-                execution.
+                {event.sourceActor} locked {session.skuName} in cart and awaits
+                a single-use Ed25519 pass to complete payment.
               </Text>
             </VStack>
           )}
 
-          <Divider />
+          {isSettledOrder && (
+            <VStack gap={1}>
+              <Text type="label">Order settled &amp; pass consumed</Text>
+              <Text type="supporting" color="secondary">
+                {event.observation}
+              </Text>
+            </VStack>
+          )}
 
-          <MetadataList columns="single" label={{position: 'start', width: 92}}>
-            <MetadataListItem label="Direction">
-              <Text type="body">
-                {event.direction === 'seller_to_buyer'
-                  ? 'Outbound response (Seller → Buyer)'
-                  : event.direction === 'buyer_to_gate'
-                    ? 'Pass gate (Buyer → Conduit)'
-                    : 'Inbound request (Buyer → Seller)'}
-              </Text>
-            </MetadataListItem>
-            <MetadataListItem label="Source">
-              <Text type="code" size="2xs">
-                {event.sourceActor}
-              </Text>
-            </MetadataListItem>
-            <MetadataListItem label="Recipient">
-              <Text type="code" size="2xs">
-                {event.targetActor}
-              </Text>
-            </MetadataListItem>
-            <MetadataListItem label="Tool / URI">
-              <Text type="code" size="2xs">
-                {event.toolOrEndpoint}
-              </Text>
-            </MetadataListItem>
-            {event.proxyRuleId && (
-              <MetadataListItem label="Rule gate">
-                <Text type="code" size="2xs">
-                  {event.proxyRuleId}
-                </Text>
-              </MetadataListItem>
-            )}
-          </MetadataList>
-
-          {/* Offer Semantic Diff — Edge-to-edge List rows with Dividers */}
+          {/* Unified Outbound Quote List + Counter-Offer Switch (Zero Duplicate Lists) */}
           {isOfferFrame && event.upstreamOffers && (
             <>
               <Divider />
               <VStack gap={3}>
                 <HStack gap={2} vAlign="center">
                   <StackItem size="fill">
-                    <Heading level={5}>Offer Diff</Heading>
+                    <Heading level={5}>
+                      Offers for {event.targetActor}
+                    </Heading>
                   </StackItem>
                   <Text
                     type="supporting"
                     color="secondary"
                     hasTabularNumbers>
-                    {isHistoricalModified
-                      ? `${upstreamCount} observed → ${event.deliveredOffers?.length ?? proposedCount} delivered`
-                      : `${upstreamCount} original → ${proposedCount} proposed`}
+                    Floor ${session.marginFloorUsd}
                   </Text>
                 </HStack>
 
-                <VStack gap={1}>
-                  <Text type="label" color="secondary">
-                    Observed from {session.merchantHost}
-                  </Text>
-                  <List density="compact" hasDividers>
-                    {event.upstreamOffers.map(off => {
-                      const violatesFloor = off.marginDelta < 0;
-                      const replacedByRule =
-                        violatesFloor && mutationOn && isFloorLeakReplacement;
-                      return (
-                        <ListItem
-                          key={off.id}
-                          startContent={
-                            violatesFloor ? (
-                              <StatusDot
-                                variant="error"
-                                label="Below margin floor"
-                              />
-                            ) : undefined
-                          }
-                          label={
-                            <Text
-                              type="body"
-                              hasStrikethrough={replacedByRule}>
-                              {off.id} · {off.label}
-                            </Text>
-                          }
-                          description={
-                            violatesFloor
-                              ? `${off.perk} · -$${Math.abs(off.marginDelta)}.00 below $${session.marginFloorUsd} floor`
-                              : off.perk
-                          }
-                          endContent={
-                            <Text
-                              type="code"
-                              size="2xs"
-                              hasTabularNumbers>
-                              ${off.price}.00
-                            </Text>
-                          }
-                        />
-                      );
-                    })}
-                  </List>
-                </VStack>
-
-                {event.stagedOffer && (
-                  <VStack gap={1.5}>
-                    <Text type="label" color="secondary">
-                      Protocol mutation (result.offers[])
-                    </Text>
-                    <Switch
-                      width="100%"
-                      labelSpacing="spread"
-                      label={
-                        isFloorLeakReplacement
-                          ? `Replace O01 ($189.00) with ${event.stagedOffer.id} ($${event.stagedOffer.price}.00)`
-                          : `Append ${event.stagedOffer.id} ($${event.stagedOffer.price}.00) to result.offers[]`
-                      }
-                      description={`${event.stagedOffer.label} · +$${event.stagedOffer.marginDelta}.00 above $${session.marginFloorUsd} SKU floor`}
-                      value={mutationOn}
-                      isDisabled={!isHeldQuote}
-                      onChange={val => onToggleMutation(event.id, val)}
-                      status={
-                        !isHeldQuote
-                          ? {
-                              type: 'success',
-                              message:
-                                'Locked: response was already transmitted to buyer.',
-                            }
-                          : undefined
-                      }
-                    />
-                  </VStack>
-                )}
-
-                <VStack gap={1}>
-                  <Text type="label" color="secondary">
-                    {isHistoricalModified
-                      ? `Delivered to ${event.targetActor}`
-                      : `Proposed outbound to ${event.targetActor}`}
-                  </Text>
-                  <List density="compact" hasDividers>
-                    {outboundOffers.map(o => (
+                <List density="compact" hasDividers>
+                  {event.upstreamOffers.map(off => {
+                    const violatesFloor = off.marginDelta < 0;
+                    const replacedByRule =
+                      violatesFloor &&
+                      (isHistoricalModified ||
+                        (mutationOn && isFloorLeakReplacement));
+                    return (
                       <ListItem
-                        key={o.id}
-                        label={`${o.id} · ${o.label}`}
+                        key={off.id}
+                        startContent={
+                          violatesFloor ? (
+                            <StatusDot
+                              variant="error"
+                              label="Below margin floor"
+                            />
+                          ) : undefined
+                        }
+                        label={
+                          <Text
+                            type="body"
+                            hasStrikethrough={replacedByRule}>
+                            {off.id} · {off.label}
+                          </Text>
+                        }
                         description={
-                          o.source === 'proxy_injected'
-                            ? 'Added by Conduit rule'
-                            : 'Upstream seller offer'
+                          violatesFloor
+                            ? `$${Math.abs(off.marginDelta)} below $${session.marginFloorUsd} floor`
+                            : off.perk
                         }
                         endContent={
                           <Text type="code" size="2xs" hasTabularNumbers>
-                            ${o.price}.00
+                            ${off.price}.00
                           </Text>
                         }
                       />
-                    ))}
-                  </List>
-                </VStack>
+                    );
+                  })}
+
+                  {event.stagedOffer &&
+                    (isHistoricalModified || mutationOn) && (
+                      <ListItem
+                        key={event.stagedOffer.id}
+                        startContent={
+                          <StatusDot
+                            variant="success"
+                            label="Conduit counter-offer"
+                          />
+                        }
+                        label={`${event.stagedOffer.id} · ${event.stagedOffer.label}`}
+                        description={`Conduit counter-offer · +$${event.stagedOffer.marginDelta} above $${session.marginFloorUsd} floor`}
+                        endContent={
+                          <Text
+                            type="code"
+                            size="2xs"
+                            weight="semibold"
+                            hasTabularNumbers>
+                            ${event.stagedOffer.price}.00
+                          </Text>
+                        }
+                      />
+                    )}
+                </List>
+
+                {event.stagedOffer && isHeldQuote && (
+                  <Switch
+                    width="100%"
+                    labelSpacing="spread"
+                    label={
+                      isFloorLeakReplacement
+                        ? `Replace $189 leak with $${event.stagedOffer.price} offer (${event.stagedOffer.id})`
+                        : `Include $${event.stagedOffer.price} counter-offer (${event.stagedOffer.id})`
+                    }
+                    description={`${event.stagedOffer.perk} · +$${event.stagedOffer.marginDelta} above $${session.marginFloorUsd} floor`}
+                    value={mutationOn}
+                    onChange={val => onToggleMutation(event.id, val)}
+                  />
+                )}
               </VStack>
             </>
           )}
@@ -397,10 +329,10 @@ export function CanonicalInspectorPanel({
               <VStack gap={2}>
                 <HStack gap={2} vAlign="center">
                   <StackItem size="fill">
-                    <Heading level={5}>Capability Pass Scope</Heading>
+                    <Heading level={5}>Pass Scope</Heading>
                   </StackItem>
                   <Text type="supporting" color="secondary">
-                    Single-use · Ed25519
+                    1 call · Ed25519
                   </Text>
                 </HStack>
                 <MetadataList
@@ -411,22 +343,17 @@ export function CanonicalInspectorPanel({
                       {event.sourceActor}
                     </Text>
                   </MetadataListItem>
-                  <MetadataListItem label="SPIFFE ID">
-                    <Text type="code" size="2xs">
-                      {event.passRequest.agentFingerprint}
-                    </Text>
-                  </MetadataListItem>
                   <MetadataListItem label="Pinned SKU">
                     <Text type="code" size="2xs">
                       {event.passRequest.sku}
                     </Text>
                   </MetadataListItem>
-                  <MetadataListItem label="Amount cap">
+                  <MetadataListItem label="Spend cap">
                     <Text type="body" hasTabularNumbers>
                       ${event.passRequest.requestedCap}.00 USD
                     </Text>
                   </MetadataListItem>
-                  <MetadataListItem label="Pass TTL">
+                  <MetadataListItem label="Expires in">
                     <Text type="body" hasTabularNumbers>
                       {event.passRequest.ttl}
                     </Text>
@@ -436,12 +363,12 @@ export function CanonicalInspectorPanel({
             </>
           )}
 
-          {/* Policy & Schema Validation — List rows, zero Card */}
+          {/* Policy & Schema Validation Gates */}
           {event.validations && event.validations.length > 0 && (
             <>
               <Divider />
               <VStack gap={2}>
-                <Heading level={5}>Policy & Schema Validation</Heading>
+                <Heading level={5}>Policy Checks</Heading>
                 <List density="compact" hasDividers>
                   {event.validations.map(v => (
                     <ListItem
@@ -468,144 +395,140 @@ export function CanonicalInspectorPanel({
             </>
           )}
 
-          {/* Raw / Diff Wire Payload */}
+          {/* Compact Route Metadata + On-Demand Wire JSON */}
           <Divider />
           <VStack gap={2}>
-            <HStack gap={2} vAlign="center">
-              <StackItem size="fill">
-                <Heading level={5}>
-                  {event.wireDiffJson && (mutationOn || isHistoricalModified)
-                    ? 'JSON-RPC Payload Diff'
-                    : `${event.protocol} Wire Payload`}
-                </Heading>
-              </StackItem>
-              <Text type="supporting" color="secondary">
-                → {event.targetActor}
-              </Text>
-            </HStack>
+            <MetadataList columns="single" label={{position: 'start', width: 88}}>
+              <MetadataListItem label="Route">
+                <Text type="code" size="2xs">
+                  {event.sourceActor} → {event.targetActor}
+                </Text>
+              </MetadataListItem>
+              <MetadataListItem label="Endpoint">
+                <Text type="code" size="2xs">
+                  {event.toolOrEndpoint}
+                </Text>
+              </MetadataListItem>
+            </MetadataList>
 
-            {event.wireDiffJson && (mutationOn || isHistoricalModified) ? (
-              <CodeBlock
-                code={event.wireDiffJson}
-                language="json"
-                isDiff
-                size="sm"
-                width="100%"
-                isWrapped
-                maxHeight={220}
-                title={`${event.code} · ${event.sourceActor} -> ${event.targetActor}`}
-              />
-            ) : (
-              <CodeBlock
-                code={event.rawOriginalJson}
-                language="json"
-                size="sm"
-                width="100%"
-                isWrapped
-                maxHeight={220}
-                title={`${event.code} · ${event.toolOrEndpoint}`}
-              />
+            {(isOfferFrame || isAwaitingPass || isSettledOrder) && (
+              <div>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  label={
+                    showWireJson
+                      ? 'Hide wire JSON'
+                      : event.wireDiffJson && (mutationOn || isHistoricalModified)
+                        ? 'View wire JSON diff'
+                        : 'View wire JSON'
+                  }
+                  onClick={() => setShowWireJson(v => !v)}
+                />
+              </div>
             )}
+
+            {shouldShowCodeExpanded &&
+              (event.wireDiffJson && (mutationOn || isHistoricalModified) ? (
+                <CodeBlock
+                  code={event.wireDiffJson}
+                  language="json"
+                  isDiff
+                  size="sm"
+                  width="100%"
+                  isWrapped
+                  maxHeight={200}
+                  title={`${event.code} · ${event.sourceActor} -> ${event.targetActor}`}
+                />
+              ) : (
+                <CodeBlock
+                  code={event.rawOriginalJson}
+                  language="json"
+                  size="sm"
+                  width="100%"
+                  isWrapped
+                  maxHeight={200}
+                  title={`${event.code} · ${event.toolOrEndpoint}`}
+                />
+              ))}
           </VStack>
         </VStack>
       </div>
 
-      {/* Sticky Action Footer */}
-      {(isOfferFrame || isAwaitingPass) && (
+      {/* Single-Click Action Footer (Zero 2-Switch Confirmation Trap) */}
+      {(isHeldQuote || isAwaitingPass) && (
         <div style={styles.footer}>
           {isHeldQuote ? (
             <VStack gap={2}>
-              <Switch
-                width="100%"
-                labelSpacing="spread"
-                label={`Confirm target ${event.targetActor} & outbound payload`}
-                value={payloadReviewed}
-                onChange={setPayloadReviewed}
-              />
-
-              <HStack gap={2}>
+              {mutationOn ? (
+                <HStack gap={2}>
+                  <Button
+                    width="100%"
+                    size="sm"
+                    variant="primary"
+                    label={`Send $${event.stagedOffer?.price ?? 209} Offer (${proposedCount})`}
+                    onClick={() => onTransmitModified(event.id)}
+                  />
+                  <Button
+                    width="100%"
+                    size="sm"
+                    variant="secondary"
+                    label={`Forward Original (${upstreamCount})`}
+                    isDisabled={Boolean(event.forwardOriginalBlockedReason)}
+                    tooltip={event.forwardOriginalBlockedReason}
+                    onClick={() => onForwardOriginal(event.id)}
+                  />
+                </HStack>
+              ) : isFloorLeakReplacement ? (
                 <Button
                   width="100%"
                   size="sm"
                   variant="primary"
-                  label={
-                    mutationOn
-                      ? `Transmit modified (${proposedCount})`
-                      : 'Enable mutation to transmit diff'
-                  }
-                  isDisabled={!mutationOn || !payloadReviewed}
-                  tooltip={
-                    !payloadReviewed
-                      ? 'Confirm outbound payload and target recipient above before transmitting'
-                      : !mutationOn
-                        ? 'Protocol mutation rule is off — use Forward original or re-enable mutation'
-                        : `Send ${proposedCount} validated offers to ${event.targetActor}`
-                  }
-                  onClick={() => onTransmitModified(event.id)}
+                  label={`Enable $${event.stagedOffer?.price ?? 209} Replacement`}
+                  onClick={() => onToggleMutation(event.id, true)}
                 />
-                <Button
-                  width="100%"
-                  size="sm"
-                  variant="secondary"
-                  label={`Forward original (${upstreamCount})`}
-                  isDisabled={
-                    Boolean(event.forwardOriginalBlockedReason) ||
-                    !payloadReviewed
-                  }
-                  tooltip={
-                    event.forwardOriginalBlockedReason ??
-                    (!payloadReviewed
-                      ? 'Confirm target recipient above before forwarding'
-                      : `Forward unmodified upstream response (${upstreamCount} offers) to ${event.targetActor}`)
-                  }
-                  onClick={() => onForwardOriginal(event.id)}
-                />
-              </HStack>
+              ) : (
+                <HStack gap={2}>
+                  <Button
+                    width="100%"
+                    size="sm"
+                    variant="primary"
+                    label={`Forward Original (${upstreamCount})`}
+                    onClick={() => onForwardOriginal(event.id)}
+                  />
+                  <Button
+                    width="100%"
+                    size="sm"
+                    variant="secondary"
+                    label={`Add $${event.stagedOffer?.price ?? 209} Offer`}
+                    onClick={() => onToggleMutation(event.id, true)}
+                  />
+                </HStack>
+              )}
 
               {event.forwardOriginalBlockedReason && (
                 <Text type="supporting" color="secondary">
-                  Forward original disabled: {event.forwardOriginalBlockedReason}
-                </Text>
-              )}
-              {!payloadReviewed && (
-                <Text type="supporting" color="secondary">
-                  Confirm outbound message and recipient {event.targetActor} to
-                  unlock transmission.
+                  {event.forwardOriginalBlockedReason}
                 </Text>
               )}
             </VStack>
-          ) : isAwaitingPass ? (
+          ) : (
             <HStack gap={2}>
               <Button
                 width="100%"
                 size="sm"
                 variant="primary"
-                label={`Issue pass ($${event.passRequest?.requestedCap ?? 0})`}
+                label={`Issue Pass ($${event.passRequest?.requestedCap ?? 0})`}
                 onClick={() => onAuthorizePass(event.id)}
               />
               <Button
                 width="100%"
                 size="sm"
                 variant="destructive"
-                label="Reject checkout"
+                label="Reject Checkout"
                 onClick={() => onRejectPass(event.id)}
               />
             </HStack>
-          ) : (
-            <VStack gap={1.5}>
-              <Button
-                width="100%"
-                size="sm"
-                variant="secondary"
-                isDisabled
-                label="Response already delivered"
-              />
-              <Text type="supporting" color="secondary">
-                {event.code} was delivered to {event.targetActor} at{' '}
-                {event.deliveredAt ?? event.timestamp}. Use Reset scenario to
-                replay live interception.
-              </Text>
-            </VStack>
           )}
         </div>
       )}

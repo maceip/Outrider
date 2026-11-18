@@ -4,8 +4,8 @@
 
 import React, {type CSSProperties} from 'react';
 import {ClickableCard} from '@astryxdesign/core/ClickableCard';
-import {Grid} from '@astryxdesign/core/Grid';
 import {Divider} from '@astryxdesign/core/Divider';
+import {Grid} from '@astryxdesign/core/Grid';
 import {HStack, StackItem, VStack} from '@astryxdesign/core/Layout';
 import {MetadataList, MetadataListItem} from '@astryxdesign/core/MetadataList';
 import {StatusDot} from '@astryxdesign/core/StatusDot';
@@ -67,7 +67,7 @@ function getNodeStatusText(ev: TraceEvent): string {
     case 'awaiting_pass':
       return 'Awaiting pass';
     case 'delivered_modified':
-      return 'Modified';
+      return 'Counter-offer';
     case 'pass_authorized':
       return 'Settled';
     case 'delivered_original':
@@ -75,17 +75,6 @@ function getNodeStatusText(ev: TraceEvent): string {
     default:
       return `${ev.httpStatus ?? 200}`;
   }
-}
-
-function getActorRole(ev: TraceEvent): string {
-  if (
-    ev.deliveryPhase === 'held_at_proxy' ||
-    ev.deliveryPhase === 'awaiting_pass' ||
-    ev.deliveryPhase === 'delivered_modified'
-  ) {
-    return 'Proxy';
-  }
-  return ev.direction === 'seller_to_buyer' ? 'Seller' : 'Buyer';
 }
 
 export function CausalObservatoryGraph({
@@ -102,6 +91,9 @@ export function CausalObservatoryGraph({
   const heldR02 = session.events.find(
     e => e.deliveryPhase === 'held_at_proxy',
   );
+  const awaitingPassEvt = session.events.find(
+    e => e.deliveryPhase === 'awaiting_pass',
+  );
 
   const upstreamSummary = (offerEvent?.upstreamOffers ?? [])
     .map(o => `${o.id} $${o.price}`)
@@ -111,8 +103,8 @@ export function CausalObservatoryGraph({
     ? offerEvent.deliveryPhase === 'delivered_modified'
       ? `Delivered +${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price}`
       : offerEvent.mutationEnabled !== false
-        ? `Staged +${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price} (undelivered)`
-        : `${offerEvent.stagedOffer.id} mutation disabled`
+        ? `Staged +${offerEvent.stagedOffer.id} $${offerEvent.stagedOffer.price}`
+        : `${offerEvent.stagedOffer.id} off`
     : null;
 
   return (
@@ -131,16 +123,28 @@ export function CausalObservatoryGraph({
           </StackItem>
           <HStack gap={1.5} vAlign="center">
             <StatusDot
-              variant={heldR02 ? 'warning' : 'neutral'}
+              variant={
+                heldR02
+                  ? 'warning'
+                  : awaitingPassEvt
+                    ? 'accent'
+                    : 'success'
+              }
               isPulsing={Boolean(heldR02)}
               label={
                 heldR02
-                  ? `${heldR02.code} held at proxy`
-                  : 'Wire synchronized'
+                  ? 'Quote held before delivery'
+                  : awaitingPassEvt
+                    ? 'Awaiting checkout pass'
+                    : 'Synchronized'
               }
             />
             <Text type="supporting" color="secondary">
-              {heldR02 ? `${heldR02.code} held (undelivered)` : 'Synchronized'}
+              {heldR02
+                ? 'Quote held (0 delivered)'
+                : awaitingPassEvt
+                  ? 'Awaiting pass'
+                  : 'Synchronized'}
             </Text>
           </HStack>
         </HStack>
@@ -149,9 +153,9 @@ export function CausalObservatoryGraph({
       <div style={styles.canvas}>
         <VStack gap={3}>
           <Grid
-            columns={{minWidth: expanded ? 220 : 172, max: 5, repeat: 'fit'}}
+            columns={{minWidth: expanded ? 220 : 176, max: 5, repeat: 'fit'}}
             gap={2}>
-            {session.events.map((ev, idx) => {
+            {session.events.map(ev => {
               const isSelected = ev.id === selectedEventId;
               const isHeld = ev.deliveryPhase === 'held_at_proxy';
               const isPassGate = ev.deliveryPhase === 'awaiting_pass';
@@ -166,7 +170,7 @@ export function CausalObservatoryGraph({
                     variant={isSelected ? 'muted' : 'default'}
                     padding={expanded ? 3 : 2}
                     height="100%"
-                    label={`Inspect ${ev.code} ${ev.toolOrEndpoint}`}
+                    label={`Inspect ${ev.code} ${ev.title}`}
                     onClick={() => onSelectEvent(ev.id)}>
                     <VStack gap={1.5}>
                       <HStack gap={1.5} vAlign="center">
@@ -184,14 +188,7 @@ export function CausalObservatoryGraph({
                               size="2xs"
                               weight="semibold"
                               hasTabularNumbers>
-                              {idx + 1}. {ev.code}
-                            </Text>
-                            <Text
-                              type="supporting"
-                              size="2xs"
-                              color="secondary"
-                              maxLines={1}>
-                              {getActorRole(ev)}
+                              {ev.code}
                             </Text>
                           </HStack>
                         </StackItem>
@@ -207,11 +204,10 @@ export function CausalObservatoryGraph({
 
                       <VStack gap={0.5}>
                         <Text
-                          type="code"
-                          size="2xs"
-                          weight="medium"
+                          type="label"
+                          weight="semibold"
                           maxLines={1}>
-                          {ev.toolOrEndpoint}
+                          {ev.title}
                         </Text>
                         <Text
                           type="supporting"
@@ -230,7 +226,7 @@ export function CausalObservatoryGraph({
                             {ev.direction === 'buyer_to_seller'
                               ? 'Buyer → Seller'
                               : ev.direction === 'buyer_to_gate'
-                                ? 'Buyer → Gate'
+                                ? 'Buyer → Conduit'
                                 : 'Seller → Buyer'}
                           </Text>
                         </StackItem>
@@ -255,12 +251,12 @@ export function CausalObservatoryGraph({
                 <VStack gap={1.5}>
                   <HStack gap={2} vAlign="center">
                     <StackItem size="fill">
-                      <Text type="code" size="2xs" color="secondary">
-                        Next · C03
+                      <Text type="label" color="secondary">
+                        Select Offer
                       </Text>
                     </StackItem>
                     <Text type="supporting" size="2xs" color="secondary">
-                      Unreached
+                      Waiting
                     </Text>
                   </HStack>
                   <Text
@@ -268,8 +264,8 @@ export function CausalObservatoryGraph({
                     size="2xs"
                     color="secondary"
                     maxLines={3}>
-                    {session.buyerAgentId} has 0 offers while {heldR02.code} is
-                    held. select_product runs only after release.
+                    {session.buyerAgentId} has 0 offers until {heldR02.code} is
+                    released.
                   </Text>
                 </VStack>
               </div>
@@ -284,8 +280,7 @@ export function CausalObservatoryGraph({
                     type="supporting"
                     color="secondary"
                     hasTabularNumbers>
-                    {offerEvent.code} quotes · Floor ${session.marginFloorUsd} ·
-                    Observed: {upstreamSummary}
+                    Floor ${session.marginFloorUsd} · Seller: {upstreamSummary}
                     {stagedSummary ? ` · ${stagedSummary}` : ''}
                   </Text>
                 </StackItem>
@@ -294,11 +289,13 @@ export function CausalObservatoryGraph({
                   color="secondary"
                   hasTabularNumbers>
                   {offerEvent.deliveryPhase === 'held_at_proxy'
-                    ? `${offerEvent.upstreamOffers?.length ?? 2} observed → ${
+                    ? `${offerEvent.upstreamOffers?.length ?? 2} seller → ${
                         offerEvent.mutationEnabled !== false
-                          ? (offerEvent.upstreamOffers?.length ?? 2) + 1
+                          ? offerEvent.forwardOriginalBlockedReason
+                            ? (offerEvent.upstreamOffers?.length ?? 2)
+                            : (offerEvent.upstreamOffers?.length ?? 2) + 1
                           : (offerEvent.upstreamOffers?.length ?? 2)
-                      } proposed`
+                      } outbound`
                     : offerEvent.deliveryPhase === 'delivered_modified'
                       ? `${offerEvent.deliveredOffers?.length ?? 3} delivered`
                       : 'Delivered unmodified'}
@@ -309,7 +306,7 @@ export function CausalObservatoryGraph({
 
           {expanded && (
             <div style={styles.summaryBar}>
-              <MetadataList columns="auto">
+              <MetadataList columns="multi">
                 <MetadataListItem label="Buyer agent">
                   <Text type="body">
                     {session.buyerAgentId} · {session.buyerModel} (
@@ -317,9 +314,7 @@ export function CausalObservatoryGraph({
                   </Text>
                 </MetadataListItem>
                 <MetadataListItem label="Traffic posture">
-                  <Text type="body">
-                    {session.trafficProfile}
-                  </Text>
+                  <Text type="body">{session.trafficProfile}</Text>
                 </MetadataListItem>
                 <MetadataListItem label="Unit economics">
                   <Text type="body" hasTabularNumbers>

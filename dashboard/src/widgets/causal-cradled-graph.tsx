@@ -19,8 +19,8 @@ export interface CausalCradledGraphProps {
   onSelectEvent: (eventId: string) => void;
 }
 
-const NODE_W = 94;
-const COL_GAP = 12;
+const NODE_W = 116;
+const COL_GAP = 10;
 const PAD_X = 8;
 const SPINE_TOP = 8;
 const SPINE_H = 54;

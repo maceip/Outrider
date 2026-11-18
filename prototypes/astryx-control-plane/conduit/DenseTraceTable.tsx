@@ -3,6 +3,7 @@
 'use client';
 
 import React, {type CSSProperties} from 'react';
+import {Button} from '@astryxdesign/core/Button';
 import {EmptyState} from '@astryxdesign/core/EmptyState';
 import {HStack, StackItem, VStack} from '@astryxdesign/core/Layout';
 import {List, ListItem} from '@astryxdesign/core/List';
@@ -45,14 +46,17 @@ const styles: Record<string, CSSProperties> = {
   },
 };
 
-function formatPhaseLabel(phase: DeliveryPhase, httpStatus: number | null): string {
+function formatPhaseLabel(
+  phase: DeliveryPhase,
+  httpStatus: number | null,
+): string {
   switch (phase) {
     case 'held_at_proxy':
-      return 'Held at proxy';
+      return 'Held';
     case 'awaiting_pass':
       return 'Awaiting pass';
     case 'delivered_modified':
-      return `${httpStatus ?? 200} · Modified`;
+      return `${httpStatus ?? 200} · Counter-offer`;
     case 'pass_authorized':
       return `${httpStatus ?? 200} · Settled`;
     case 'delivered_original':
@@ -128,11 +132,6 @@ export function DenseTraceTable({
               </Text>
             </HStack>
           </StackItem>
-          {!isNarrow && (
-            <Text type="supporting" color="secondary">
-              Select a row to inspect frame
-            </Text>
-          )}
         </HStack>
       </div>
 
@@ -140,12 +139,16 @@ export function DenseTraceTable({
         {filtered.length === 0 ? (
           <VStack padding={4}>
             <EmptyState
-              title="No matching trace frames"
-              description="Clear the active filter to see the full execution sequence."
-              primaryAction={{
-                label: 'Show all frames',
-                onClick: onResetFilter,
-              }}
+              title="No matching frames"
+              description="Clear the active filter to view the full session sequence."
+              actions={
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  label="Show all frames"
+                  onClick={onResetFilter}
+                />
+              }
               isCompact
             />
           </VStack>
@@ -158,7 +161,7 @@ export function DenseTraceTable({
                 ev.direction === 'buyer_to_seller'
                   ? 'Buyer → Seller'
                   : ev.direction === 'buyer_to_gate'
-                    ? 'Buyer → Gate'
+                    ? 'Buyer → Conduit'
                     : 'Seller → Buyer';
               const phaseLabel = formatPhaseLabel(
                 ev.deliveryPhase,
@@ -177,13 +180,15 @@ export function DenseTraceTable({
                             ? 'warning'
                             : isPass
                               ? 'accent'
-                              : 'neutral'
+                              : ev.deliveryPhase === 'pass_authorized'
+                                ? 'success'
+                                : 'neutral'
                         }
                         isPulsing={isHeld}
                         label={phaseLabel}
                       />
                     }
-                    label={`${ev.code} · ${ev.toolOrEndpoint}`}
+                    label={`${ev.code} · ${ev.title}`}
                     description={`${ev.protocol} · ${directionLabel} · ${ev.observation}`}
                     endContent={
                       <HStack gap={3} vAlign="center">

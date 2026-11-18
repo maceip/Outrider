@@ -300,10 +300,14 @@ export function PassesSurface({
             <EmptyState
               title="No capability passes match filter"
               description="Switch to All to view every issued and pending checkout pass."
-              primaryAction={{
-                label: 'Show all passes',
-                onClick: () => setStatusFilter('all'),
-              }}
+              actions={
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  label="Show all passes"
+                  onClick={() => setStatusFilter('all')}
+                />
+              }
               isCompact
             />
           </VStack>
@@ -353,7 +357,7 @@ export function PassesSurface({
                   )}
                 </HStack>
 
-                <MetadataList columns="auto">
+                <MetadataList columns="multi">
                   <MetadataListItem label="Merchant">
                     <Text type="body">{pass.merchantHost}</Text>
                   </MetadataListItem>

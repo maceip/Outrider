@@ -28,11 +28,7 @@ import {Heading, Text} from '@astryxdesign/core/Text';
 import {useMediaQuery} from '@astryxdesign/core/hooks';
 import {Theme} from '@astryxdesign/core/theme';
 import {CONDUIT_MARK_DATA_URI} from './conduitMark';
-import {
-  CONDUIT_THEME_OPTIONS,
-  DEFAULT_CONDUIT_THEME,
-  conduitThemeByValue,
-} from './conduitThemes';
+import {conduitTheme} from './conduitTheme';
 import {
   STAGE_ORDER,
   buildInitialPasses,
@@ -50,10 +46,10 @@ import {CanonicalInspectorPanel} from './CanonicalInspectorPanel';
 import {PassesSurface, WireSurface} from './WireAndPassesSurfaces';
 
 const SCENARIO_LABELS: Record<ScenarioPresetId, string> = {
-  live_hold_r02: '1. Live Quote Held (R02 Undelivered)',
-  floor_leak_blocked: '2. Floor Policy Violation ($189 Leak)',
-  post_release_pass: '3. Post-Release · Awaiting Pass',
-  discovery_95pct: '4. 95% Traffic · Discovery Only (Full Width)',
+  live_hold_r02: 'Held Quote ($209 Counter)',
+  floor_leak_blocked: 'Margin Floor Guard ($189 Blocked)',
+  post_release_pass: 'Checkout Pass Gate',
+  discovery_95pct: 'Catalog Browsing (2 ms Pass-Through)',
 };
 
 const styles: Record<string, CSSProperties> = {
@@ -108,19 +104,32 @@ const styles: Record<string, CSSProperties> = {
 export interface ConduitWorkbenchProps {
   initialScenario?: ScenarioPresetId;
   initialColorMode?: 'dark' | 'light';
+  colorMode?: 'dark' | 'light';
+  onColorModeChange?: (mode: 'dark' | 'light') => void;
   onBackToOverview?: () => void;
 }
 
 export function ConduitWorkbench({
   initialScenario = 'live_hold_r02',
   initialColorMode = 'dark',
+  colorMode: controlledColorMode,
+  onColorModeChange,
   onBackToOverview,
 }: ConduitWorkbenchProps = {}) {
-  const [themeKey, setThemeKey] = useState<string>(DEFAULT_CONDUIT_THEME);
-  const [colorMode, setColorMode] = useState<'dark' | 'light'>(
+  const [internalColorMode, setInternalColorMode] = useState<'dark' | 'light'>(
     initialColorMode,
   );
+  const colorMode = controlledColorMode ?? internalColorMode;
+  const handleColorModeChange = (next: 'dark' | 'light') => {
+    if (onColorModeChange) {
+      onColorModeChange(next);
+    } else {
+      setInternalColorMode(next);
+    }
+  };
+
   const [scenario, setScenario] = useState<ScenarioPresetId>(initialScenario);
+  const [isScenarioDirty, setIsScenarioDirty] = useState<boolean>(false);
 
   const [sessions, setSessions] = useState<MerchantSession[]>(() =>
     buildInitialSessions(initialScenario),
@@ -148,11 +157,17 @@ export function ConduitWorkbench({
     return focusEvt?.id ?? null;
   });
 
-  // Follow incident-console/page.tsx responsive contract: <= 1024px uses BottomSheet on tap
   const isMobile = useMediaQuery('(max-width: 1024px)');
-  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(
-    () => initialScenario !== 'discovery_95pct',
-  );
+  const [isInspectorOpen, setIsInspectorOpen] = useState<boolean>(() => {
+    if (initialScenario === 'discovery_95pct') return false;
+    if (
+      typeof window !== 'undefined' &&
+      window.matchMedia('(max-width: 1024px)').matches
+    ) {
+      return false;
+    }
+    return true;
+  });
   const [wasMobile, setWasMobile] = useState<boolean>(isMobile);
   if (wasMobile !== isMobile) {
     setWasMobile(isMobile);
@@ -169,21 +184,16 @@ export function ConduitWorkbench({
 
   const graphHeightResize = useResizable({
     direction: 'vertical',
-    defaultSize: 274,
+    defaultSize: 268,
     minSize: 175,
     maxSize: 470,
   });
 
   const inspectorResize = useResizable({
-    defaultSize: 400,
+    defaultSize: 404,
     minSize: 340,
     maxSize: 540,
   });
-
-  const activeTheme =
-    conduitThemeByValue[themeKey] ??
-    conduitThemeByValue[DEFAULT_CONDUIT_THEME] ??
-    Object.values(conduitThemeByValue)[0];
 
   const activeSession = useMemo(
     () => sessions.find(s => s.id === activeSessionId) ?? sessions[0],
@@ -214,10 +224,18 @@ export function ConduitWorkbench({
         e.deliveryPhase === 'held_at_proxy' ||
         e.deliveryPhase === 'awaiting_pass',
     );
+    const settledOrModified =
+      target.events.find(e => e.deliveryPhase === 'pass_authorized') ??
+      target.events.find(e => e.deliveryPhase === 'delivered_modified');
+
     if (actionEvent) {
       setSelectedEventId(actionEvent.id);
       setIsInspectorOpen(!isMobile);
+    } else if (settledOrModified) {
+      setSelectedEventId(settledOrModified.id);
+      setIsInspectorOpen(!isMobile);
     } else {
+      // Read-only browsing (DisplayCo) opens full-width by default
       setSelectedEventId(target.events[target.events.length - 1]?.id ?? null);
       setIsInspectorOpen(false);
     }
@@ -225,6 +243,7 @@ export function ConduitWorkbench({
 
   const applyScenarioPreset = (preset: ScenarioPresetId) => {
     setScenario(preset);
+    setIsScenarioDirty(false);
     const freshSessions = buildInitialSessions(preset);
     const freshPasses = buildInitialPasses();
     setSessions(freshSessions);
@@ -256,6 +275,7 @@ export function ConduitWorkbench({
   };
 
   const handleToggleMutation = (eventId: string, nextEnabled: boolean) => {
+    setIsScenarioDirty(true);
     setSessions(prev =>
       prev.map(sess =>
         sess.id !== activeSession.id
@@ -271,8 +291,10 @@ export function ConduitWorkbench({
   };
 
   const handleTransmitModified = (eventId: string) => {
+    setIsScenarioDirty(true);
     const nowStamp = '14:02:11.408';
     let mintedCartCap = 209;
+    const c04Id = `evt-${activeSession.id}-c04-live`;
 
     setSessions(prev =>
       prev.map(sess => {
@@ -300,7 +322,7 @@ export function ConduitWorkbench({
                 deliveryPhase: 'delivered_modified' as const,
                 deliveredOffers: deliveredList,
                 deliveredAt: nowStamp,
-                observation: `Delivered (modified): ${deliveredList.length} offers sent to ${ev.targetActor} (+${chosenOffer?.id ?? 'O03'} $${mintedCartCap}.00)`,
+                observation: `${deliveredList.length} offers delivered to ${ev.targetActor} (+${chosenOffer?.id ?? 'O03'} $${mintedCartCap}.00)`,
                 headers: {
                   ...ev.headers,
                   'x-conduit-hold-state': 'RELEASED_MODIFIED',
@@ -310,7 +332,6 @@ export function ConduitWorkbench({
         );
 
         const c03Id = `evt-${sess.id}-c03-live`;
-        const c04Id = `evt-${sess.id}-c04-live`;
 
         return {
           ...sess,
@@ -321,16 +342,17 @@ export function ConduitWorkbench({
               id: c03Id,
               seq: 104,
               code: 'C03',
+              title: 'Select Offer',
               direction: 'buyer_to_seller' as const,
               protocol: 'MCP' as const,
-              toolOrEndpoint: 'tools/call · select_product',
+              toolOrEndpoint: 'select_product',
               timestamp: '14:02:12.019',
               durationLabel: '3 ms',
               httpStatus: 200,
               deliveryPhase: 'observed_inbound' as const,
               sourceActor: sess.buyerAgentId,
               targetActor: `${sess.merchantHost}/mcp`,
-              observation: `Buyer selected delivered offer ${chosenOffer?.id ?? 'O03'} ($${mintedCartCap}.00) → cart CART-8841`,
+              observation: `Buyer selected ${chosenOffer?.id ?? 'O03'} ($${mintedCartCap}.00) → cart CART-8841`,
               rawOriginalJson: JSON.stringify(
                 {
                   jsonrpc: '2.0',
@@ -359,16 +381,17 @@ export function ConduitWorkbench({
               id: c04Id,
               seq: 105,
               code: 'C04',
+              title: 'Request Pass',
               direction: 'buyer_to_gate' as const,
               protocol: 'MCP' as const,
-              toolOrEndpoint: 'conduit/request_checkout_pass',
+              toolOrEndpoint: 'request_checkout_pass',
               timestamp: '14:02:12.490',
               durationLabel: 'Awaiting pass',
               httpStatus: 202,
               deliveryPhase: 'awaiting_pass' as const,
               sourceActor: sess.buyerAgentId,
               targetActor: 'conduit.pass.authority',
-              observation: `0 frames held in proxy; checkout awaits scoped pass ($${mintedCartCap}.00 cap · ${sess.skuCode})`,
+              observation: `Checkout awaits single-use pass ($${mintedCartCap}.00 cap · ${sess.skuCode})`,
               passRequest: {
                 requestId: 'req_pass_7f2_live',
                 sku: sess.skuCode,
@@ -431,10 +454,16 @@ export function ConduitWorkbench({
       },
       ...prev.filter(p => p.id !== 'pass_aud_7f2_await'),
     ]);
+
+    // Auto-advance inspector focus to the newly arrived Checkout Pass Gate!
+    setSelectedEventId(c04Id);
   };
 
   const handleForwardOriginal = (eventId: string) => {
+    setIsScenarioDirty(true);
     const nowStamp = '14:02:11.512';
+    const c04OrigId = `evt-${activeSession.id}-c04-orig`;
+
     setSessions(prev =>
       prev.map(sess => {
         if (sess.id !== activeSession.id) return sess;
@@ -455,7 +484,7 @@ export function ConduitWorkbench({
                 deliveryPhase: 'delivered_original' as const,
                 deliveredOffers: origOffers,
                 deliveredAt: nowStamp,
-                observation: `Delivered (original): ${origOffers.length} unmodified offers forwarded to ${ev.targetActor}`,
+                observation: `${origOffers.length} original seller offers forwarded to ${ev.targetActor}`,
                 headers: {
                   ...ev.headers,
                   'x-conduit-hold-state': 'FORWARDED_ORIGINAL',
@@ -472,16 +501,17 @@ export function ConduitWorkbench({
               id: `evt-${sess.id}-c03-orig`,
               seq: 104,
               code: 'C03',
+              title: 'Select Offer',
               direction: 'buyer_to_seller' as const,
               protocol: 'MCP' as const,
-              toolOrEndpoint: 'tools/call · select_product',
+              toolOrEndpoint: 'select_product',
               timestamp: '14:02:12.210',
               durationLabel: '3 ms',
               httpStatus: 200,
               deliveryPhase: 'observed_inbound' as const,
               sourceActor: sess.buyerAgentId,
               targetActor: `${sess.merchantHost}/mcp`,
-              observation: `Buyer selected original offer ${picked?.id ?? 'O01'} ($${cap}.00) → cart CART-8842`,
+              observation: `Buyer selected ${picked?.id ?? 'O01'} ($${cap}.00) → cart CART-8842`,
               rawOriginalJson: JSON.stringify(
                 {
                   sku: sess.skuCode,
@@ -494,19 +524,20 @@ export function ConduitWorkbench({
               headers: {'content-type': 'application/json'},
             },
             {
-              id: `evt-${sess.id}-c04-orig`,
+              id: c04OrigId,
               seq: 105,
               code: 'C04',
+              title: 'Request Pass',
               direction: 'buyer_to_gate' as const,
               protocol: 'MCP' as const,
-              toolOrEndpoint: 'conduit/request_checkout_pass',
+              toolOrEndpoint: 'request_checkout_pass',
               timestamp: '14:02:12.680',
               durationLabel: 'Awaiting pass',
               httpStatus: 202,
               deliveryPhase: 'awaiting_pass' as const,
               sourceActor: sess.buyerAgentId,
               targetActor: 'conduit.pass.authority',
-              observation: `Checkout paused awaiting $${cap}.00 capability pass`,
+              observation: `Checkout awaits $${cap}.00 single-use pass`,
               passRequest: {
                 requestId: 'req_pass_orig',
                 sku: sess.skuCode,
@@ -514,6 +545,14 @@ export function ConduitWorkbench({
                 ttl: '15m 00s',
                 agentFingerprint: `spiffe://agents.buyer/${sess.buyerAgentId}`,
               },
+              validations: [
+                {
+                  id: 'vp-orig-1',
+                  gate: 'Agreed Quote Match',
+                  status: 'pass' as const,
+                  detail: `Requested $${cap}.00 matches delivered offer ${picked?.id ?? 'O01'}`,
+                },
+              ],
               rawOriginalJson: JSON.stringify(
                 {sku: sess.skuCode, amount_cap_usd: cap},
                 null,
@@ -525,11 +564,15 @@ export function ConduitWorkbench({
         };
       }),
     );
+
+    setSelectedEventId(c04OrigId);
   };
 
   const handleAuthorizePass = (eventId: string) => {
+    setIsScenarioDirty(true);
     const newPassId = `pass_${activeSession.id}_signed`;
     let settledUsd = activeSession.msrpUsd;
+    const c05Id = `evt-${activeSession.id}-c05-settled`;
 
     setSessions(prev =>
       prev.map(sess => {
@@ -545,11 +588,10 @@ export function ConduitWorkbench({
                 httpStatus: 200,
                 durationLabel: '18 ms',
                 deliveryPhase: 'pass_authorized' as const,
-                observation: `Authorized single-use pass ${newPassId} ($${settledUsd}.00 cap)`,
+                observation: `Issued single-use pass ${newPassId} ($${settledUsd}.00 cap)`,
               },
         );
 
-        const c05Id = `evt-${sess.id}-c05-settled`;
         return {
           ...sess,
           events: [
@@ -558,6 +600,7 @@ export function ConduitWorkbench({
               id: c05Id,
               seq: 106,
               code: 'C05',
+              title: 'Confirm Order',
               direction: 'buyer_to_seller' as const,
               protocol: 'HTTP' as const,
               toolOrEndpoint: 'POST /v1/orders/confirm',
@@ -567,7 +610,21 @@ export function ConduitWorkbench({
               deliveryPhase: 'pass_authorized' as const,
               sourceActor: sess.buyerAgentId,
               targetActor: sess.merchantHost,
-              observation: `Order ORD-99204 confirmed ($${settledUsd}.00) with ${newPassId}`,
+              observation: `Order ORD-99204 confirmed ($${settledUsd}.00) with single-use pass ${newPassId}`,
+              validations: [
+                {
+                  id: 'v-settled-1',
+                  gate: 'Single-Use Pass Verified',
+                  status: 'pass' as const,
+                  detail: `${newPassId} signed & bound to $${settledUsd}.00`,
+                },
+                {
+                  id: 'v-settled-2',
+                  gate: `Margin Floor Cleared ($${sess.marginFloorUsd}.00)`,
+                  status: 'pass' as const,
+                  detail: `Settled at $${settledUsd}.00 (+$${settledUsd - sess.marginFloorUsd}.00 net margin)`,
+                },
+              ],
               rawOriginalJson: JSON.stringify(
                 {
                   order_id: 'ORD-99204',
@@ -580,7 +637,7 @@ export function ConduitWorkbench({
               ),
               headers: {
                 'content-type': 'application/json',
-                authorization: `ConduitPass ${newPassId}`,
+                'authorization': `ConduitPass ${newPassId}`,
               },
             },
           ],
@@ -607,9 +664,12 @@ export function ConduitWorkbench({
         ...filtered,
       ];
     });
+
+    setSelectedEventId(c05Id);
   };
 
   const handleRejectPass = (eventId: string) => {
+    setIsScenarioDirty(true);
     setSessions(prev =>
       prev.map(sess =>
         sess.id !== activeSession.id
@@ -625,7 +685,7 @@ export function ConduitWorkbench({
                       durationLabel: 'Rejected',
                       deliveryPhase: 'delivered_original' as const,
                       observation:
-                        'Operator rejected checkout pass request (403 Forbidden returned to agent)',
+                        'Operator rejected checkout pass request (403 returned to agent)',
                     },
               ),
             },
@@ -639,12 +699,14 @@ export function ConduitWorkbench({
   };
 
   const handleRevokePass = (passId: string) => {
+    setIsScenarioDirty(true);
     setPasses(prev =>
       prev.map(p => (p.id === passId ? {...p, status: 'Revoked'} : p)),
     );
   };
 
   const handleApprovePendingPassFromLedger = (passId: string) => {
+    setIsScenarioDirty(true);
     const targetPass = passes.find(p => p.id === passId);
     if (!targetPass) return;
     const sess = sessions.find(s => s.id === targetPass.sessionId);
@@ -670,11 +732,12 @@ export function ConduitWorkbench({
     isInspectorOpen &&
     (activeSurface === 'overview' || activeSurface === 'graph');
 
-  const activeThemeLabel =
-    CONDUIT_THEME_OPTIONS.find(t => t.value === themeKey)?.label ?? themeKey;
+  const showReopenButton =
+    (activeSurface === 'overview' || activeSurface === 'graph') &&
+    (isMobile || !isInspectorOpen);
 
   return (
-    <Theme theme={activeTheme} mode={colorMode}>
+    <Theme theme={conduitTheme} mode={colorMode}>
       <div
         data-testid="conduit-astryx-workbench"
         style={styles.viewportRoot}>
@@ -692,7 +755,7 @@ export function ConduitWorkbench({
                           id="workbench-back-overview"
                           size="sm"
                           variant="ghost"
-                          label="← Overview"
+                          label="← Home"
                           onClick={onBackToOverview}
                         />
                       )}
@@ -705,11 +768,6 @@ export function ConduitWorkbench({
                           style={styles.brandMark}
                         />
                         <Heading level={4}>Conduit</Heading>
-                        {!isMobile && (
-                          <Text type="supporting" color="secondary">
-                            MCP Control Plane
-                          </Text>
-                        )}
                       </HStack>
 
                       {isMobile && (
@@ -733,32 +791,6 @@ export function ConduitWorkbench({
                           })}
                         />
                       )}
-
-                      <DropdownMenu
-                        presentation="adaptive"
-                        button={{
-                          size: 'sm',
-                          variant: 'secondary',
-                          label: isMobile
-                            ? 'Scenarios'
-                            : SCENARIO_LABELS[scenario],
-                        }}
-                        items={(
-                          Object.keys(SCENARIO_LABELS) as ScenarioPresetId[]
-                        ).map(presetKey => ({
-                          label: SCENARIO_LABELS[presetKey],
-                          onClick: () => applyScenarioPreset(presetKey),
-                        }))}
-                      />
-
-                      {!isMobile && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          label="Reset scenario"
-                          onClick={() => applyScenarioPreset(scenario)}
-                        />
-                      )}
                     </HStack>
                   </StackItem>
 
@@ -767,28 +799,31 @@ export function ConduitWorkbench({
                       presentation="adaptive"
                       button={{
                         size: 'sm',
-                        variant: 'ghost',
+                        variant: 'secondary',
                         label: isMobile
-                          ? activeThemeLabel
-                          : `Theme: ${activeThemeLabel}`,
+                          ? 'Scenarios'
+                          : `Scenario: ${SCENARIO_LABELS[scenario]}`,
                       }}
-                      items={CONDUIT_THEME_OPTIONS.map(opt => ({
-                        label: opt.label,
-                        onClick: () => setThemeKey(opt.value),
+                      items={(
+                        Object.keys(SCENARIO_LABELS) as ScenarioPresetId[]
+                      ).map(presetKey => ({
+                        label: SCENARIO_LABELS[presetKey],
+                        onClick: () => applyScenarioPreset(presetKey),
                       }))}
                     />
-                    <SegmentedControl
-                      size="sm"
-                      label="Color mode"
-                      value={colorMode}
-                      onChange={v => setColorMode(v as 'dark' | 'light')}>
-                      <SegmentedControlItem value="dark" label="Dark" />
-                      <SegmentedControlItem value="light" label="Light" />
-                    </SegmentedControl>
+
+                    {isScenarioDirty && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        label="Reset"
+                        onClick={() => applyScenarioPreset(scenario)}
+                      />
+                    )}
                   </HStack>
                 </HStack>
 
-                {/* Quiet typographic context strip — zero Badges, zero Tokens */}
+                {/* Commercial Context Strip */}
                 <div
                   data-testid="commercial-context-strip"
                   style={styles.contextRow}>
@@ -846,46 +881,33 @@ export function ConduitWorkbench({
                         </HStack>
                       )}
 
-                      {(activeSurface === 'overview' ||
-                        activeSurface === 'graph') &&
+                      {showReopenButton &&
                         (metrics.heldEventId ? (
                           <Button
                             size="sm"
-                            variant={isInspectorOpen ? 'secondary' : 'primary'}
-                            label={
-                              isInspectorOpen
-                                ? 'Hide quote approval'
-                                : 'Review held quote (1)'
-                            }
+                            variant="primary"
+                            label="Review held quote"
                             onClick={() => {
                               setSelectedEventId(metrics.heldEventId);
-                              setIsInspectorOpen(v => !v);
+                              setIsInspectorOpen(true);
                             }}
                           />
                         ) : metrics.awaitingPassEventId ? (
                           <Button
                             size="sm"
-                            variant={isInspectorOpen ? 'secondary' : 'primary'}
-                            label={
-                              isInspectorOpen
-                                ? 'Hide pass gate'
-                                : 'Review pass request (1)'
-                            }
+                            variant="primary"
+                            label="Review pass request"
                             onClick={() => {
                               setSelectedEventId(metrics.awaitingPassEventId);
-                              setIsInspectorOpen(v => !v);
+                              setIsInspectorOpen(true);
                             }}
                           />
                         ) : (
                           <Button
                             size="sm"
                             variant="ghost"
-                            label={
-                              isInspectorOpen
-                                ? 'Hide inspector'
-                                : 'Inspect frame'
-                            }
-                            onClick={() => setIsInspectorOpen(v => !v)}
+                            label="Inspect frame"
+                            onClick={() => setIsInspectorOpen(true)}
                           />
                         ))}
                     </HStack>
@@ -941,7 +963,9 @@ export function ConduitWorkbench({
                                         ? 'warning'
                                         : sm.awaitingPassCount > 0
                                           ? 'accent'
-                                          : 'neutral'
+                                          : sm.stage === 'Fulfill'
+                                            ? 'success'
+                                            : 'neutral'
                                     }
                                     isPulsing={sm.proxyHeldCount > 0}
                                     label={sm.stage}
@@ -953,7 +977,9 @@ export function ConduitWorkbench({
                                     ? `${sm.proxyHeldCount} held`
                                     : sm.awaitingPassCount > 0
                                       ? 'awaiting pass'
-                                      : `${sm.eventCount} frames`
+                                      : sm.stage === 'Fulfill'
+                                        ? 'settled'
+                                        : `${sm.eventCount} frames`
                                 }`}
                               />
                             );
@@ -980,7 +1006,7 @@ export function ConduitWorkbench({
                             isSelected={activeSurface === 'graph'}
                             onClick={() => setActiveSurface('graph')}
                             label="Graph"
-                            description="Full causal topology"
+                            description="Causal topology"
                           />
                           <ListItem
                             isSelected={activeSurface === 'wire'}
@@ -992,7 +1018,7 @@ export function ConduitWorkbench({
                             isSelected={activeSurface === 'passes'}
                             onClick={() => setActiveSurface('passes')}
                             label="Passes"
-                            description="Checkout capabilities"
+                            description="Single-use checkout keys"
                             endContent={
                               metrics.globalAwaitingPassCount > 0 ? (
                                 <Text
@@ -1038,7 +1064,7 @@ export function ConduitWorkbench({
                               setActiveSurface('overview');
                               setTraceFilter('mcp');
                             }}
-                            label="MCP JSON-RPC"
+                            label="MCP"
                           />
                           <ListItem
                             isSelected={traceFilter === 'http'}
@@ -1046,7 +1072,7 @@ export function ConduitWorkbench({
                               setActiveSurface('overview');
                               setTraceFilter('http');
                             }}
-                            label="HTTP transport"
+                            label="HTTP"
                           />
                           <ListItem
                             isSelected={traceFilter === 'attention'}
@@ -1054,7 +1080,7 @@ export function ConduitWorkbench({
                               setActiveSurface('overview');
                               setTraceFilter('attention');
                             }}
-                            label="Held / awaiting gate"
+                            label="Needs approval"
                             endContent={
                               metrics.proxyHeldCount +
                                 metrics.awaitingPassCount >
@@ -1075,7 +1101,7 @@ export function ConduitWorkbench({
                               setActiveSurface('overview');
                               setTraceFilter('modified');
                             }}
-                            label="Proxy mutations"
+                            label="Counter-offers"
                           />
                         </List>
                       </VStack>
@@ -1206,26 +1232,35 @@ export function ConduitWorkbench({
                             : 'success'
                       }
                       isPulsing={metrics.proxyHeldCount > 0}
-                      label="Proxy status"
+                      label="Session status"
                     />
                     <Text
                       type="code"
                       size="2xs"
                       color="secondary"
                       hasTabularNumbers>
-                      {metrics.eventCount} events · {metrics.proxyHeldCount}{' '}
-                      held by proxy · {metrics.awaitingPassCount} awaiting pass
+                      {activeSession.merchantName} · {metrics.eventCount} frames
+                      · {metrics.proxyHeldCount} held ·{' '}
+                      {metrics.awaitingPassCount} awaiting pass
                     </Text>
+                    {!isMobile && (
+                      <Text type="supporting" color="secondary">
+                        · {metrics.stageHeadline}
+                      </Text>
+                    )}
                   </HStack>
                 </StackItem>
 
-                <Text
-                  type="supporting"
-                  color="secondary"
-                  hasTabularNumbers>
-                  {metrics.stageHeadline} · {metrics.activePassCountGlobal}{' '}
-                  active pass
-                </Text>
+                <HStack gap={2} vAlign="center">
+                  <SegmentedControl
+                    size="sm"
+                    label="Color mode"
+                    value={colorMode}
+                    onChange={v => handleColorModeChange(v as 'dark' | 'light')}>
+                    <SegmentedControlItem value="dark" label="Dark" />
+                    <SegmentedControlItem value="light" label="Light" />
+                  </SegmentedControl>
+                </HStack>
               </HStack>
             </LayoutFooter>
           }
@@ -1237,7 +1272,7 @@ export function ConduitWorkbench({
             onOpenChange={setIsInspectorOpen}
             label="Frame inspection"
             height="lg"
-            padding="none">
+            padding={0}>
             <CanonicalInspectorPanel
               inBottomSheet
               session={activeSession}

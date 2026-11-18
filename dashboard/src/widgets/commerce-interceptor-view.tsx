@@ -559,6 +559,19 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
           : requestedMode;
 
       try {
+        if (
+          effectiveMode === "replacement" &&
+          activeDraft?.validation.seller_policy === "pending_validation"
+        ) {
+          await executeInterceptionMutation(
+            "/interception/validate",
+            {
+              target_event_id: targetEventId,
+              tx_id: activeTx.tx_id,
+            },
+            "validate",
+          );
+        }
         await executeInterceptionMutation(
           "/interception/release",
           {
@@ -578,8 +591,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
       }
     },
     [
-      activeDraft?.enabled,
-      activeDraft?.target_event_id,
+      activeDraft,
       activeTx,
       executeInterceptionMutation,
       selectedEvent?.event_id,
@@ -638,29 +650,31 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
       },
       {
         cell: (item) => (
-          <span className="text-muted font-mono text-xs">
+          <span className="text-muted font-mono text-xs whitespace-nowrap">
             {item.direction === "buyer_to_seller" ? "Buyer → Seller" : "Seller → Buyer"}
           </span>
         ),
         header: "Actor",
         id: "actor",
-        minWidth: 104,
-        width: 112,
+        minWidth: 112,
+        width: 118,
       },
       {
         accessorKey: "event_name",
         cell: (item) => (
-          <span className="text-foreground font-mono text-xs font-medium">{item.event_name}</span>
+          <span className="text-foreground font-mono text-xs font-medium whitespace-nowrap">
+            {item.event_name}
+          </span>
         ),
         header: "Event",
         id: "event_name",
-        minWidth: 146,
+        minWidth: 168,
       },
       {
         accessorKey: "observation",
         cell: (item) => (
           <span
-            className="text-muted block max-w-[220px] truncate text-xs"
+            className="text-muted block max-w-[280px] truncate text-xs"
             title={item.observation}
           >
             {item.observation}
@@ -668,17 +682,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
         ),
         header: "Observation",
         id: "observation",
-        minWidth: 156,
-      },
-      {
-        accessorKey: "correlation_id",
-        cell: (item) => (
-          <span className="text-muted font-mono text-xs tabular-nums">{item.correlation_id}</span>
-        ),
-        header: "Correlation",
-        id: "correlation_id",
-        minWidth: 92,
-        width: 102,
+        minWidth: 180,
       },
       {
         align: "end",
@@ -780,7 +784,10 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
   }, [activeTx]);
 
   const streamPackets = useMemo(() => {
-    const observedInterception = workspaceState.events
+    const scopedEvents = activeTx
+      ? workspaceState.events.filter((ev) => ev.tx_id === activeTx.tx_id)
+      : workspaceState.events;
+    const observedInterception = scopedEvents
       .filter((ev) => ev.epistemic_kind !== "pending")
       .sort((a, b) => b.timestamp_ms - a.timestamp_ms || b.seq - a.seq);
 
@@ -816,13 +823,16 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
       statusLabel: pkt.status !== null && pkt.status >= 400 ? String(pkt.status) : "OK",
       txId: null as string | null,
     }));
-  }, [extraHoldElapsedMs, traffics, workspaceState.events]);
+  }, [activeTx, extraHoldElapsedMs, traffics, workspaceState.events]);
 
   const streamStats = useMemo(() => {
-    const observedEvents = workspaceState.events.filter((ev) => ev.epistemic_kind !== "pending");
+    const scopedEvents = activeTx
+      ? workspaceState.events.filter((ev) => ev.tx_id === activeTx.tx_id)
+      : workspaceState.events;
+    const observedEvents = scopedEvents.filter((ev) => ev.epistemic_kind !== "pending");
     const totalEvents =
       observedEvents.length > 0 ? observedEvents.length : traffics.length;
-    const heldCount = workspaceState.events.filter((ev) => ev.hold_state === "held").length;
+    const heldCount = scopedEvents.filter((ev) => ev.hold_state === "held").length;
 
     const latencies =
       observedEvents.length > 0
@@ -843,7 +853,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
       heldCount,
       totalEvents,
     };
-  }, [traffics, workspaceState.events]);
+  }, [activeTx, traffics, workspaceState.events]);
 
   const inspectOriginalEvent = heldTargetEvent ?? selectedEvent;
   const originalPayloadCode = useMemo(
@@ -1523,7 +1533,7 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
                   onPress={() => void handleRunScenario()}
                 >
                   <Play className="size-3" />
-                  Start Scenario
+                  {workspaceState.transactions.length > 0 ? "Reset" : "Start Scenario"}
                 </Button>
               </div>
 

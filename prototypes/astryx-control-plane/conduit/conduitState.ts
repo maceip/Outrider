@@ -37,6 +37,7 @@ export interface TraceEvent {
   id: string;
   seq: number;
   code: string; // e.g. 'C01', 'C02', 'R02', 'C03', 'C04', 'C05'
+  title: string; // Human-readable action name, zero snake_case truncation
   direction: 'buyer_to_seller' | 'seller_to_buyer' | 'buyer_to_gate';
   protocol: 'MCP' | 'HTTP';
   toolOrEndpoint: string;
@@ -98,7 +99,7 @@ export interface MerchantSession {
   merchantName: string;
   merchantHost: string;
   categoryLabel: string;
-  trafficProfile: string; // e.g., "Live Outbound Hold" vs "95% Browsing Traffic"
+  trafficProfile: string;
   buyerAgentId: string;
   buyerModel: string;
   agentConfidence: string;
@@ -142,7 +143,7 @@ export const STAGE_ORDER: readonly CommerceStage[] = [
 
 /**
  * Single canonical state derivation used simultaneously by:
- * 1. Left Sidebar session row subtitle & badges
+ * 1. Left Sidebar session row subtitle
  * 2. Top Commercial Context Strip & 5-Stage Progress Indicator
  * 3. Right Canonical Inspector Banner & Action Controls
  * 4. Bottom Status Bar
@@ -170,30 +171,29 @@ export function deriveWorkspaceMetrics(
   );
 
   let stage: CommerceStage = 'Discover';
-  let stageHeadline = 'Discover — Browsing catalog (no checkout intent)';
+  let stageHeadline = 'Discover · Browsing catalog (pass-through)';
 
   if (hasOrderConfirmed) {
     stage = 'Fulfill';
-    stageHeadline = 'Fulfill — Order confirmed & receipt signed';
+    stageHeadline = 'Fulfill · Order settled with single-use pass';
   } else if (awaitingPassEvents.length > 0) {
     stage = 'Payment';
-    stageHeadline = 'Payment — Awaiting checkout pass authorization';
+    stageHeadline = 'Payment · Awaiting checkout pass approval';
   } else if (
     session.events.some(e => e.deliveryPhase === 'pass_authorized') &&
     !hasOrderConfirmed
   ) {
     stage = 'Payment';
-    stageHeadline = 'Payment — Checkout pass issued';
+    stageHeadline = 'Payment · Checkout pass issued';
   } else if (heldEvents.length > 0) {
     stage = 'Negotiate';
-    const heldCode = heldEvents[0]?.code ?? 'R02';
-    stageHeadline = `Negotiate — Outbound ${heldCode} held at proxy (undelivered)`;
+    stageHeadline = 'Negotiate · Seller quote held before delivery';
   } else if (hasCartSelected) {
     stage = 'Cart';
-    stageHeadline = 'Cart — Buyer selected offer';
+    stageHeadline = 'Cart · Buyer selected offer';
   } else if (hasNegotiationEvent) {
     stage = 'Negotiate';
-    stageHeadline = 'Negotiate — Offers delivered';
+    stageHeadline = 'Negotiate · Quotes delivered';
   }
 
   const globalHeldCount = allSessions.reduce(
@@ -285,7 +285,7 @@ export function buildInitialSessions(
           id: 'O01',
           label: 'Legacy Clearance Leak',
           price: 189,
-          perk: 'Unbundled SKU (below $198 margin floor)',
+          perk: 'Unbundled SKU ($9 below $198 floor)',
           source: 'upstream_seller',
           marginDelta: -9,
         },
@@ -319,9 +319,9 @@ export function buildInitialSessions(
 
   const stagedPromoOffer: OfferQuote = {
     id: 'O03',
-    label: 'Studio Wireless X Promo + IsoCase',
+    label: 'Studio Wireless X + IsoCase',
     price: 209,
-    perk: 'Authorized retention tier + molded IsoCase ($24 value)',
+    perk: 'Authorized counter-offer + IsoCase ($24 value)',
     source: 'proxy_injected',
     marginDelta: 11,
   };
@@ -331,9 +331,10 @@ export function buildInitialSessions(
       id: 'evt-aud-c01',
       seq: 101,
       code: 'C01',
+      title: 'Browse Catalog',
       direction: 'buyer_to_seller',
       protocol: 'MCP',
-      toolOrEndpoint: 'tools/call · discover_products',
+      toolOrEndpoint: 'discover_products',
       timestamp: '14:02:08.114',
       durationLabel: '2 ms',
       httpStatus: 200,
@@ -341,7 +342,7 @@ export function buildInitialSessions(
       sourceActor: 'agent-7f2',
       targetActor: 'audioshop.com/mcp',
       observation:
-        'Observed query: closed-back wireless studio headphones <= $230 (12 SKUs matched)',
+        'Matched 12 studio headphone SKUs under $230 budget',
       rawOriginalJson: JSON.stringify(
         {
           jsonrpc: '2.0',
@@ -370,9 +371,10 @@ export function buildInitialSessions(
       id: 'evt-aud-c02',
       seq: 102,
       code: 'C02',
+      title: 'Request Quotes',
       direction: 'buyer_to_seller',
       protocol: 'MCP',
-      toolOrEndpoint: 'tools/call · get_offers',
+      toolOrEndpoint: 'get_offers',
       timestamp: '14:02:09.042',
       durationLabel: '1 ms',
       httpStatus: 200,
@@ -380,7 +382,7 @@ export function buildInitialSessions(
       sourceActor: 'agent-7f2',
       targetActor: 'audioshop.com/mcp',
       observation:
-        'Buyer requested live commercial quotes for SWX-BLK-01 (target <= $210)',
+        'Buyer requested live quotes for SWX-BLK-01 (target <= $210)',
       rawOriginalJson: JSON.stringify(
         {
           jsonrpc: '2.0',
@@ -408,26 +410,27 @@ export function buildInitialSessions(
       id: 'evt-aud-r02',
       seq: 103,
       code: 'R02',
+      title: 'Return Offers',
       direction: 'seller_to_buyer',
       protocol: 'MCP',
-      toolOrEndpoint: 'tools/result · return_offers',
+      toolOrEndpoint: 'return_offers',
       timestamp: '14:02:09.188',
-      durationLabel: 'HELD · 18s',
+      durationLabel: 'Held · 18s',
       httpStatus: null,
       deliveryPhase: 'held_at_proxy',
       sourceActor: 'audioshop.com/mcp',
       targetActor: 'agent-7f2',
       proxyRuleId: isFloorLeak
-        ? 'rule_margin_floor_guard'
-        : 'rule_high_intent_quote_gate',
+        ? 'Margin Floor Guard'
+        : 'Quote Floor & Retention Gate',
       observation: isFloorLeak
-        ? 'HELD AT PROXY: 2 upstream offers paused (O01 $189 violates $198 floor; 0 delivered)'
-        : 'HELD AT PROXY: 2 upstream offers ($219, $229) paused — 0 offers delivered to agent-7f2',
+        ? 'Paused before delivery: O01 ($189) is $9 below $198 floor'
+        : 'Paused before delivery: 2 seller offers ($219, $229) held for counter-offer review',
       upstreamOffers: audioUpstreamOffers,
       stagedOffer: stagedPromoOffer,
       mutationEnabled: true,
       forwardOriginalBlockedReason: isFloorLeak
-        ? 'Blocked by Margin Floor Policy: upstream O01 ($189.00) is $9.00 below the $198.00 SKU floor. Replace O01 or inject compliant O03 ($209.00).'
+        ? 'Upstream O01 ($189.00) is $9.00 below your $198.00 SKU floor. Send the $209.00 replacement instead.'
         : undefined,
       validations: [
         {
@@ -435,21 +438,20 @@ export function buildInitialSessions(
           gate: 'SKU Margin Floor ($198.00)',
           status: 'pass',
           detail: isFloorLeak
-            ? 'Proposed payload replaces $189 leak with $209 (+$11.00 above floor)'
-            : 'Proposed O03 ($209.00) preserves +$11.00 net margin above $198.00 floor',
+            ? 'Replaces $189 leak with $209 (+$11.00 above floor)'
+            : '$209.00 counter-offer clears $198.00 floor (+$11.00 margin)',
         },
         {
           id: 'val-stock',
-          gate: 'ATP Inventory Check',
+          gate: 'Live Inventory Check',
           status: 'pass',
-          detail: '42 units SWX-BLK-01 + 118 IsoCase promo units in US-West',
+          detail: '42 Studio Wireless X + 118 IsoCase units in stock',
         },
         {
           id: 'val-schema',
-          gate: 'MCP Offer Schema v2026.1',
+          gate: 'MCP Offer Schema',
           status: 'pass',
-          detail:
-            'JSON-RPC id "req_02" preserved; 3 offer objects validate cleanly',
+          detail: 'JSON-RPC req_02 response structure valid',
         },
       ],
       rawOriginalJson: JSON.stringify(
@@ -477,7 +479,7 @@ export function buildInitialSessions(
             '   "sku": "SWX-BLK-01",',
             '   "offers": [',
             '-    { "offer_id": "O01", "title": "Legacy Clearance Leak", "price_usd": 189 },',
-            '+    { "offer_id": "O03", "title": "Studio Wireless X Promo + IsoCase", "price_usd": 209, "origin": "conduit_rule" },',
+            '+    { "offer_id": "O03", "title": "Studio Wireless X + IsoCase", "price_usd": 209, "origin": "conduit_rule" },',
             '     { "offer_id": "O02", "title": "Studio Care+ Bundle", "price_usd": 229 }',
             '   ]',
             ' }',
@@ -489,7 +491,7 @@ export function buildInitialSessions(
             '   "offers": [',
             '     { "offer_id": "O01", "title": "Standard Retail Offer", "price_usd": 219 },',
             '     { "offer_id": "O02", "title": "Studio Care+ Bundle", "price_usd": 229 },',
-            '+    { "offer_id": "O03", "title": "Studio Wireless X Promo + IsoCase", "price_usd": 209, "origin": "conduit_rule" }',
+            '+    { "offer_id": "O03", "title": "Studio Wireless X + IsoCase", "price_usd": 209, "origin": "conduit_rule" }',
             '   ]',
             ' }',
           ].join('\n'),
@@ -502,13 +504,12 @@ export function buildInitialSessions(
     },
   ];
 
-  // If preset === 'post_release_pass', materialize the exact post-transmission state!
   const audioSession: MerchantSession = {
     id: 'audioshop',
     merchantName: 'AudioShop',
     merchantHost: 'audioshop.com',
     categoryLabel: 'Pro Audio MCP',
-    trafficProfile: 'High-Intent Quote Gate',
+    trafficProfile: 'Quote Floor Gate',
     buyerAgentId: 'agent-7f2',
     buyerModel: 'Claude 3.7 Sonnet · MCP',
     agentConfidence: '98.4%',
@@ -525,7 +526,7 @@ export function buildInitialSessions(
       ...audioUpstreamOffers,
       stagedPromoOffer,
     ];
-    audioSession.selectedOfferLabel = 'O03 · $209.00 (Studio Promo)';
+    audioSession.selectedOfferLabel = 'O03 · $209.00';
     audioSession.events = [
       baseAudioEvents[0],
       baseAudioEvents[1],
@@ -537,7 +538,7 @@ export function buildInitialSessions(
         deliveredOffers: deliveredList,
         deliveredAt: '14:02:11.408',
         observation:
-          'DELIVERED (MODIFIED): 3 offers sent to agent-7f2 (+O03 $209.00 promo injected)',
+          '3 offers delivered to agent-7f2 (+O03 $209.00 counter-offer)',
         headers: {
           ...baseAudioEvents[2].headers,
           'x-conduit-hold-state': 'RELEASED_MODIFIED',
@@ -548,9 +549,10 @@ export function buildInitialSessions(
         id: 'evt-aud-c03',
         seq: 104,
         code: 'C03',
+        title: 'Select Offer',
         direction: 'buyer_to_seller',
         protocol: 'MCP',
-        toolOrEndpoint: 'tools/call · select_product',
+        toolOrEndpoint: 'select_product',
         timestamp: '14:02:12.019',
         durationLabel: '3 ms',
         httpStatus: 200,
@@ -558,7 +560,7 @@ export function buildInitialSessions(
         sourceActor: 'agent-7f2',
         targetActor: 'audioshop.com/mcp',
         observation:
-          'Buyer selected delivered offer O03 ($209.00) -> cart CART-8841 locked',
+          'Buyer selected O03 ($209.00) and locked cart CART-8841',
         rawOriginalJson: JSON.stringify(
           {
             jsonrpc: '2.0',
@@ -587,17 +589,18 @@ export function buildInitialSessions(
         id: 'evt-aud-c04',
         seq: 105,
         code: 'C04',
+        title: 'Request Pass',
         direction: 'buyer_to_gate',
         protocol: 'MCP',
-        toolOrEndpoint: 'conduit/request_checkout_pass',
+        toolOrEndpoint: 'request_checkout_pass',
         timestamp: '14:02:12.490',
-        durationLabel: 'AWAITING PASS',
+        durationLabel: 'Awaiting pass',
         httpStatus: 202,
         deliveryPhase: 'awaiting_pass',
         sourceActor: 'agent-7f2',
         targetActor: 'conduit.pass.authority',
         observation:
-          'Checkout paused awaiting scoped capability pass ($209.00 cap · SWX-BLK-01)',
+          'Checkout awaits single-use pass ($209.00 cap · SWX-BLK-01)',
         passRequest: {
           requestId: 'req_pass_7f2',
           sku: 'SWX-BLK-01',
@@ -610,13 +613,13 @@ export function buildInitialSessions(
             id: 'vp-1',
             gate: 'Agreed Quote Match',
             status: 'pass',
-            detail: 'Requested $209.00 matches delivered offer O03 exactly',
+            detail: 'Requested $209.00 matches delivered offer O03',
           },
           {
             id: 'vp-2',
             gate: 'Single-Use Replay Lock',
             status: 'pass',
-            detail: 'Bound to CART-8841 · 1 call max · 15m TTL',
+            detail: 'Pinned to CART-8841 · 1 call max · 15m TTL',
           },
         ],
         rawOriginalJson: JSON.stringify(
@@ -644,13 +647,13 @@ export function buildInitialSessions(
     ];
   }
 
-  // Session 2: DisplayCo — Pure 95% catalog discovery traffic (0 held, 0 awaiting pass, drawer closed!)
+  // Session 2: DisplayCo — Pure 95% catalog discovery traffic (0 held, 0 awaiting pass)
   const displayCoSession: MerchantSession = {
     id: 'displayco',
     merchantName: 'DisplayCo',
     merchantHost: 'mcp.displayco.io',
     categoryLabel: '95% Discovery Traffic',
-    trafficProfile: 'Read-Only Browsing (No Hold)',
+    trafficProfile: 'Read-Only Pass-Through',
     buyerAgentId: 'research-crawler-19b',
     buyerModel: 'GPT-4.1 Mini · Spec Crawler',
     agentConfidence: '99.1%',
@@ -664,9 +667,10 @@ export function buildInitialSessions(
         id: 'evt-dsp-01',
         seq: 201,
         code: 'D01',
+        title: 'Search Catalog',
         direction: 'buyer_to_seller',
         protocol: 'MCP',
-        toolOrEndpoint: 'tools/call · search_catalog',
+        toolOrEndpoint: 'search_catalog',
         timestamp: '14:01:41.008',
         durationLabel: '3 ms',
         httpStatus: 200,
@@ -674,7 +678,7 @@ export function buildInitialSessions(
         sourceActor: 'research-crawler-19b',
         targetActor: 'mcp.displayco.io',
         observation:
-          'Catalog query: 27-inch 5K DCI-P3 displays (8 models returned)',
+          'Queried 27-inch 5K DCI-P3 displays (8 models matched)',
         rawOriginalJson: JSON.stringify(
           {
             jsonrpc: '2.0',
@@ -694,18 +698,19 @@ export function buildInitialSessions(
         id: 'evt-dsp-02',
         seq: 202,
         code: 'D02',
+        title: 'Return Catalog',
         direction: 'seller_to_buyer',
         protocol: 'MCP',
-        toolOrEndpoint: 'tools/result · catalog_page',
+        toolOrEndpoint: 'catalog_page',
         timestamp: '14:01:41.019',
-        durationLabel: '11 ms',
+        durationLabel: '2 ms',
         httpStatus: 200,
         deliveryPhase: 'delivered_original',
         sourceActor: 'mcp.displayco.io',
         targetActor: 'research-crawler-19b',
         deliveredAt: '14:01:41.019',
         observation:
-          'Forwarded unmodified (8 SKUs) — read-only discovery, no quote intervention needed',
+          'Forwarded 8 catalog listings unmodified — read-only browsing',
         rawOriginalJson: JSON.stringify(
           {
             jsonrpc: '2.0',
@@ -724,17 +729,18 @@ export function buildInitialSessions(
         id: 'evt-dsp-03',
         seq: 203,
         code: 'D03',
+        title: 'Fetch Specs',
         direction: 'buyer_to_seller',
         protocol: 'HTTP',
         toolOrEndpoint: 'GET /v2/specs/DSP-5K-27M.json',
         timestamp: '14:01:42.310',
-        durationLabel: '6 ms',
+        durationLabel: '2 ms',
         httpStatus: 200,
         deliveryPhase: 'observed_inbound',
         sourceActor: 'research-crawler-19b',
         targetActor: 'mcp.displayco.io',
         observation:
-          'Fetched colorimetry & Thunderbolt 4 spec sheet (no cart or checkout attempt)',
+          'Read Thunderbolt 4 & colorimetry spec sheet (no checkout intent)',
         rawOriginalJson: JSON.stringify(
           {
             sku: 'DSP-5K-27M',
@@ -754,17 +760,18 @@ export function buildInitialSessions(
         id: 'evt-dsp-04',
         seq: 204,
         code: 'D04',
+        title: 'Check Shipping',
         direction: 'buyer_to_seller',
         protocol: 'HTTP',
         toolOrEndpoint: 'GET /v2/shipping-zones?zip=94107',
         timestamp: '14:01:43.105',
-        durationLabel: '4 ms',
+        durationLabel: '2 ms',
         httpStatus: 200,
         deliveryPhase: 'observed_inbound',
         sourceActor: 'research-crawler-19b',
         targetActor: 'mcp.displayco.io',
         observation:
-          'Checked lead-time estimate (2-day freight); agent exited without requesting quotes',
+          'Checked 2-day delivery window and exited without requesting quotes',
         rawOriginalJson: JSON.stringify(
           {zip: '94107', standard_days: 2, freight_usd: 0},
           null,
@@ -778,36 +785,37 @@ export function buildInitialSessions(
     ],
   };
 
-  // Session 3: Skyport — Demonstrates 0 proxy-held packets while Payment awaits a capability pass!
+  // Session 3: Skyport — Demonstrates 0 proxy-held packets while Payment awaits a capability pass
   const skyportSession: MerchantSession = {
     id: 'skyport',
     merchantName: 'Skyport Air',
     merchantHost: 'mcp.skyport.aero',
     categoryLabel: 'Flight Checkout Gate',
-    trafficProfile: '0 Held · 1 Awaiting Pass',
+    trafficProfile: 'Awaiting Pass',
     buyerAgentId: 'travel-bot-44a',
     buyerModel: 'Gemini 2.5 Pro · Travel MCP',
     agentConfidence: '96.8%',
     skuCode: 'SFO-JFK-FLEX-21A',
-    skuName: 'SFO -> JFK Main Cabin Flex',
+    skuName: 'SFO → JFK Main Cabin Flex',
     msrpUsd: 642,
     marginFloorUsd: 590,
-    selectedOfferLabel: 'O01 · $642.00 Published Flex',
+    selectedOfferLabel: 'O01 · $642.00',
     events: [
       {
         id: 'evt-sky-c01',
         seq: 301,
         code: 'C01',
+        title: 'Search Flights',
         direction: 'buyer_to_seller',
         protocol: 'MCP',
-        toolOrEndpoint: 'tools/call · search_flights',
+        toolOrEndpoint: 'search_flights',
         timestamp: '14:00:12.044',
         durationLabel: '14 ms',
         httpStatus: 200,
         deliveryPhase: 'observed_inbound',
         sourceActor: 'travel-bot-44a',
         targetActor: 'mcp.skyport.aero',
-        observation: 'Searched non-stop SFO -> JFK morning departures',
+        observation: 'Searched non-stop SFO → JFK morning departures',
         rawOriginalJson: JSON.stringify(
           {origin: 'SFO', destination: 'JFK', cabin: 'MAIN_FLEX'},
           null,
@@ -819,9 +827,10 @@ export function buildInitialSessions(
         id: 'evt-sky-r02',
         seq: 302,
         code: 'R02',
+        title: 'Return Fares',
         direction: 'seller_to_buyer',
         protocol: 'MCP',
-        toolOrEndpoint: 'tools/result · return_offers',
+        toolOrEndpoint: 'return_offers',
         timestamp: '14:00:12.390',
         durationLabel: '9 ms',
         httpStatus: 200,
@@ -830,7 +839,7 @@ export function buildInitialSessions(
         targetActor: 'travel-bot-44a',
         deliveredAt: '14:00:12.390',
         observation:
-          'DELIVERED (ORIGINAL): 2 published fares ($642, $710) forwarded automatically',
+          '2 published fares ($642, $710) cleared $590 floor automatically',
         rawOriginalJson: JSON.stringify(
           {
             offers: [
@@ -850,16 +859,17 @@ export function buildInitialSessions(
         id: 'evt-sky-c03',
         seq: 303,
         code: 'C03',
+        title: 'Hold Itinerary',
         direction: 'buyer_to_seller',
         protocol: 'MCP',
-        toolOrEndpoint: 'tools/call · hold_itinerary',
+        toolOrEndpoint: 'hold_itinerary',
         timestamp: '14:00:14.112',
         durationLabel: '7 ms',
         httpStatus: 200,
         deliveryPhase: 'observed_inbound',
         sourceActor: 'travel-bot-44a',
         targetActor: 'mcp.skyport.aero',
-        observation: 'Itinerary PNR-7K2M locked at $642.00',
+        observation: 'Itinerary PNR-7K2M held at $642.00',
         rawOriginalJson: JSON.stringify(
           {pnr: 'PNR-7K2M', offer_id: 'O01', amount_usd: 642},
           null,
@@ -871,17 +881,18 @@ export function buildInitialSessions(
         id: 'evt-sky-c04',
         seq: 304,
         code: 'C04',
+        title: 'Request Pass',
         direction: 'buyer_to_gate',
         protocol: 'MCP',
-        toolOrEndpoint: 'conduit/request_checkout_pass',
+        toolOrEndpoint: 'request_checkout_pass',
         timestamp: '14:00:15.004',
-        durationLabel: 'AWAITING PASS',
+        durationLabel: 'Awaiting pass',
         httpStatus: 202,
         deliveryPhase: 'awaiting_pass',
         sourceActor: 'travel-bot-44a',
         targetActor: 'conduit.pass.authority',
         observation:
-          '0 frames held in proxy; checkout awaits $642.00 capability pass approval',
+          'Checkout awaits $642.00 single-use pass approval for PNR-7K2M',
         passRequest: {
           requestId: 'req_pass_sky_44a',
           sku: 'SFO-JFK-FLEX-21A',
@@ -894,13 +905,13 @@ export function buildInitialSessions(
             id: 'v-sky-1',
             gate: 'Fare Policy Ceiling ($700.00)',
             status: 'pass',
-            detail: '$642.00 fare within corporate domestic ceiling',
+            detail: '$642.00 fare clears $590 floor and $700 ceiling',
           },
           {
             id: 'v-sky-2',
             gate: 'Merchant Host Pinning',
             status: 'pass',
-            detail: 'Scoped strictly to mcp.skyport.aero · PNR-7K2M',
+            detail: 'Pinned to mcp.skyport.aero · PNR-7K2M',
           },
         ],
         rawOriginalJson: JSON.stringify(
@@ -924,13 +935,13 @@ export function buildInitialSessions(
     ],
   };
 
-  // Session 4: Cloudstore — Completed historical execution (shows historical R02 diff locked)
+  // Session 4: Cloudstore — Completed settlement with historical quote record + consumed pass
   const cloudstoreSession: MerchantSession = {
     id: 'cloudstore',
     merchantName: 'Cloudstore',
     merchantHost: 'api.cloudstore.dev',
     categoryLabel: 'Completed Settlement',
-    trafficProfile: 'Historical · Settled',
+    trafficProfile: 'Settled',
     buyerAgentId: 'infra-buyer-09',
     buyerModel: 'OpenAI o3 · Infra Agent',
     agentConfidence: '99.6%',
@@ -938,15 +949,16 @@ export function buildInitialSessions(
     skuName: '8x H100 Spot Reservation (24h)',
     msrpUsd: 520,
     marginFloorUsd: 440,
-    selectedOfferLabel: 'O03 · $480.00 Off-Peak Commit',
+    selectedOfferLabel: 'O03 · $480.00',
     events: [
       {
         id: 'evt-cld-c02',
         seq: 401,
         code: 'C02',
+        title: 'Request Quotes',
         direction: 'buyer_to_seller',
         protocol: 'MCP',
-        toolOrEndpoint: 'tools/call · get_offers',
+        toolOrEndpoint: 'get_offers',
         timestamp: '13:53:58.110',
         durationLabel: '2 ms',
         httpStatus: 200,
@@ -965,16 +977,16 @@ export function buildInitialSessions(
         id: 'evt-cld-r02',
         seq: 402,
         code: 'R02',
+        title: 'Return Offers',
         direction: 'seller_to_buyer',
         protocol: 'MCP',
-        toolOrEndpoint: 'tools/result · return_offers',
+        toolOrEndpoint: 'return_offers',
         timestamp: '13:54:02.880',
         durationLabel: '310 ms',
         httpStatus: 200,
         deliveryPhase: 'delivered_modified',
         sourceActor: 'api.cloudstore.dev',
         targetActor: 'infra-buyer-09',
-        proxyRuleId: 'rule_offpeak_gpu_tier',
         deliveredAt: '13:54:02.880',
         upstreamOffers: [
           {
@@ -1013,7 +1025,7 @@ export function buildInitialSessions(
           },
         ],
         observation:
-          'HISTORICAL (MODIFIED): 2 offers delivered at 13:54:02 (+O03 $480 off-peak tier)',
+          '2 offers delivered at 13:54:02 (+O03 $480 off-peak counter-offer)',
         rawOriginalJson: JSON.stringify(
           {offers: [{offer_id: 'O01', price_usd: 520}]},
           null,
@@ -1035,6 +1047,7 @@ export function buildInitialSessions(
         id: 'evt-cld-c05',
         seq: 403,
         code: 'C05',
+        title: 'Confirm Order',
         direction: 'buyer_to_seller',
         protocol: 'HTTP',
         toolOrEndpoint: 'POST /v1/orders/confirm',
@@ -1045,7 +1058,21 @@ export function buildInitialSessions(
         sourceActor: 'infra-buyer-09',
         targetActor: 'api.cloudstore.dev',
         observation:
-          'Order ORD-44910 settled ($480.00) via pass_cld_811_act (single-use consumed)',
+          'Order ORD-44910 settled ($480.00) via single-use pass pass_cld_811_act',
+        validations: [
+          {
+            id: 'v-cld-1',
+            gate: 'Single-Use Pass Verified',
+            status: 'pass',
+            detail: 'pass_cld_811_act consumed (0 calls remaining)',
+          },
+          {
+            id: 'v-cld-2',
+            gate: 'Margin Floor Cleared ($440.00)',
+            status: 'pass',
+            detail: 'Settled at $480.00 (+$40.00 net margin)',
+          },
+        ],
         rawOriginalJson: JSON.stringify(
           {
             order_id: 'ORD-44910',
@@ -1057,7 +1084,7 @@ export function buildInitialSessions(
         ),
         headers: {
           'content-type': 'application/json',
-          authorization: 'ConduitPass pass_cld_811_act',
+          'authorization': 'ConduitPass pass_cld_811_act',
         },
       },
     ],

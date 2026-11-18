@@ -26,3 +26,5 @@ www/node_modules/
 www/dist/
 www/test-results/
 vendor/
+prototypes/astryx-control-plane/node_modules/
+prototypes/astryx-control-plane/dist/

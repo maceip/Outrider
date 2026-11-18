@@ -1278,6 +1278,8 @@ function staticMimeType(filePath: string): string {
       return "text/plain; charset=utf-8";
     case ".png":
       return "image/png";
+    case ".webp":
+      return "image/webp";
     case ".ico":
       return "image/x-icon";
     case ".svg":
@@ -1429,370 +1431,233 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders Agentic Commerce Co
   try {
     const res = await page.goto(pagesUrl);
     expect(res?.status()).toBe(200);
-    await expect(page).toHaveTitle("Conduit");
+    await expect(page).toHaveTitle(/Conduit — Agents Are Already Shopping/);
 
-    // 1. Marketing Hero & 3-Column Value Prop Strip
+    // 1. Hero + 3 Interactive Medusa Illustrations + Bottom Light/Dark Switcher
+    const landingRoot = page.getByTestId("conduit-landing-page");
+    await expect(landingRoot).toBeVisible();
     await expect(
       page.getByRole("heading", {
         level: 1,
-        name: "Agentic Commerce Control Plane",
+        name: /Agents are already shopping\.\s*Usher them in without losing money\./,
       }),
     ).toBeVisible();
-    await expect(
-      page.getByText(
-        "Fingerprint AI agents to dynamically package and price services for their needs, stop bad discounts before they leave your store, and approve high-value deals in real time.",
-        { exact: true },
-      ),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Try Live Control Plane", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByRole("button", { name: "Watch Walkthrough", exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Pause & Counter Live Quotes", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        "Hold outbound agent offers mid-flight, validate them against your margin floors, and approve or replace the response in real time.",
-        { exact: true },
-      ),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Active Agent Fingerprinting", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        "Turn minimal query-response traces into deep agent intelligence—identifying model versions, prompting frameworks, and tool-call behavior across application layers as agents navigate your services.",
-        { exact: true },
-      ),
-    ).toBeVisible();
-    await expect(
-      page.getByText("Runs on Your Machine, Private by Default", {
-        exact: true,
-      }),
-    ).toBeVisible();
-    await expect(
-      page.getByText(
-        "Built around a lean native core optimized to run effortlessly on your laptop or a Xeon server. Install one app on Mac, Windows, or Linux—your pricing rules, customer payloads, and signing keys never touch a third-party cloud.",
-        { exact: true },
-      ),
-    ).toBeVisible();
-    await expect(
-      page.locator('[aria-label="Live workspace view"]'),
-    ).toHaveCount(0);
-
-    // 2. Embedded Agentic Commerce Control Plane hydrated from `/Outrider/demo/interceptor-seed.json`
-    const liveSection = page.locator("#live-interceptor");
-    await expect(
-      liveSection.getByRole("heading", {
-        level: 2,
-        name: "AudioShop — Headphone Purchase",
-      }),
-    ).toBeVisible();
-
-    const graphRegion = liveSection.locator('[data-slot="causal-cradled-graph"]');
-    const r02Node = graphRegion.getByRole("button", {
-      name: "R02 return_offers (HELD)",
-    });
-    await expect(r02Node).toBeVisible();
-    await expect(r02Node).toHaveAttribute("aria-pressed", "true");
-    await expect(graphRegion).toContainText("O03 Offer C (draft)");
-    await expect(graphRegion).toContainText("$209");
-
-    await assertCleanCopyAndHeroUiHygiene(page, "www Conduit Landing", {
-      excludeCodeBlocks: true,
-    });
-
-    // Capture full-page screenshot of Conduit www landing + embedded Control Plane
-    await page.screenshot({
-      path: path.join(SCRATCH_DIR, "conduit_www_landing.png"),
-      fullPage: true,
-    });
-
-    // Test R02 selection sync, Validate Policy, Review & Send Response, and WebCrypto Authorize Payment on www
-    await graphRegion
-      .getByRole("button", { name: "C01 discover_products (200)" })
-      .click();
-    await expect(
-      liveSection.getByText("C01 · discover_products", { exact: true }),
-    ).toBeVisible();
-    await r02Node.click();
-    await expect(r02Node).toHaveAttribute("aria-pressed", "true");
-
-    const verificationGates = liveSection.locator(
-      '[aria-label="Verification gates"]',
+    await expect(page.locator("#hero-launch-console")).toContainText(
+      "Open Control Plane",
     );
-    await expect(verificationGates).toContainText("Pending validation");
-    await verificationGates
-      .getByRole("button", { name: "Validate Policy", exact: true })
-      .click();
-    await expect(
-      page.getByText("Seller policy verified", { exact: true }),
-    ).toBeVisible();
-    await expect(verificationGates).toContainText("Valid");
-
-    await liveSection
-      .getByRole("button", { name: "Review & Send Response", exact: true })
-      .click();
-    await expect(
-      page.getByText("Replacement response released to buyer", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      graphRegion.getByRole("button", { name: "R02 return_offers (200)" }),
-    ).toBeVisible();
-    await expect(
-      graphRegion.getByRole("button", { name: "C03 select_product (200)" }),
-    ).toBeVisible();
-    await expect(
-      graphRegion.getByRole("button", {
-        name: "C04 create_checkout_session (200)",
-      }),
-    ).toBeVisible();
-
-    await verificationGates
-      .getByRole("button", { name: "Authorize Payment", exact: true })
-      .click();
-    await expect(
-      page.getByText("Session payment pass authorized", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      graphRegion.getByRole("button", {
-        name: "C05 complete_checkout_session (200)",
-      }),
-    ).toBeVisible();
-
-    // Switch unified Control Plane view inside `#live-interceptor` across Wire & Passes
-    const investigationSeg = liveSection.locator(
-      '[aria-label="Investigation view"]',
+    await expect(page.locator("#hero-download-binary")).toContainText(
+      "Download App",
     );
-    await investigationSeg.getByText("Wire", { exact: true }).click();
-    const capturedGrid = liveSection.getByRole("grid", {
-      name: "Live packet stream",
-    });
-    await expect(
-      capturedGrid
-        .getByRole("row")
-        .filter({ hasNot: page.getByRole("columnheader") }),
-    ).toHaveCount(9);
 
-    await investigationSeg.getByText("Passes", { exact: true }).click();
-    const passesGrid = liveSection.getByRole("grid", {
-      name: "Session passes",
-    });
-    await expect(passesGrid).toContainText("conduit_session_evidence");
-    await investigationSeg.getByText("Overview", { exact: true }).click();
+    for (const pillar of [
+      { id: "#hero-pillar-browsing", title: "Buyers send agents first." },
+      { id: "#hero-pillar-floor", title: "Every quote clears your floor." },
+      { id: "#hero-pillar-checkout", title: "One pass. One charge." },
+    ]) {
+      await expect(page.locator(pillar.id)).toContainText(pillar.title);
+    }
 
-    // 3. Walkthrough <Modal> + <Popover> scene jumper
-    await page
-      .getByRole("button", { name: "Walkthrough", exact: true })
-      .click();
-    const modalDialog = page.getByRole("dialog", {
-      name: "Conduit Walkthrough",
-    });
-    await expect(modalDialog).toBeVisible();
-
+    // Verify all visible hero & preview images decoded cleanly and zero horizontal overflow
     await expect
       .poll(async () =>
         page.evaluate(() => {
-          const video = document.querySelector("video");
-          return Boolean(
-            video && video.videoWidth > 0 && Number.isFinite(video.duration) && video.duration > 50,
+          const imgs = Array.from(document.querySelectorAll("img"));
+          return (
+            imgs.length >= 8 &&
+            imgs.every((img) => img.complete && img.naturalWidth > 0) &&
+            document.documentElement.scrollWidth <=
+              document.documentElement.clientWidth
           );
         }),
       )
       .toBe(true);
 
-    const scenePill = modalDialog.getByRole("button", { name: /^Scene 1 of / });
-    await expect(scenePill).toBeVisible();
-    await scenePill.click();
-    const scenesListbox = page.getByRole("listbox", {
-      name: "Walkthrough scenes",
+    // Verify Light/Dark switcher lives in the footer (not top nav) and toggles cleanly
+    await expect(page.locator("#nav-toggle-theme")).toHaveCount(0);
+    await page.locator("footer").getByRole("radio", { name: "Light" }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+      .toBe("light");
+    await page.locator("footer").getByRole("radio", { name: "Dark" }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+      .toBe("dark");
+
+    await page.screenshot({
+      path: path.join(SCRATCH_DIR, "conduit_www_landing.png"),
+      fullPage: true,
     });
-    await expect(scenesListbox).toBeVisible();
-    await scenesListbox.getByRole("option").nth(1).click();
+
+    // 2. Pillar 1 ("Buyers send agents first.") -> Full-Width Catalog Browsing (0px Right Column)
+    await page.locator("#hero-pillar-browsing").click();
+    await expect(page).toHaveURL(/view=console&scenario=discovery_95pct/);
+    await expect(page.getByTestId("conduit-astryx-workbench")).toBeVisible();
+    await expect(page.getByTestId("commercial-context-strip")).toContainText(
+      "mcp.displayco.io",
+    );
+    await expect(page.getByTestId("canonical-inspector-panel")).toHaveCount(0);
+    await expect(page.getByTestId("graph-node-D01")).toContainText(
+      "Search Catalog",
+    );
+
+    // Return home via <- Home button
+    await page.locator("#workbench-back-overview").click();
+    await expect(page.getByTestId("conduit-landing-page")).toBeVisible();
+
+    // 3. Primary Hero CTA ("Open Control Plane") -> Live Held Quote -> 1-Click Counter-Offer -> Issue Pass
+    await page.locator("#hero-launch-console").click();
+    await expect(page).toHaveURL(/view=console&scenario=live_hold_r02/);
+    const workbench = page.getByTestId("conduit-astryx-workbench");
+    await expect(workbench).toBeVisible();
+
+    // Verify prototype clutter is gone (zero Theme picker, zero duplicate Hide quote approval button)
+    await expect(workbench.getByText(/^Theme:/)).toHaveCount(0);
     await expect(
-      modalDialog.getByRole("button", { name: /^Scene 2 of / }),
-    ).toBeVisible();
-    await modalDialog
-      .getByRole("button", { name: "Close", exact: true })
+      workbench.getByRole("button", { name: /Hide quote approval/i }),
+    ).toHaveCount(0);
+
+    const inspector = page.getByTestId("canonical-inspector-panel");
+    await expect(inspector).toContainText("Quote Approval");
+    await expect(inspector).toContainText("Offers for agent-7f2");
+    await expect(inspector).toContainText("SKU Margin Floor ($198.00)");
+
+    // 1-click counter-offer transmission (zero 2-switch confirmation trap)
+    await inspector
+      .getByRole("button", { name: "Send $209 Offer (3)", exact: true })
       .click();
-    await expect(modalDialog).toBeHidden();
 
-    // 4. Download <Dropdown>
-    await page.getByRole("button", { name: "Download", exact: true }).click();
-    const downloadMenu = page.getByRole("menu", { name: "Download" });
-    await expect(downloadMenu).toBeVisible();
-    for (const itemLabel of [
-      "macOS (.dmg)",
-      "Windows (.msi)",
-      "Linux (.tar.gz)",
-      "All Releases",
-    ]) {
-      await expect(
-        downloadMenu.getByRole("menuitem", { name: itemLabel, exact: true }),
-      ).toBeVisible();
-    }
-    await page.keyboard.press("Escape");
+    // Inspector auto-advances to newly arrived C04 Checkout Pass Gate
+    await expect(inspector).toContainText("Checkout Pass Gate");
+    await expect(page.getByTestId("graph-node-C03")).toContainText(
+      "Select Offer",
+    );
+    await expect(page.getByTestId("graph-node-C04")).toContainText(
+      "Request Pass",
+    );
 
-    // 5. Bottom Light / Dark <Segment> switcher
-    const footerThemeSeg = page.locator('[aria-label="Color theme"]');
-    await footerThemeSeg.getByText("Light", { exact: true }).click();
+    // Issue single-use pass -> settles C05 order
+    await inspector
+      .getByRole("button", { name: "Issue Pass ($209)", exact: true })
+      .click();
+    await expect(inspector).toContainText("Settled Order");
+    await expect(page.getByTestId("graph-node-C05")).toContainText(
+      "Confirm Order",
+    );
+    await expect(page.getByTestId("canonical-status-bar")).toContainText(
+      "Fulfill · Order settled with single-use pass",
+    );
+
+    // Switch across Surfaces (Graph, Wire, Passes) and Peer Sessions (Skyport Air, Cloudstore)
+    await workbench.getByText("Wire", { exact: true }).first().click();
+    await expect(page.getByTestId("wire-surface")).toContainText(
+      "Wire Evidence Capture",
+    );
+
+    await workbench.getByText("Passes", { exact: true }).first().click();
+    const passesSurface = page.getByTestId("passes-surface");
+    await expect(passesSurface).toContainText("pass_audioshop_signed");
+    await passesSurface
+      .getByRole("button", { name: "Revoke", exact: true })
+      .first()
+      .click();
+    await expect(passesSurface).toContainText("Revoked");
+
+    await workbench.getByText("Overview", { exact: true }).first().click();
+    await workbench.getByText("Cloudstore", { exact: true }).first().click();
+    await expect(page.getByTestId("canonical-inspector-panel")).toContainText(
+      "Settled Order",
+    );
+
+    // Verify bottom Light/Dark mode switcher inside workbench footer
+    await page
+      .getByTestId("canonical-status-bar")
+      .getByRole("radio", { name: "Light" })
+      .click();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
-      .toBe("brutalism-light");
-    await footerThemeSeg.getByText("Dark", { exact: true }).click();
+      .toBe("light");
+    await page
+      .getByTestId("canonical-status-bar")
+      .getByRole("radio", { name: "Dark" })
+      .click();
     await expect
       .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
-      .toBe("brutalism-dark");
-
-    await assertCleanCopyAndHeroUiHygiene(page, "www Conduit (post-flow)", {
-      excludeCodeBlocks: true,
-    });
+      .toBe("dark");
 
     // =========================================================================
-    // 6. Mobile 390x844 Full-Width Control Plane Workbench (Zero Overflow)
+    // 4. Mobile 390x844 Full-Width Landing + BottomSheet Control Plane
     // =========================================================================
     await page.setViewportSize({ width: 390, height: 844 });
-    await page.reload();
-    await page.evaluate(() => window.scrollTo(0, 0));
-    await expect(
-      page.getByRole("heading", {
-        level: 1,
-        name: "Agentic Commerce Control Plane",
-      }),
-    ).toBeVisible();
+    await page.goto(pagesUrl);
+    await expect(page.getByTestId("conduit-landing-page")).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
     await page.screenshot({
       path: path.join(SCRATCH_DIR, "conduit_www_mobile_hero.png"),
       fullPage: false,
     });
 
-    const mobileLive = page.locator("#live-interceptor");
-    await expect(
-      mobileLive.getByRole("heading", {
-        level: 2,
-        name: "AudioShop — Headphone Purchase",
-      }),
-    ).toBeVisible();
-    await expect(
-      mobileLive.getByRole("button", { name: "Switch commerce session" }),
-    ).toBeVisible();
-
-    // Switch sessions via full-width mobile <Dropdown>
-    await mobileLive
-      .getByRole("button", { name: "Switch commerce session" })
-      .click();
-    const mobileSessionMenu = page.getByRole("menu", {
-      name: "Switch commerce session",
-    });
-    await expect(mobileSessionMenu).toBeVisible();
-    await mobileSessionMenu
-      .getByRole("menuitemradio", { name: /Cloudstore/ })
-      .click();
-    await expect(
-      mobileLive.getByRole("heading", {
-        level: 2,
-        name: "Cloudstore — Compute Credits",
-      }),
-    ).toBeVisible();
-
-    await mobileLive
-      .getByRole("button", { name: "Switch commerce session" })
-      .click();
-    await page
-      .getByRole("menu", { name: "Switch commerce session" })
-      .getByRole("menuitemradio", { name: /AudioShop/ })
-      .click();
-    await expect(
-      page.getByRole("menu", { name: "Switch commerce session" }),
-    ).toBeHidden();
-    await expect(
-      mobileLive.getByRole("heading", {
-        level: 2,
-        name: "AudioShop — Headphone Purchase",
-      }),
-    ).toBeVisible();
-
-    await assertCleanCopyAndHeroUiHygiene(
-      page,
-      "www Mobile 390x844 (Overview)",
-      { excludeCodeBlocks: true },
-    );
-
-    // Scroll `#live-interceptor` into view and capture crisp mobile Overview screenshot
-    await mobileLive.scrollIntoViewIfNeeded();
+    await page.locator("#hero-launch-console").click();
+    await expect(page.getByTestId("conduit-astryx-workbench")).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
     await page.screenshot({
       path: path.join(SCRATCH_DIR, "conduit_www_mobile_overview.png"),
       fullPage: false,
     });
 
-    // Jump from Held Quote callout banner -> Approve (1) pane
-    await mobileLive
-      .getByRole("button", { name: "Review Quote", exact: true })
+    // Open mobile BottomSheet -> Send $209 Counter-Offer -> Issue Pass ($209)
+    await page
+      .getByRole("button", { name: "Review held quote", exact: true })
       .click();
-    await expect(
-      mobileLive.getByText("Catalog Offer", { exact: true }),
-    ).toBeVisible();
-    await expect(
-      mobileLive.getByText("Proposed Replacement", { exact: true }),
-    ).toBeVisible();
-
-    await assertCleanCopyAndHeroUiHygiene(
-      page,
-      "www Mobile 390x844 (Approve)",
-      { excludeCodeBlocks: true },
-    );
+    const mobileSheet = page.getByTestId("canonical-inspector-panel");
+    await expect(mobileSheet).toBeVisible();
     await page.screenshot({
       path: path.join(SCRATCH_DIR, "conduit_www_mobile_approve.png"),
       fullPage: false,
     });
-
-    // Inspect Payload Drawer on mobile
-    await mobileLive.getByRole("button", { name: "Inspect", exact: true }).click();
-    const mobileInspect = page.getByRole("dialog", { name: "Inspect Payload" });
-    await expect(mobileInspect).toBeVisible();
-    await expect(mobileInspect).toContainText("Original Wire Payload");
-    await mobileInspect
+    await mobileSheet
+      .getByRole("button", { name: "Send $209 Offer (3)", exact: true })
+      .click();
+    await expect(mobileSheet).toContainText("Checkout Pass Gate");
+    await mobileSheet
+      .getByRole("button", { name: "Issue Pass ($209)", exact: true })
+      .click();
+    await expect(mobileSheet).toContainText("Settled Order");
+    await mobileSheet
       .getByRole("button", { name: "Close", exact: true })
-      .first()
       .click();
-    await expect(mobileInspect).toBeHidden();
 
-    // Validate Policy -> Review & Send Response -> Authorize Payment on mobile
-    const mobileGates = mobileLive.locator('[aria-label="Verification gates"]');
-    await mobileGates
-      .getByRole("button", { name: "Validate Policy", exact: true })
-      .click();
-    await expect(mobileGates).toContainText("Valid");
+    // Switch mobile surface tabs (Wire & Passes) with zero horizontal overflow
+    await page.getByRole("radio", { name: "Wire" }).click();
+    await expect(page.getByTestId("wire-surface")).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
 
-    await mobileLive
-      .getByRole("button", { name: "Review & Send Response", exact: true })
-      .click();
-    await expect(mobileGates).toContainText("Approved");
-
-    await mobileGates
-      .getByRole("button", { name: "Authorize Payment", exact: true })
-      .click();
-    await expect(mobileGates).toContainText("Authorized");
-
-    // Verify Wire and Passes tabs on mobile 390x844 have zero horizontal overflow
-    const mobileViewSeg = mobileLive.locator('[aria-label="Investigation view"]');
-    await mobileViewSeg.getByText("Wire", { exact: true }).click();
-    await expect(
-      mobileLive.getByRole("grid", { name: "Live packet stream" }),
-    ).toBeVisible();
-    await assertCleanCopyAndHeroUiHygiene(page, "www Mobile 390x844 (Wire)", {
-      excludeCodeBlocks: true,
-    });
-
-    await mobileViewSeg.getByText("Passes", { exact: true }).click();
-    await expect(
-      mobileLive.getByRole("grid", { name: "Session passes" }),
-    ).toBeVisible();
-    await assertCleanCopyAndHeroUiHygiene(page, "www Mobile 390x844 (Passes)", {
-      excludeCodeBlocks: true,
-    });
+    await page.getByRole("radio", { name: "Passes" }).click();
+    await expect(page.getByTestId("passes-surface")).toBeVisible();
+    expect(
+      await page.evaluate(
+        () =>
+          document.documentElement.scrollWidth <=
+          document.documentElement.clientWidth,
+      ),
+    ).toBe(true);
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);

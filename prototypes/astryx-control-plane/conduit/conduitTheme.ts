@@ -1,7 +1,7 @@
 // Copyright (c) Meta Platforms, Inc. and affiliates.
 
 import {defineSyntaxTheme, defineTheme} from '@astryxdesign/core/theme';
-import {neutralTheme} from '@astryxdesign/theme-neutral';
+import {neutralTheme} from '@astryxdesign/theme-neutral/built';
 
 const conduitSyntax = defineSyntaxTheme({
   name: 'conduit-obsidian-sage',

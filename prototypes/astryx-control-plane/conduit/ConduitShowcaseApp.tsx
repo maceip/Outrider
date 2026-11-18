@@ -43,6 +43,12 @@ export function ConduitShowcaseApp() {
   const [colorMode, setColorMode] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
+    if (typeof document !== 'undefined') {
+      document.documentElement.dataset.theme = colorMode;
+    }
+  }, [colorMode]);
+
+  useEffect(() => {
     const onPopState = () => {
       setRoute(prev => ({
         ...readRouteFromLocation(),
@@ -93,7 +99,8 @@ export function ConduitShowcaseApp() {
       <ConduitWorkbench
         key={`${route.scenario}-${route.launchKey}`}
         initialScenario={route.scenario}
-        initialColorMode={colorMode}
+        colorMode={colorMode}
+        onColorModeChange={setColorMode}
         onBackToOverview={handleBackToLanding}
       />
     );

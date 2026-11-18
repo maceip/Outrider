@@ -10,11 +10,16 @@ Interactive UI prototype of the redesigned **Conduit MCP Merchant Control Plane*
 - **Single Canonical Workspace Selector (`P1` #02):** `deriveWorkspaceMetrics()` drives the left rail, stage progression, inspector status, and bottom status bar simultaneously—separating **`N held by proxy`** from **`M awaiting pass`**.
 - **Restored Causal Observatory (`P1` #03) & Unambiguous Diff Controls (`P1` #04 / `P2` #05):** `Overview` pairs a resizable `CausalObservatoryGraph` above a dense `List`-based execution trace, with `2 original → 3 proposed` offer diffs, JSON-RPC diff preview, inline explanations whenever controls are disabled, and consolidated validation gates.
 
-## Quick Start
+## Quick Start (Vite Showcase & `www-dist/` Export)
 ```bash
-./prototypes/astryx-control-plane/sync-into-astryx.sh
-cd vendor/meta-astryx/apps/docsite
-pnpm exec next dev --webpack -p 3100
+python3 scripts/build_www.py
+```
+
+Or run the local Vite dev server directly:
+```bash
+cd prototypes/astryx-control-plane
+npm install
+npm run dev
 ```
 
 ## Validation Screenshots
