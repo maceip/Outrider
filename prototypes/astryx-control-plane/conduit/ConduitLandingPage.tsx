@@ -15,6 +15,7 @@ import {
 } from '@astryxdesign/core/SegmentedControl';
 import {Heading, Text} from '@astryxdesign/core/Text';
 import {TopNav, TopNavHeading} from '@astryxdesign/core/TopNav';
+import {useMediaQuery} from '@astryxdesign/core/hooks';
 import {Theme} from '@astryxdesign/core/theme';
 import {rtlStyles} from '@astryxdesign/core/utils';
 import {ArrowRightIcon} from '@heroicons/react/20/solid';
@@ -27,6 +28,8 @@ import {conduitTheme} from './conduitTheme';
 import type {ScenarioPresetId} from './conduitState';
 import heroConsoleDarkAsset from './hero-console-dark.webp';
 import heroConsoleLightAsset from './hero-console-light.webp';
+import heroMobileDarkAsset from './hero-mobile-dark.webp';
+import heroMobileLightAsset from './hero-mobile-light.webp';
 
 function resolveAssetSrc(asset: string | {src: string}): string {
   return typeof asset === 'string' ? asset : asset.src;
@@ -83,12 +86,17 @@ const styles: Record<string, CSSProperties> = {
     objectFit: 'contain',
     display: 'block',
   },
-  pageBody: {
+  pageBodyDesktop: {
     maxWidth: 1120,
     width: '100%',
     marginInline: 'auto',
     paddingBlockStart: 36,
     paddingBlockEnd: 28,
+  },
+  pageBodyMobile: {
+    width: '100%',
+    paddingBlockStart: 16,
+    paddingBlockEnd: 24,
   },
   heroHeadlineWrap: {
     maxWidth: 840,
@@ -98,10 +106,15 @@ const styles: Record<string, CSSProperties> = {
     maxWidth: 620,
     marginInline: 'auto',
   },
-  heroHeadingOverride: {
+  heroHeadingDesktop: {
     fontSize: 'clamp(2rem, 4.1vw, 3.25rem)',
     lineHeight: 1.12,
     letterSpacing: '-0.025em',
+  },
+  heroHeadingMobile: {
+    fontSize: '1.85rem',
+    lineHeight: 1.14,
+    letterSpacing: '-0.022em',
   },
   heroSentenceLead: {
     display: 'block',
@@ -113,7 +126,7 @@ const styles: Record<string, CSSProperties> = {
   },
   heroPillarsWrap: {
     width: '100%',
-    marginBlockStart: 12,
+    marginBlockStart: 8,
   },
   pillarTrigger: {
     all: 'unset',
@@ -148,8 +161,42 @@ const styles: Record<string, CSSProperties> = {
     pointerEvents: 'none',
     transition: 'opacity 220ms ease, transform 220ms ease',
   },
-  previewSection: {
+  mobilePillarRow: {
+    all: 'unset',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 12,
+    width: '100%',
+    boxSizing: 'border-box',
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'var(--color-background-surface)',
+    border: 'var(--border-width) solid var(--color-border)',
+    cursor: 'pointer',
+    textAlign: 'left',
+  },
+  mobileThumbBox: {
+    width: 96,
+    height: 68,
+    flexShrink: 0,
+    borderRadius: 8,
+    backgroundColor: 'var(--color-background-body)',
+    border: 'var(--border-width) solid var(--color-border)',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  mobileThumbImg: {
+    width: '88%',
+    height: '88%',
+    objectFit: 'contain',
+  },
+  previewSectionDesktop: {
     paddingBlockStart: 56,
+  },
+  previewSectionMobile: {
+    paddingBlockStart: 36,
   },
   previewHeaderWrap: {
     maxWidth: 620,
@@ -182,7 +229,7 @@ const styles: Record<string, CSSProperties> = {
     border: 'var(--border-width) solid var(--color-border)',
   },
   footerWrap: {
-    paddingBlockStart: 56,
+    paddingBlockStart: 48,
   },
 };
 
@@ -197,11 +244,15 @@ export function ConduitLandingPage({
   onColorModeChange,
   onLaunchConsole,
 }: ConduitLandingPageProps) {
+  const isMobile = useMediaQuery('(max-width: 768px)');
   const [hoveredHero, setHoveredHero] = useState(false);
   const [hoveredStep, setHoveredStep] = useState<string | null>(null);
 
-  const heroScreenshotSrc =
-    colorMode === 'dark'
+  const heroScreenshotSrc = isMobile
+    ? colorMode === 'dark'
+      ? resolveAssetSrc(heroMobileDarkAsset)
+      : resolveAssetSrc(heroMobileLightAsset)
+    : colorMode === 'dark'
       ? resolveAssetSrc(heroConsoleDarkAsset)
       : resolveAssetSrc(heroConsoleLightAsset);
 
@@ -211,7 +262,7 @@ export function ConduitLandingPage({
       <AppShell
         height="auto"
         mobileNav={false}
-        contentPadding={6}
+        contentPadding={isMobile ? 4 : 6}
         topNav={
           <TopNav
             label="Conduit navigation"
@@ -234,12 +285,14 @@ export function ConduitLandingPage({
               <>
                 <Button
                   id="nav-github"
+                  size={isMobile ? 'sm' : 'md'}
                   label="GitHub"
                   variant="ghost"
                   href="https://github.com/maceip/Outrider"
                 />
                 <Button
                   id="nav-download"
+                  size={isMobile ? 'sm' : 'md'}
                   label="Releases"
                   variant="secondary"
                   href="https://github.com/maceip/Outrider/releases/latest"
@@ -248,18 +301,26 @@ export function ConduitLandingPage({
             }
           />
         }>
-        <div data-testid="conduit-landing-page" style={styles.pageBody}>
-          {/* Section 1: Hero — Headline + Primary CTA + 3 Interactive Medusa Illustrations */}
+        <div
+          data-testid="conduit-landing-page"
+          style={isMobile ? styles.pageBodyMobile : styles.pageBodyDesktop}>
+          {/* Section 1: Hero — Headline + CTAs + 3 Medusa Illustrations */}
           <section aria-labelledby="hero-heading">
-            <VStack gap={6} hAlign="center">
-              <VStack gap={3} hAlign="center">
+            <VStack gap={isMobile ? 4 : 6} hAlign="center">
+              <VStack gap={isMobile ? 2 : 3} hAlign="center">
                 <div style={styles.heroHeadlineWrap}>
                   <Heading
                     level={1}
                     type="display-1"
                     justify="center"
                     textWrap="balance">
-                    <span id="hero-heading" style={styles.heroHeadingOverride}>
+                    <span
+                      id="hero-heading"
+                      style={
+                        isMobile
+                          ? styles.heroHeadingMobile
+                          : styles.heroHeadingDesktop
+                      }>
                       <span style={styles.heroSentenceLead}>
                         Agents are already shopping.
                       </span>
@@ -271,137 +332,216 @@ export function ConduitLandingPage({
                 </div>
 
                 <div style={styles.heroSubheadWrap}>
-                  <Text type="body" color="secondary" justify="center">
+                  <Text
+                    type={isMobile ? 'supporting' : 'body'}
+                    color="secondary"
+                    justify="center">
                     Blocking bots turns away real buyers. Leaving endpoints open
                     bleeds margin. Conduit sits at your front door between both.
                   </Text>
                 </div>
               </VStack>
 
-              <HStack gap={3} wrap="wrap" hAlign="center">
-                <Button
-                  id="hero-launch-console"
-                  size="lg"
-                  variant="primary"
-                  label="Open Control Plane"
-                  endContent={
-                    <Icon
-                      icon={ArrowRightIcon}
-                      size="sm"
-                      color="inherit"
-                      xstyle={rtlStyles.mirror}
+              {isMobile ? (
+                <HStack gap={2} width="100%" vAlign="center">
+                  <StackItem size="fill">
+                    <Button
+                      id="hero-launch-console"
+                      width="100%"
+                      size="md"
+                      variant="primary"
+                      label="Open Control Plane"
+                      endContent={
+                        <Icon
+                          icon={ArrowRightIcon}
+                          size="sm"
+                          color="inherit"
+                          xstyle={rtlStyles.mirror}
+                        />
+                      }
+                      onClick={() => onLaunchConsole('live_hold_r02')}
                     />
-                  }
-                  onClick={() => onLaunchConsole('live_hold_r02')}
-                />
-                <Button
-                  id="hero-download-binary"
-                  size="lg"
-                  variant="secondary"
-                  label="Download App"
-                  href="https://github.com/maceip/Outrider/releases/latest"
-                />
-              </HStack>
+                  </StackItem>
+                  <Button
+                    id="hero-download-binary"
+                    size="md"
+                    variant="secondary"
+                    label="Download"
+                    href="https://github.com/maceip/Outrider/releases/latest"
+                  />
+                </HStack>
+              ) : (
+                <HStack gap={3} wrap="wrap" hAlign="center">
+                  <Button
+                    id="hero-launch-console"
+                    size="lg"
+                    variant="primary"
+                    label="Open Control Plane"
+                    endContent={
+                      <Icon
+                        icon={ArrowRightIcon}
+                        size="sm"
+                        color="inherit"
+                        xstyle={rtlStyles.mirror}
+                      />
+                    }
+                    onClick={() => onLaunchConsole('live_hold_r02')}
+                  />
+                  <Button
+                    id="hero-download-binary"
+                    size="lg"
+                    variant="secondary"
+                    label="Download App"
+                    href="https://github.com/maceip/Outrider/releases/latest"
+                  />
+                </HStack>
+              )}
 
               <div style={styles.heroPillarsWrap}>
-                <Grid columns={{minWidth: 260, max: 3, repeat: 'fit'}} gap={6}>
-                  {STORY_STEPS.map(step => {
-                    const isHovered = hoveredStep === step.id;
-                    return (
+                {isMobile ? (
+                  /* Mobile: Compact horizontal rows so ALL 3 Medusa illustrations fit on 1 screen */
+                  <VStack gap={2} width="100%">
+                    {STORY_STEPS.map(step => (
                       <button
                         key={step.id}
                         id={`hero-pillar-${step.id}`}
                         type="button"
-                        style={styles.pillarTrigger}
-                        onMouseEnter={() => setHoveredStep(step.id)}
-                        onMouseLeave={() => setHoveredStep(null)}
-                        onFocus={() => setHoveredStep(step.id)}
-                        onBlur={() => setHoveredStep(null)}
+                        style={styles.mobilePillarRow}
                         onClick={() => onLaunchConsole(step.scenario)}>
-                        <VStack gap={3}>
-                          <div
-                            style={{
-                              ...styles.illustrationFrame,
-                              ...(isHovered
-                                ? styles.illustrationFrameActive
-                                : null),
-                            }}>
-                            <img
-                              src={
-                                CONDUIT_ILLUSTRATIONS[step.restIllustration][
-                                  colorMode
-                                ]
-                              }
-                              alt={step.alt}
-                              style={{
-                                ...styles.illustrationLayer,
-                                opacity: isHovered ? 0 : 1,
-                                transform: isHovered
-                                  ? 'scale(0.97)'
-                                  : 'scale(1)',
-                              }}
-                            />
-                            <img
-                              src={
-                                CONDUIT_ILLUSTRATIONS[step.hoverIllustration][
-                                  colorMode
-                                ]
-                              }
-                              alt=""
-                              aria-hidden="true"
-                              style={{
-                                ...styles.illustrationLayer,
-                                opacity: isHovered ? 1 : 0,
-                                transform: isHovered
-                                  ? 'scale(1)'
-                                  : 'scale(0.97)',
-                              }}
-                            />
-                          </div>
-
-                          <VStack gap={1}>
-                            <Heading level={4}>{step.title}</Heading>
-                            <Text type="supporting" color="secondary">
-                              {step.body}
-                            </Text>
-                            <Text
-                              type="supporting"
-                              color={isHovered ? 'primary' : 'accent'}
-                              weight="medium">
-                              {step.ctaLabel}
-                            </Text>
-                          </VStack>
+                        <div style={styles.mobileThumbBox}>
+                          <img
+                            src={
+                              CONDUIT_ILLUSTRATIONS[step.restIllustration][
+                                colorMode
+                              ]
+                            }
+                            alt={step.alt}
+                            style={styles.mobileThumbImg}
+                          />
+                        </div>
+                        <VStack gap={0.5}>
+                          <Text type="label" weight="semibold">
+                            {step.title}
+                          </Text>
+                          <Text
+                            type="supporting"
+                            size="2xs"
+                            color="secondary"
+                            maxLines={2}>
+                            {step.body}
+                          </Text>
+                          <Text
+                            type="supporting"
+                            size="2xs"
+                            color="accent"
+                            weight="medium">
+                            {step.ctaLabel}
+                          </Text>
                         </VStack>
                       </button>
-                    );
-                  })}
-                </Grid>
+                    ))}
+                  </VStack>
+                ) : (
+                  /* Desktop: 3-column interactive Medusa gallery */
+                  <Grid columns={{minWidth: 260, max: 3, repeat: 'fit'}} gap={6}>
+                    {STORY_STEPS.map(step => {
+                      const isHovered = hoveredStep === step.id;
+                      return (
+                        <button
+                          key={step.id}
+                          id={`hero-pillar-${step.id}`}
+                          type="button"
+                          style={styles.pillarTrigger}
+                          onMouseEnter={() => setHoveredStep(step.id)}
+                          onMouseLeave={() => setHoveredStep(null)}
+                          onFocus={() => setHoveredStep(step.id)}
+                          onBlur={() => setHoveredStep(null)}
+                          onClick={() => onLaunchConsole(step.scenario)}>
+                          <VStack gap={3}>
+                            <div
+                              style={{
+                                ...styles.illustrationFrame,
+                                ...(isHovered
+                                  ? styles.illustrationFrameActive
+                                  : null),
+                              }}>
+                              <img
+                                src={
+                                  CONDUIT_ILLUSTRATIONS[step.restIllustration][
+                                    colorMode
+                                  ]
+                                }
+                                alt={step.alt}
+                                style={{
+                                  ...styles.illustrationLayer,
+                                  opacity: isHovered ? 0 : 1,
+                                  transform: isHovered
+                                    ? 'scale(0.97)'
+                                    : 'scale(1)',
+                                }}
+                              />
+                              <img
+                                src={
+                                  CONDUIT_ILLUSTRATIONS[step.hoverIllustration][
+                                    colorMode
+                                  ]
+                                }
+                                alt=""
+                                aria-hidden="true"
+                                style={{
+                                  ...styles.illustrationLayer,
+                                  opacity: isHovered ? 1 : 0,
+                                  transform: isHovered
+                                    ? 'scale(1)'
+                                    : 'scale(0.97)',
+                                }}
+                              />
+                            </div>
+
+                            <VStack gap={1}>
+                              <Heading level={4}>{step.title}</Heading>
+                              <Text type="supporting" color="secondary">
+                                {step.body}
+                              </Text>
+                              <Text
+                                type="supporting"
+                                color={isHovered ? 'primary' : 'accent'}
+                                weight="medium">
+                                {step.ctaLabel}
+                              </Text>
+                            </VStack>
+                          </VStack>
+                        </button>
+                      );
+                    })}
+                  </Grid>
+                )}
               </div>
             </VStack>
           </section>
 
-          {/* Section 2: Live Control Plane Window Preview */}
+          {/* Section 2: Live Control Plane Preview */}
           <section
             aria-labelledby="preview-heading"
-            style={styles.previewSection}>
+            style={
+              isMobile
+                ? styles.previewSectionMobile
+                : styles.previewSectionDesktop
+            }>
             <VStack gap={4}>
-              <HStack gap={3} vAlign="center" wrap="wrap">
-                <StackItem size="fill">
-                  <div style={styles.previewHeaderWrap}>
-                    <VStack gap={1}>
-                      <Heading level={2} type="display-3">
-                        <span id="preview-heading">
-                          Sell to AI shoppers on your terms.
-                        </span>
-                      </Heading>
-                      <Text type="supporting" color="secondary">
-                        Click into a live held quote to counter-offer above your
-                        floor and mint a single-use checkout pass.
-                      </Text>
-                    </VStack>
-                  </div>
-                </StackItem>
-              </HStack>
+              <div style={styles.previewHeaderWrap}>
+                <VStack gap={1}>
+                  <Heading level={2} type="display-3">
+                    <span id="preview-heading">
+                      Sell to AI shoppers on your terms.
+                    </span>
+                  </Heading>
+                  <Text type="supporting" color="secondary">
+                    Tap into a live held quote to counter-offer above your floor
+                    and mint a single-use checkout pass.
+                  </Text>
+                </VStack>
+              </div>
 
               <button
                 id="hero-product-preview"
@@ -421,8 +561,8 @@ export function ConduitLandingPage({
                   <img
                     src={heroScreenshotSrc}
                     alt="Conduit Control Plane holding an outbound merchant quote above the SKU margin floor"
-                    width={2200}
-                    height={1261}
+                    width={isMobile ? 780 : 2200}
+                    height={isMobile ? 1688 : 1261}
                     style={styles.heroScreenshot}
                   />
                 </div>

@@ -1480,38 +1480,58 @@ export function CommerceInterceptorView({embedded = false}: CommerceInterceptorV
                   </div>
                 ) : null}
 
-                <Card className="overflow-x-auto p-0">
-                  <DataGrid
-                    stickyHeader
-                    aria-label="Execution trace"
-                    className={`w-full [&_.table__column]:rounded-none! [&_.table__row]:cursor-[var(--cursor-interactive)] ${
-                      selectedEventIsHeld
-                        ? "[&_.table__row[data-selected=true]_.table__cell]:bg-warning-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground"
-                        : "[&_.table__row[data-selected=true]_.table__cell]:bg-accent-soft [&_.table__row[data-selected=true]_.table__cell]:text-foreground"
-                    }`}
-                    columns={traceColumns}
-                    contentClassName="min-w-[660px]"
-                    data={filteredTraceEvents}
-                    getRowId={(item) => item.event_id}
-                    renderEmptyState={() => (
-                      <div className="py-6">
-                        <EmptyState size="sm">
-                          <EmptyState.Header>
-                            <EmptyState.Title>No Matching Events</EmptyState.Title>
-                            <EmptyState.Description>
-                              No recorded events match the active trace filter.
-                            </EmptyState.Description>
-                          </EmptyState.Header>
-                        </EmptyState>
-                      </div>
-                    )}
-                    selectedKeys={selectedTraceKeys}
-                    selectionBehavior="replace"
-                    selectionMode="single"
-                    variant="secondary"
-                    onRowAction={(key) => setSelectedEventId(String(key))}
-                    onSelectionChange={handleTraceSelectionChange}
-                  />
+                <Card className="overflow-hidden p-0">
+                  {filteredTraceEvents.length === 0 ? (
+                    <div className="py-6">
+                      <EmptyState size="sm">
+                        <EmptyState.Header>
+                          <EmptyState.Title>No Matching Events</EmptyState.Title>
+                          <EmptyState.Description>
+                            No recorded events match the active trace filter.
+                          </EmptyState.Description>
+                        </EmptyState.Header>
+                      </EmptyState>
+                    </div>
+                  ) : (
+                    <ListBox
+                      disallowEmptySelection
+                      aria-label="Execution trace"
+                      className="divide-separator gap-0 divide-y p-0"
+                      selectedKeys={selectedTraceKeys}
+                      selectionMode="single"
+                      onSelectionChange={handleTraceSelectionChange}
+                    >
+                      {filteredTraceEvents.map((ev) => {
+                        const isHeldRow =
+                          ev.hold_state === "held" || ev.epistemic_kind === "held";
+                        const isSelectedRow = effectiveSelectedEventId === ev.event_id;
+                        const rowBg = isHeldRow
+                          ? "bg-warning-soft"
+                          : isSelectedRow
+                            ? "bg-accent-soft"
+                            : "bg-surface";
+
+                        return (
+                          <ListBox.Item
+                            key={ev.event_id}
+                            className={`flex flex-col items-start gap-1 rounded-none px-3 py-2.5 normal-case ${rowBg}`}
+                            id={ev.event_id}
+                            textValue={`${ev.event_id} ${ev.event_name}`}
+                          >
+                            <div className="flex w-full items-center justify-between gap-2">
+                              <Label className="text-foreground font-mono text-xs font-semibold normal-case">
+                                {`${ev.event_id} · ${ev.event_name}`}
+                              </Label>
+                              {renderTraceStatusChip(ev)}
+                            </div>
+                            <span className="text-muted text-xs leading-snug">
+                              {`${ev.direction === "buyer_to_seller" ? "Buyer → Seller" : "Seller → Buyer"} · ${ev.observation}`}
+                            </span>
+                          </ListBox.Item>
+                        );
+                      })}
+                    </ListBox>
+                  )}
                 </Card>
               </div>
 

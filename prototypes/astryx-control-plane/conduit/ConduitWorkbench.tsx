@@ -3,7 +3,6 @@
 'use client';
 
 import React, {useMemo, useState, type CSSProperties} from 'react';
-import {BottomSheet} from '@astryxdesign/core/BottomSheet';
 import {Button} from '@astryxdesign/core/Button';
 import {Divider} from '@astryxdesign/core/Divider';
 import {DropdownMenu} from '@astryxdesign/core/DropdownMenu';
@@ -43,6 +42,7 @@ import {
 import {CausalObservatoryGraph} from './CausalObservatoryGraph';
 import {DenseTraceTable} from './DenseTraceTable';
 import {CanonicalInspectorPanel} from './CanonicalInspectorPanel';
+import {ConduitMobileWorkbench} from './ConduitMobileWorkbench';
 import {PassesSurface, WireSurface} from './WireAndPassesSurfaces';
 
 const SCENARIO_LABELS: Record<ScenarioPresetId, string> = {
@@ -727,14 +727,45 @@ export function ConduitWorkbench({
     }
   };
 
+  if (isMobile) {
+    return (
+      <Theme theme={conduitTheme} mode={colorMode}>
+        <style>{'nextjs-portal { display: none !important; }'}</style>
+        <ConduitMobileWorkbench
+          sessions={sessions}
+          activeSession={activeSession}
+          passes={passes}
+          scenario={scenario}
+          scenarioLabels={SCENARIO_LABELS}
+          isScenarioDirty={isScenarioDirty}
+          selectedEvent={selectedEvent}
+          traceFilter={traceFilter}
+          colorMode={colorMode}
+          onColorModeChange={handleColorModeChange}
+          onBackToOverview={onBackToOverview}
+          onSelectSession={handleSelectSession}
+          onApplyScenario={applyScenarioPreset}
+          onSelectEvent={id => setSelectedEventId(id)}
+          onTraceFilterChange={setTraceFilter}
+          onToggleMutation={handleToggleMutation}
+          onTransmitModified={handleTransmitModified}
+          onForwardOriginal={handleForwardOriginal}
+          onAuthorizePass={handleAuthorizePass}
+          onRejectPass={handleRejectPass}
+          onRevokePass={handleRevokePass}
+          onApprovePendingPass={handleApprovePendingPassFromLedger}
+        />
+      </Theme>
+    );
+  }
+
   const showDesktopRightPanel =
-    !isMobile &&
     isInspectorOpen &&
     (activeSurface === 'overview' || activeSurface === 'graph');
 
   const showReopenButton =
     (activeSurface === 'overview' || activeSurface === 'graph') &&
-    (isMobile || !isInspectorOpen);
+    !isInspectorOpen;
 
   return (
     <Theme theme={conduitTheme} mode={colorMode}>
@@ -769,28 +800,6 @@ export function ConduitWorkbench({
                         />
                         <Heading level={4}>Conduit</Heading>
                       </HStack>
-
-                      {isMobile && (
-                        <DropdownMenu
-                          presentation="adaptive"
-                          button={{
-                            size: 'sm',
-                            variant: 'secondary',
-                            label: activeSession.merchantName,
-                          }}
-                          items={sessions.map(s => {
-                            const sm = deriveWorkspaceMetrics(
-                              s,
-                              sessions,
-                              passes,
-                            );
-                            return {
-                              label: `${s.merchantName} (${sm.stage})`,
-                              onClick: () => handleSelectSession(s.id),
-                            };
-                          })}
-                        />
-                      )}
                     </HStack>
                   </StackItem>
 
@@ -800,9 +809,7 @@ export function ConduitWorkbench({
                       button={{
                         size: 'sm',
                         variant: 'secondary',
-                        label: isMobile
-                          ? 'Scenarios'
-                          : `Scenario: ${SCENARIO_LABELS[scenario]}`,
+                        label: `Scenario: ${SCENARIO_LABELS[scenario]}`,
                       }}
                       items={(
                         Object.keys(SCENARIO_LABELS) as ScenarioPresetId[]
@@ -848,38 +855,36 @@ export function ConduitWorkbench({
                     </StackItem>
 
                     <HStack gap={2} vAlign="center" wrap="wrap">
-                      {!isMobile && (
-                        <HStack
-                          gap={1.5}
-                          vAlign="center"
-                          data-testid="canonical-stage-pills">
-                          {STAGE_ORDER.map((st, idx) => {
-                            const isCurrent = idx === metrics.stageIndex;
-                            const isPast = idx < metrics.stageIndex;
-                            return (
-                              <React.Fragment key={st}>
-                                {idx > 0 && (
-                                  <Text type="supporting" color="secondary">
-                                    →
-                                  </Text>
-                                )}
-                                <Text
-                                  type="supporting"
-                                  color={
-                                    isCurrent
-                                      ? 'primary'
-                                      : isPast
-                                        ? 'secondary'
-                                        : 'disabled'
-                                  }
-                                  weight={isCurrent ? 'semibold' : 'normal'}>
-                                  {st}
+                      <HStack
+                        gap={1.5}
+                        vAlign="center"
+                        data-testid="canonical-stage-pills">
+                        {STAGE_ORDER.map((st, idx) => {
+                          const isCurrent = idx === metrics.stageIndex;
+                          const isPast = idx < metrics.stageIndex;
+                          return (
+                            <React.Fragment key={st}>
+                              {idx > 0 && (
+                                <Text type="supporting" color="secondary">
+                                  →
                                 </Text>
-                              </React.Fragment>
-                            );
-                          })}
-                        </HStack>
-                      )}
+                              )}
+                              <Text
+                                type="supporting"
+                                color={
+                                  isCurrent
+                                    ? 'primary'
+                                    : isPast
+                                      ? 'secondary'
+                                      : 'disabled'
+                                }
+                                weight={isCurrent ? 'semibold' : 'normal'}>
+                                {st}
+                              </Text>
+                            </React.Fragment>
+                          );
+                        })}
+                      </HStack>
 
                       {showReopenButton &&
                         (metrics.heldEventId ? (
@@ -913,209 +918,193 @@ export function ConduitWorkbench({
                     </HStack>
                   </HStack>
                 </div>
-
-                {isMobile && (
-                  <SegmentedControl
-                    size="sm"
-                    layout="fill"
-                    label="Active surface"
-                    value={activeSurface}
-                    onChange={v => setActiveSurface(v as SurfaceId)}>
-                    <SegmentedControlItem value="overview" label="Overview" />
-                    <SegmentedControlItem value="graph" label="Graph" />
-                    <SegmentedControlItem value="wire" label="Wire" />
-                    <SegmentedControlItem value="passes" label="Passes" />
-                  </SegmentedControl>
-                )}
               </VStack>
             </LayoutHeader>
           }
           start={
-            !isMobile ? (
-              <>
-                <LayoutPanel
-                  width={sidebarResize.size}
-                  padding={0}
-                  hasDivider={false}
-                  label="Navigation">
-                  <VStack gap={0}>
-                    <div style={styles.sidebarSection}>
-                      <VStack gap={1}>
-                        <Text type="label" color="secondary">
-                          Merchant Sessions
-                        </Text>
-                        <List density="compact">
-                          {sessions.map(sess => {
-                            const sm = deriveWorkspaceMetrics(
-                              sess,
-                              sessions,
-                              passes,
-                            );
-                            return (
-                              <ListItem
-                                key={sess.id}
-                                isSelected={sess.id === activeSession.id}
-                                onClick={() => handleSelectSession(sess.id)}
-                                startContent={
-                                  <StatusDot
-                                    variant={
-                                      sm.proxyHeldCount > 0
-                                        ? 'warning'
-                                        : sm.awaitingPassCount > 0
-                                          ? 'accent'
-                                          : sm.stage === 'Fulfill'
-                                            ? 'success'
-                                            : 'neutral'
-                                    }
-                                    isPulsing={sm.proxyHeldCount > 0}
-                                    label={sm.stage}
-                                  />
-                                }
-                                label={sess.merchantName}
-                                description={`${sm.stage} · ${
-                                  sm.proxyHeldCount > 0
-                                    ? `${sm.proxyHeldCount} held`
-                                    : sm.awaitingPassCount > 0
-                                      ? 'awaiting pass'
-                                      : sm.stage === 'Fulfill'
-                                        ? 'settled'
-                                        : `${sm.eventCount} frames`
-                                }`}
-                              />
-                            );
-                          })}
-                        </List>
-                      </VStack>
-                    </div>
+            <>
+              <LayoutPanel
+                width={sidebarResize.size}
+                padding={0}
+                hasDivider={false}
+                label="Navigation">
+                <VStack gap={0}>
+                  <div style={styles.sidebarSection}>
+                    <VStack gap={1}>
+                      <Text type="label" color="secondary">
+                        Merchant Sessions
+                      </Text>
+                      <List density="compact">
+                        {sessions.map(sess => {
+                          const sm = deriveWorkspaceMetrics(
+                            sess,
+                            sessions,
+                            passes,
+                          );
+                          return (
+                            <ListItem
+                              key={sess.id}
+                              isSelected={sess.id === activeSession.id}
+                              onClick={() => handleSelectSession(sess.id)}
+                              startContent={
+                                <StatusDot
+                                  variant={
+                                    sm.proxyHeldCount > 0
+                                      ? 'warning'
+                                      : sm.awaitingPassCount > 0
+                                        ? 'accent'
+                                        : sm.stage === 'Fulfill'
+                                          ? 'success'
+                                          : 'neutral'
+                                  }
+                                  isPulsing={sm.proxyHeldCount > 0}
+                                  label={sm.stage}
+                                />
+                              }
+                              label={sess.merchantName}
+                              description={`${sm.stage} · ${
+                                sm.proxyHeldCount > 0
+                                  ? `${sm.proxyHeldCount} held`
+                                  : sm.awaitingPassCount > 0
+                                    ? 'awaiting pass'
+                                    : sm.stage === 'Fulfill'
+                                      ? 'settled'
+                                      : `${sm.eventCount} frames`
+                              }`}
+                            />
+                          );
+                        })}
+                      </List>
+                    </VStack>
+                  </div>
 
-                    <Divider />
+                  <Divider />
 
-                    <div style={styles.sidebarSection}>
-                      <VStack gap={1}>
-                        <Text type="label" color="secondary">
-                          Surfaces
-                        </Text>
-                        <List density="compact">
-                          <ListItem
-                            isSelected={activeSurface === 'overview'}
-                            onClick={() => setActiveSurface('overview')}
-                            label="Overview"
-                            description="Observatory + trace"
-                          />
-                          <ListItem
-                            isSelected={activeSurface === 'graph'}
-                            onClick={() => setActiveSurface('graph')}
-                            label="Graph"
-                            description="Causal topology"
-                          />
-                          <ListItem
-                            isSelected={activeSurface === 'wire'}
-                            onClick={() => setActiveSurface('wire')}
-                            label="Wire"
-                            description="MCP & HTTP packets"
-                          />
-                          <ListItem
-                            isSelected={activeSurface === 'passes'}
-                            onClick={() => setActiveSurface('passes')}
-                            label="Passes"
-                            description="Single-use checkout keys"
-                            endContent={
-                              metrics.globalAwaitingPassCount > 0 ? (
-                                <Text
-                                  type="supporting"
-                                  color="secondary"
-                                  hasTabularNumbers>
-                                  {metrics.globalAwaitingPassCount}
-                                </Text>
-                              ) : undefined
-                            }
-                          />
-                        </List>
-                      </VStack>
-                    </div>
-
-                    <Divider />
-
-                    <div style={styles.sidebarSection}>
-                      <VStack gap={1}>
-                        <Text type="label" color="secondary">
-                          Trace Filters
-                        </Text>
-                        <List density="compact">
-                          <ListItem
-                            isSelected={traceFilter === 'all'}
-                            onClick={() => {
-                              setActiveSurface('overview');
-                              setTraceFilter('all');
-                            }}
-                            label="All frames"
-                            endContent={
+                  <div style={styles.sidebarSection}>
+                    <VStack gap={1}>
+                      <Text type="label" color="secondary">
+                        Surfaces
+                      </Text>
+                      <List density="compact">
+                        <ListItem
+                          isSelected={activeSurface === 'overview'}
+                          onClick={() => setActiveSurface('overview')}
+                          label="Overview"
+                          description="Observatory + trace"
+                        />
+                        <ListItem
+                          isSelected={activeSurface === 'graph'}
+                          onClick={() => setActiveSurface('graph')}
+                          label="Graph"
+                          description="Causal topology"
+                        />
+                        <ListItem
+                          isSelected={activeSurface === 'wire'}
+                          onClick={() => setActiveSurface('wire')}
+                          label="Wire"
+                          description="MCP & HTTP packets"
+                        />
+                        <ListItem
+                          isSelected={activeSurface === 'passes'}
+                          onClick={() => setActiveSurface('passes')}
+                          label="Passes"
+                          description="Single-use checkout keys"
+                          endContent={
+                            metrics.globalAwaitingPassCount > 0 ? (
                               <Text
                                 type="supporting"
                                 color="secondary"
                                 hasTabularNumbers>
-                                {metrics.eventCount}
+                                {metrics.globalAwaitingPassCount}
                               </Text>
-                            }
-                          />
-                          <ListItem
-                            isSelected={traceFilter === 'mcp'}
-                            onClick={() => {
-                              setActiveSurface('overview');
-                              setTraceFilter('mcp');
-                            }}
-                            label="MCP"
-                          />
-                          <ListItem
-                            isSelected={traceFilter === 'http'}
-                            onClick={() => {
-                              setActiveSurface('overview');
-                              setTraceFilter('http');
-                            }}
-                            label="HTTP"
-                          />
-                          <ListItem
-                            isSelected={traceFilter === 'attention'}
-                            onClick={() => {
-                              setActiveSurface('overview');
-                              setTraceFilter('attention');
-                            }}
-                            label="Needs approval"
-                            endContent={
-                              metrics.proxyHeldCount +
-                                metrics.awaitingPassCount >
-                              0 ? (
-                                <Text
-                                  type="supporting"
-                                  color="secondary"
-                                  hasTabularNumbers>
-                                  {metrics.proxyHeldCount +
-                                    metrics.awaitingPassCount}
-                                </Text>
-                              ) : undefined
-                            }
-                          />
-                          <ListItem
-                            isSelected={traceFilter === 'modified'}
-                            onClick={() => {
-                              setActiveSurface('overview');
-                              setTraceFilter('modified');
-                            }}
-                            label="Counter-offers"
-                          />
-                        </List>
-                      </VStack>
-                    </div>
-                  </VStack>
-                </LayoutPanel>
-                <ResizeHandle
-                  direction="horizontal"
-                  hasDivider
-                  resizable={sidebarResize.props}
-                  label="Resize navigation sidebar"
-                />
-              </>
-            ) : undefined
+                            ) : undefined
+                          }
+                        />
+                      </List>
+                    </VStack>
+                  </div>
+
+                  <Divider />
+
+                  <div style={styles.sidebarSection}>
+                    <VStack gap={1}>
+                      <Text type="label" color="secondary">
+                        Trace Filters
+                      </Text>
+                      <List density="compact">
+                        <ListItem
+                          isSelected={traceFilter === 'all'}
+                          onClick={() => {
+                            setActiveSurface('overview');
+                            setTraceFilter('all');
+                          }}
+                          label="All frames"
+                          endContent={
+                            <Text
+                              type="supporting"
+                              color="secondary"
+                              hasTabularNumbers>
+                              {metrics.eventCount}
+                            </Text>
+                          }
+                        />
+                        <ListItem
+                          isSelected={traceFilter === 'mcp'}
+                          onClick={() => {
+                            setActiveSurface('overview');
+                            setTraceFilter('mcp');
+                          }}
+                          label="MCP"
+                        />
+                        <ListItem
+                          isSelected={traceFilter === 'http'}
+                          onClick={() => {
+                            setActiveSurface('overview');
+                            setTraceFilter('http');
+                          }}
+                          label="HTTP"
+                        />
+                        <ListItem
+                          isSelected={traceFilter === 'attention'}
+                          onClick={() => {
+                            setActiveSurface('overview');
+                            setTraceFilter('attention');
+                          }}
+                          label="Needs approval"
+                          endContent={
+                            metrics.proxyHeldCount +
+                              metrics.awaitingPassCount >
+                            0 ? (
+                              <Text
+                                type="supporting"
+                                color="secondary"
+                                hasTabularNumbers>
+                                {metrics.proxyHeldCount +
+                                  metrics.awaitingPassCount}
+                              </Text>
+                            ) : undefined
+                          }
+                        />
+                        <ListItem
+                          isSelected={traceFilter === 'modified'}
+                          onClick={() => {
+                            setActiveSurface('overview');
+                            setTraceFilter('modified');
+                          }}
+                          label="Counter-offers"
+                        />
+                      </List>
+                    </VStack>
+                  </div>
+                </VStack>
+              </LayoutPanel>
+              <ResizeHandle
+                direction="horizontal"
+                hasDivider
+                resizable={sidebarResize.props}
+                label="Resize navigation sidebar"
+              />
+            </>
           }
           content={
             <LayoutContent role="main" padding={0}>
@@ -1125,7 +1114,7 @@ export function ConduitWorkbench({
                     <>
                       <div
                         style={{
-                          height: isMobile ? 300 : graphHeightResize.size,
+                          height: graphHeightResize.size,
                           flexShrink: 0,
                           minHeight: 0,
                           overflow: 'hidden',
@@ -1137,14 +1126,12 @@ export function ConduitWorkbench({
                         />
                       </div>
 
-                      {!isMobile && (
-                        <ResizeHandle
-                          direction="vertical"
-                          hasDivider
-                          resizable={graphHeightResize.props}
-                          label="Resize Causal Observatory and Execution Trace"
-                        />
-                      )}
+                      <ResizeHandle
+                        direction="vertical"
+                        hasDivider
+                        resizable={graphHeightResize.props}
+                        label="Resize Causal Observatory and Execution Trace"
+                      />
 
                       <div style={styles.traceFill}>
                         <DenseTraceTable
@@ -1243,11 +1230,9 @@ export function ConduitWorkbench({
                       · {metrics.proxyHeldCount} held ·{' '}
                       {metrics.awaitingPassCount} awaiting pass
                     </Text>
-                    {!isMobile && (
-                      <Text type="supporting" color="secondary">
-                        · {metrics.stageHeadline}
-                      </Text>
-                    )}
+                    <Text type="supporting" color="secondary">
+                      · {metrics.stageHeadline}
+                    </Text>
                   </HStack>
                 </StackItem>
 
@@ -1265,27 +1250,6 @@ export function ConduitWorkbench({
             </LayoutFooter>
           }
         />
-
-        {isMobile && (
-          <BottomSheet
-            isOpen={isInspectorOpen}
-            onOpenChange={setIsInspectorOpen}
-            label="Frame inspection"
-            height="lg"
-            padding={0}>
-            <CanonicalInspectorPanel
-              inBottomSheet
-              session={activeSession}
-              event={selectedEvent}
-              onToggleMutation={handleToggleMutation}
-              onTransmitModified={handleTransmitModified}
-              onForwardOriginal={handleForwardOriginal}
-              onAuthorizePass={handleAuthorizePass}
-              onRejectPass={handleRejectPass}
-              onClose={() => setIsInspectorOpen(false)}
-            />
-          </BottomSheet>
-        )}
       </div>
     </Theme>
   );

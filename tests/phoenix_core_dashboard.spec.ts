@@ -1134,6 +1134,19 @@ test("Conduit single-header shell clean boot, Live Commerce Interceptor v7 (Audi
       .click();
     await expect(page).toHaveURL(/\/__proxyfor__\/?$/);
 
+    // Verify Mobile 390x844 native Control Plane (wrapped trace cards, zero horizontal overflow)
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(
+      page.getByRole("button", { name: "Switch commerce session" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("listbox", { name: "Execution trace" }),
+    ).toBeVisible();
+    await assertCleanCopyAndHeroUiHygiene(page, "Native Mobile 390x844", {
+      excludeCodeBlocks: true,
+    });
+    await page.setViewportSize({ width: 1280, height: 720 });
+
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
     expect(badResponses).toEqual([]);
@@ -1585,11 +1598,18 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders Agentic Commerce Co
       .toBe("dark");
 
     // =========================================================================
-    // 4. Mobile 390x844 Full-Width Landing + BottomSheet Control Plane
+    // 4. Mobile 390x844 Dedicated Thumb-First Workbench (Zero Desktop Tree Sharing)
     // =========================================================================
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(pagesUrl);
     await expect(page.getByTestId("conduit-landing-page")).toBeVisible();
+    for (const pillarId of [
+      "#hero-pillar-browsing",
+      "#hero-pillar-floor",
+      "#hero-pillar-checkout",
+    ]) {
+      await expect(page.locator(pillarId)).toBeVisible();
+    }
     expect(
       await page.evaluate(
         () =>
@@ -1603,7 +1623,13 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders Agentic Commerce Co
     });
 
     await page.locator("#hero-launch-console").click();
-    await expect(page.getByTestId("conduit-astryx-workbench")).toBeVisible();
+    const mobileWorkbench = page.getByTestId("conduit-mobile-workbench");
+    await expect(mobileWorkbench).toBeVisible();
+    // Desktop layout tree must NOT be mounted on mobile
+    await expect(page.getByTestId("conduit-astryx-workbench")).toHaveCount(0);
+    await expect(page.getByTestId("mobile-story-tape")).toContainText(
+      "Return Offers",
+    );
     expect(
       await page.evaluate(
         () =>
@@ -1616,30 +1642,34 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders Agentic Commerce Co
       fullPage: false,
     });
 
-    // Open mobile BottomSheet -> Send $209 Counter-Offer -> Issue Pass ($209)
-    await page
-      .getByRole("button", { name: "Review held quote", exact: true })
+    // 1-thumb release from persistent Bottom Thumb Dock -> Issue Pass ($209) -> Order Settled
+    const thumbDock = page.getByTestId("mobile-thumb-dock");
+    await thumbDock
+      .getByRole("button", { name: "Send $209 Offer (3)", exact: true })
       .click();
-    const mobileSheet = page.getByTestId("canonical-inspector-panel");
-    await expect(mobileSheet).toBeVisible();
+    await expect(mobileWorkbench).toContainText("Pass Gate · $209 Cap");
     await page.screenshot({
       path: path.join(SCRATCH_DIR, "conduit_www_mobile_approve.png"),
       fullPage: false,
     });
-    await mobileSheet
-      .getByRole("button", { name: "Send $209 Offer (3)", exact: true })
-      .click();
-    await expect(mobileSheet).toContainText("Checkout Pass Gate");
-    await mobileSheet
+
+    await thumbDock
       .getByRole("button", { name: "Issue Pass ($209)", exact: true })
       .click();
-    await expect(mobileSheet).toContainText("Settled Order");
-    await mobileSheet
-      .getByRole("button", { name: "Close", exact: true })
-      .click();
+    await expect(mobileWorkbench).toContainText("Order Settled");
+    await expect(page.getByTestId("mobile-story-tape")).toContainText(
+      "Confirm Order",
+    );
 
-    // Switch mobile surface tabs (Wire & Passes) with zero horizontal overflow
-    await page.getByRole("radio", { name: "Wire" }).click();
+    // Switch across mobile bottom tabs: Trace (+ JSON BottomSheet), Wire, and Passes
+    await thumbDock.getByRole("radio", { name: "Trace" }).click();
+    await page.getByTestId("mobile-trace-card-R02").click();
+    const jsonDialog = page.getByRole("dialog", { name: "Packet wire payload" });
+    await expect(jsonDialog).toBeVisible();
+    await jsonDialog.getByRole("button", { name: "Close", exact: true }).click();
+    await expect(jsonDialog).toBeHidden();
+
+    await thumbDock.getByRole("radio", { name: "Wire" }).click();
     await expect(page.getByTestId("wire-surface")).toBeVisible();
     expect(
       await page.evaluate(
@@ -1649,8 +1679,10 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders Agentic Commerce Co
       ),
     ).toBe(true);
 
-    await page.getByRole("radio", { name: "Passes" }).click();
-    await expect(page.getByTestId("passes-surface")).toBeVisible();
+    await thumbDock.getByRole("radio", { name: "Passes" }).click();
+    const mPasses = page.getByTestId("passes-surface");
+    await expect(mPasses).toBeVisible();
+    await expect(mPasses).toContainText("mcp.skyport.aero");
     expect(
       await page.evaluate(
         () =>
@@ -1658,6 +1690,16 @@ test("GitHub Pages Conduit landing page (/Outrider/) renders Agentic Commerce Co
           document.documentElement.clientWidth,
       ),
     ).toBe(true);
+
+    // Verify bottom Light/Dark toggle in mobile thumb dock
+    await thumbDock.getByRole("button", { name: "Switch to light mode" }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+      .toBe("light");
+    await thumbDock.getByRole("button", { name: "Switch to dark mode" }).click();
+    await expect
+      .poll(() => page.evaluate(() => document.documentElement.dataset.theme))
+      .toBe("dark");
 
     expect(consoleErrors).toEqual([]);
     expect(pageErrors).toEqual([]);
